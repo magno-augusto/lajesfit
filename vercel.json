@@ -1,13 +1,15 @@
 {
   "buildCommand": "npm run build",
-  "outputDirectory": ".output",
-  "framework": "vite",
-  "env": {
-    "VITE_SUPABASE_URL": {
-      "description": "Supabase project URL"
+  "framework": "other",
+  "nodeVersion": "20.x",
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index"
     },
-    "VITE_SUPABASE_ANON_KEY": {
-      "description": "Supabase anonymous key"
+    {
+      "source": "/(.*)",
+      "destination": "/api/index"
     }
-  }
+  ]
 }

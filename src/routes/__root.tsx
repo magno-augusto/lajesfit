@@ -85,6 +85,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" } as any,
+      { name: "twitter:title", content: "Lajes Fit" },
+      { name: "twitter:description", content: "Rede social fitness de Lajedão-BA. Treinos, dieta e eventos." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/63593f20-f830-4592-a51a-a0e3fc8928f9/id-preview-6fde1249--561481e4-f66f-43bd-8289-35481e478ff3.lovable.app-1781231002019.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/63593f20-f830-4592-a51a-a0e3fc8928f9/id-preview-6fde1249--561481e4-f66f-43bd-8289-35481e478ff3.lovable.app-1781231002019.png" },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" },

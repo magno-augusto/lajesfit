@@ -60,7 +60,7 @@ function Landing() {
               <Button asChild size="lg" variant="secondary" className="bg-background text-foreground hover:bg-background/90">
                 <Link to="/auth" search={{ mode: "signup" }}>Começar grátis</Link>
               </Button>
-              <Button asChild size="lg" variant="outline" className="border-primary-foreground/40 text-primary-foreground hover:bg-primary-foreground/10">
+              <Button asChild size="lg" variant="ghost" className="border border-primary-foreground/40 text-primary-foreground hover:bg-primary-foreground/15 hover:text-primary-foreground">
                 <Link to="/auth">Já tenho conta</Link>
               </Button>
             </div>

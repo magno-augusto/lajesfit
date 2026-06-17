@@ -35,6 +35,7 @@ function EventsPage() {
   useEffect(() => { load(); }, []);
 
   async function toggleJoin(ev: EventRow) {
+    if (!user) return;
     const joined = ev.participants.some((p) => p.user_id === user.id);
     if (joined) {
       await supabase.from("event_participants").delete().eq("event_id", ev.id).eq("user_id", user.id);
@@ -51,13 +52,13 @@ function EventsPage() {
           <h1 className="font-display text-4xl">EVENTOS</h1>
           <p className="text-sm text-muted-foreground">Corridas e treinões em Lajedão e região</p>
         </div>
-        <CreateEventDialog userId={user.id} onCreated={load} />
+        {user && <CreateEventDialog userId={user.id} onCreated={load} />}
       </div>
 
       <div className="grid gap-4">
         {events.length === 0 && <p className="text-center py-16 text-muted-foreground">Nenhum evento criado ainda. Que tal organizar a próxima corrida?</p>}
         {events.map((ev) => {
-          const joined = ev.participants.some((p) => p.user_id === user.id);
+          const joined = user ? ev.participants.some((p) => p.user_id === user.id) : false;
           const d = new Date(ev.event_date);
           return (
             <article key={ev.id} className="bg-card rounded-2xl border shadow-card overflow-hidden">
@@ -76,7 +77,13 @@ function EventsPage() {
                   </div>
                   {ev.description && <p className="text-sm mt-2 line-clamp-2">{ev.description}</p>}
                   <p className="text-xs text-muted-foreground mt-2">por @{ev.creator?.username}</p>
-                  <Button onClick={() => toggleJoin(ev)} size="sm" variant={joined ? "outline" : "default"} className="mt-3">
+                  <Button
+                    onClick={() => toggleJoin(ev)}
+                    size="sm"
+                    variant={joined ? "outline" : "default"}
+                    className="mt-3"
+                    disabled={!user}
+                  >
                     {joined ? "Cancelar inscrição" : "Participar"}
                   </Button>
                 </div>

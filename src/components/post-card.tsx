@@ -7,11 +7,12 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { type FeedPost, formatDistance, formatDuration, timeAgo } from "@/lib/feed";
 
-export function PostCard({ post, currentUserId }: { post: FeedPost; currentUserId: string }) {
+export function PostCard({ post, currentUserId }: { post: FeedPost; currentUserId: string | null }) {
   const [liked, setLiked] = useState(post.liked_by_me);
   const [count, setCount] = useState(post.likes_count);
 
   async function toggleLike() {
+    if (!currentUserId) return;
     if (liked) {
       setLiked(false); setCount((c) => c - 1);
       await supabase.from("post_likes").delete().eq("post_id", post.id).eq("user_id", currentUserId);
@@ -71,7 +72,13 @@ export function PostCard({ post, currentUserId }: { post: FeedPost; currentUserI
       )}
 
       <footer className="flex items-center gap-1 p-2 border-t mt-2">
-        <Button variant="ghost" size="sm" onClick={toggleLike} className={liked ? "text-primary" : ""}>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={toggleLike}
+          disabled={!currentUserId}
+          className={liked ? "text-primary" : ""}
+        >
           <Heart className={`size-4 mr-2 ${liked ? "fill-current" : ""}`} /> {count}
         </Button>
         <Button variant="ghost" size="sm">

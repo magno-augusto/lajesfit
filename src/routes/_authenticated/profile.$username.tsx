@@ -33,22 +33,24 @@ function ProfilePage() {
         supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", p.id),
         supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", p.id),
         supabase.from("workouts").select("distance_meters, calories").eq("user_id", p.id),
-        supabase.from("follows").select("follower_id").eq("follower_id", user.id).eq("following_id", p.id).maybeSingle(),
+        user
+          ? supabase.from("follows").select("follower_id").eq("follower_id", user.id).eq("following_id", p.id).maybeSingle()
+          : Promise.resolve({ data: null }),
       ]);
       const totalKm = (workouts ?? []).reduce((s, w) => s + (Number(w.distance_meters) || 0), 0);
       const totalKcal = (workouts ?? []).reduce((s, w) => s + (Number(w.calories) || 0), 0);
       setStats({ followers: followers ?? 0, following: followingC ?? 0, workouts: workouts?.length ?? 0, totalKm, totalKcal });
       setFollowing(!!myFollow);
 
-      const all = await fetchFeed(user.id);
+      const all = await fetchFeed(user?.id ?? null);
       setPosts(all.filter((post) => post.user_id === p.id));
     })();
-  }, [username, user.id]);
+  }, [username, user]);
 
   if (profile === null) { throw notFound(); }
 
   async function toggleFollow() {
-    if (!profile) return;
+    if (!profile || !user) return;
     if (following) {
       await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", profile.id);
       setFollowing(false); setStats((s) => ({ ...s, followers: s.followers - 1 }));
@@ -58,7 +60,7 @@ function ProfilePage() {
     }
   }
 
-  const isMe = profile.id === user.id;
+  const isMe = user ? profile.id === user.id : false;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -78,7 +80,7 @@ function ProfilePage() {
             {isMe ? (
               <Button asChild variant="outline"><Link to="/settings">Editar perfil</Link></Button>
             ) : (
-              <Button onClick={toggleFollow} variant={following ? "outline" : "default"}>{following ? "Seguindo" : "Seguir"}</Button>
+              <Button onClick={toggleFollow} variant={following ? "outline" : "default"} disabled={!user}>{following ? "Seguindo" : "Seguir"}</Button>
             )}
           </div>
           {profile.bio && <p className="text-sm mt-4">{profile.bio}</p>}
@@ -95,7 +97,7 @@ function ProfilePage() {
       <div className="space-y-4">
         <h2 className="font-display text-2xl">PUBLICAÇÕES</h2>
         {posts.length === 0 ? <p className="text-center text-muted-foreground py-12 text-sm">Nenhuma publicação ainda</p>
-          : posts.map((p) => <PostCard key={p.id} post={p} currentUserId={user.id} />)}
+          : posts.map((p) => <PostCard key={p.id} post={p} currentUserId={user?.id ?? null} />)}
       </div>
     </div>
   );

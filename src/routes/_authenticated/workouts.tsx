@@ -22,11 +22,16 @@ function WorkoutsPage() {
   const [stravaConnected, setStravaConnected] = useState(false);
 
   useEffect(() => {
+    if (!user) {
+      setWorkouts([]);
+      setStravaConnected(false);
+      return;
+    }
     supabase.from("workouts").select("*").eq("user_id", user.id).order("started_at", { ascending: false }).limit(50)
       .then(({ data }) => setWorkouts((data ?? []) as Workout[]));
     supabase.from("strava_tokens").select("user_id").eq("user_id", user.id).maybeSingle()
       .then(({ data }) => setStravaConnected(!!data));
-  }, [user.id]);
+  }, [user]);
 
   const totals = workouts.reduce((a, w) => ({
     distance: a.distance + (w.distance_meters ?? 0),
@@ -67,7 +72,9 @@ function WorkoutsPage() {
       <div className="bg-card rounded-2xl border shadow-card">
         <div className="p-4 border-b flex items-center justify-between">
           <h2 className="font-display text-2xl">MEUS TREINOS</h2>
-          <Button asChild size="sm" variant="secondary"><Link to="/feed"><Plus className="size-4 mr-1" /> Registrar</Link></Button>
+          {user && (
+            <Button asChild size="sm" variant="secondary"><Link to="/feed"><Plus className="size-4 mr-1" /> Registrar</Link></Button>
+          )}
         </div>
         <ul className="divide-y">
           {workouts.length === 0 && <li className="p-8 text-center text-muted-foreground text-sm">Nenhum treino registrado ainda</li>}

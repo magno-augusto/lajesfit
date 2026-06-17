@@ -39,6 +39,10 @@ function DietPage() {
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
 
   async function load() {
+    if (!user) {
+      setEntries([]);
+      return;
+    }
     const start = new Date(date + "T00:00:00").toISOString();
     const end = new Date(date + "T23:59:59").toISOString();
     const { data } = await supabase
@@ -50,9 +54,10 @@ function DietPage() {
       .order("consumed_at");
     setEntries((data ?? []) as any);
   }
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [date]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [date, user]);
 
   async function remove(id: string) {
+    if (!user) return;
     await supabase.from("diet_entries").delete().eq("id", id);
     load();
   }
@@ -94,7 +99,7 @@ function DietPage() {
                 <h3 className="font-display text-2xl">{m.label.toUpperCase()}</h3>
                 <p className="text-xs text-muted-foreground">{Math.round(kcal)} kcal · {items.length} item(ns)</p>
               </div>
-              <AddFoodDialog userId={user.id} meal={m.key} date={date} onAdded={load} />
+              {user && <AddFoodDialog userId={user.id} meal={m.key} date={date} onAdded={load} />}
             </header>
             <ul className="divide-y">
               {items.length === 0 ? (

@@ -21,7 +21,7 @@ export async function getMediaUrl(path: string): Promise<string> {
   return data?.signedUrl ?? "";
 }
 
-export async function fetchFeed(currentUserId: string): Promise<FeedPost[]> {
+export async function fetchFeed(currentUserId: string | null): Promise<FeedPost[]> {
   const { data: posts, error } = await supabase
     .from("posts")
     .select(`
@@ -38,7 +38,9 @@ export async function fetchFeed(currentUserId: string): Promise<FeedPost[]> {
 
   const [{ data: likes }, { data: myLikes }, { data: comments }] = await Promise.all([
     supabase.from("post_likes").select("post_id").in("post_id", ids),
-    supabase.from("post_likes").select("post_id").in("post_id", ids).eq("user_id", currentUserId),
+    currentUserId
+      ? supabase.from("post_likes").select("post_id").in("post_id", ids).eq("user_id", currentUserId)
+      : Promise.resolve({ data: [] }),
     supabase.from("post_comments").select("post_id").in("post_id", ids),
   ]);
 

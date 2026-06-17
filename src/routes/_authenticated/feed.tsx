@@ -14,17 +14,24 @@ export const Route = createFileRoute("/_authenticated/feed")({
 function FeedPage() {
   const { user } = Route.useRouteContext();
   const [posts, setPosts] = useState<FeedPost[] | null>(null);
+  const currentUserId = user?.id ?? null;
 
   const load = useCallback(async () => {
-    const data = await fetchFeed(user.id);
+    const data = await fetchFeed(currentUserId).catch(() => []);
     setPosts(data);
-  }, [user.id]);
+  }, [currentUserId]);
 
   useEffect(() => { load(); }, [load]);
 
   return (
     <div className="max-w-2xl mx-auto space-y-4">
-      <CreatePostDialog userId={user.id} onCreated={load} />
+      {currentUserId ? (
+        <CreatePostDialog userId={currentUserId} onCreated={load} />
+      ) : (
+        <div className="rounded-2xl border bg-card p-4 text-sm text-muted-foreground shadow-card">
+          Navegue pelo app livremente. Publicações e curtidas ficam desativadas enquanto o login está pausado.
+        </div>
+      )}
       {posts === null ? (
         <div className="space-y-4">{[1,2,3].map((i) => <Skeleton key={i} className="h-64 rounded-2xl" />)}</div>
       ) : posts.length === 0 ? (
@@ -33,7 +40,7 @@ function FeedPage() {
           <p className="mt-2 text-sm">Seja o primeiro a postar um treino!</p>
         </div>
       ) : (
-        posts.map((p) => <PostCard key={p.id} post={p} currentUserId={user.id} />)
+        posts.map((p) => <PostCard key={p.id} post={p} currentUserId={currentUserId} />)
       )}
     </div>
   );

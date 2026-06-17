@@ -20,15 +20,26 @@ function SettingsPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (!user) {
+      setProfile({
+        username: "visitante",
+        display_name: "Visitante",
+        bio: "",
+        city: "Lajedao-BA",
+        avatar_url: "",
+      });
+      setStravaConnected(false);
+      return;
+    }
     supabase.from("profiles").select("username, display_name, bio, city, avatar_url").eq("id", user.id).maybeSingle()
       .then(({ data }) => setProfile({ username: data?.username ?? "", display_name: data?.display_name ?? "", bio: data?.bio ?? "", city: data?.city ?? "", avatar_url: data?.avatar_url ?? "" }));
     supabase.from("strava_tokens").select("user_id").eq("user_id", user.id).maybeSingle()
       .then(({ data }) => setStravaConnected(!!data));
-  }, [user.id]);
+  }, [user]);
 
   async function save(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!profile) return;
+    if (!profile || !user) return;
     setLoading(true);
     const { error } = await supabase.from("profiles").update({
       display_name: profile.display_name, bio: profile.bio || null, city: profile.city || null, avatar_url: profile.avatar_url || null,
@@ -38,6 +49,7 @@ function SettingsPage() {
   }
 
   async function uploadAvatar(file: File) {
+    if (!user) return;
     const ext = file.name.split(".").pop();
     const path = `${user.id}/avatar-${Date.now()}.${ext}`;
     const { error: ue } = await supabase.storage.from("media").upload(path, file, { upsert: true });
@@ -72,7 +84,7 @@ function SettingsPage() {
           <div><Label>Nome</Label><Input value={profile.display_name} onChange={(e) => setProfile({ ...profile, display_name: e.target.value })} maxLength={60} required /></div>
           <div><Label>Cidade</Label><Input value={profile.city} onChange={(e) => setProfile({ ...profile, city: e.target.value })} placeholder="Lajedão-BA" maxLength={80} /></div>
           <div><Label>Bio</Label><Textarea value={profile.bio} onChange={(e) => setProfile({ ...profile, bio: e.target.value })} maxLength={300} rows={3} placeholder="Conte um pouco sobre você" /></div>
-          <Button type="submit" disabled={loading}>{loading ? "Salvando..." : "Salvar"}</Button>
+          <Button type="submit" disabled={loading || !user}>{loading ? "Salvando..." : "Salvar"}</Button>
         </form>
       </section>
 

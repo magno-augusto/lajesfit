@@ -1,14 +1,4 @@
 {
   "buildCommand": "npm run build",
-  "framework": "tanstack-start",
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/api/index"
-    }
-  ]
+  "framework": "tanstack-start"
 }

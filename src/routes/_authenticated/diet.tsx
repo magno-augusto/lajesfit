@@ -1,35 +1,43 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { Flame, Plus, Search, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Trash2, Flame } from "lucide-react";
-import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/_authenticated/diet")({
-  head: () => ({ meta: [{ title: "Dieta · Lajes Fit" }] }),
+  head: () => ({ meta: [{ title: "Dieta - Lajes Fit" }] }),
   component: DietPage,
 });
 
-type Food = { id: number; name: string; category: string | null; energy_kcal: number; protein_g: number; carbs_g: number; fat_g: number; fiber_g: number; sodium_mg: number };
-type Entry = { id: string; food_id: number; grams: number; meal: "breakfast" | "lunch" | "snack" | "dinner"; consumed_at: string; food: Food };
+type Food = {
+  id: number;
+  name: string;
+  category: string | null;
+  energy_kcal: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+};
+type Meal = "breakfast" | "lunch" | "snack" | "dinner";
+type Entry = { id: string; food_id: number; grams: number; meal: Meal; consumed_at: string; food: Food };
 
-const MEALS = [
-  { key: "breakfast", label: "Café da manhã" },
-  { key: "lunch", label: "Almoço" },
+const MEALS: { key: Meal; label: string }[] = [
+  { key: "breakfast", label: "Cafe da manha" },
+  { key: "lunch", label: "Almoco" },
   { key: "snack", label: "Lanche" },
   { key: "dinner", label: "Jantar" },
-] as const;
+];
 
 function macros(food: Food, grams: number) {
-  const f = grams / 100;
+  const factor = grams / 100;
   return {
-    kcal: food.energy_kcal * f,
-    p: food.protein_g * f,
-    c: food.carbs_g * f,
-    g: food.fat_g * f,
+    kcal: Number(food.energy_kcal) * factor,
+    p: Number(food.protein_g) * factor,
+    c: Number(food.carbs_g) * factor,
+    g: Number(food.fat_g) * factor,
   };
 }
 
@@ -39,33 +47,39 @@ function DietPage() {
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
 
   async function load() {
-    if (!user) {
-      setEntries([]);
-      return;
-    }
     const start = new Date(date + "T00:00:00").toISOString();
     const end = new Date(date + "T23:59:59").toISOString();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("diet_entries")
       .select("id, food_id, grams, meal, consumed_at, food:taco_foods(*)")
       .eq("user_id", user.id)
       .gte("consumed_at", start)
       .lte("consumed_at", end)
       .order("consumed_at");
-    setEntries((data ?? []) as any);
+    if (error) toast.error(error.message);
+    setEntries((data ?? []) as Entry[]);
   }
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [date, user]);
+
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [date, user.id]);
 
   async function remove(id: string) {
-    if (!user) return;
-    await supabase.from("diet_entries").delete().eq("id", id);
-    load();
+    const { error } = await supabase.from("diet_entries").delete().eq("id", id);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Alimento removido");
+      load();
+    }
   }
 
   const totals = useMemo(() => {
-    return entries.reduce((acc, e) => {
-      const m = macros(e.food, e.grams);
-      return { kcal: acc.kcal + m.kcal, p: acc.p + m.p, c: acc.c + m.c, g: acc.g + m.g };
+    return entries.reduce((acc, entry) => {
+      const mealMacros = macros(entry.food, entry.grams);
+      return {
+        kcal: acc.kcal + mealMacros.kcal,
+        p: acc.p + mealMacros.p,
+        c: acc.c + mealMacros.c,
+        g: acc.g + mealMacros.g,
+      };
     }, { kcal: 0, p: 0, c: 0, g: 0 });
   }, [entries]);
 
@@ -79,41 +93,49 @@ function DietPage() {
               <Flame className="size-8" /> {Math.round(totals.kcal)} <span className="text-lg font-sans">kcal</span>
             </p>
           </div>
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-            className="bg-primary-foreground/15 border border-primary-foreground/30 rounded-lg px-3 py-2 text-sm text-primary-foreground" />
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="bg-primary-foreground/15 border border-primary-foreground/30 rounded-lg px-3 py-2 text-sm text-primary-foreground"
+          />
         </div>
         <div className="grid grid-cols-3 gap-4 mt-4">
-          <Macro label="Proteína" value={totals.p} unit="g" />
+          <Macro label="Proteina" value={totals.p} unit="g" />
           <Macro label="Carboidrato" value={totals.c} unit="g" />
           <Macro label="Gordura" value={totals.g} unit="g" />
         </div>
       </div>
 
-      {MEALS.map((m) => {
-        const items = entries.filter((e) => e.meal === m.key);
-        const kcal = items.reduce((s, e) => s + macros(e.food, e.grams).kcal, 0);
+      {MEALS.map((meal) => {
+        const items = entries.filter((entry) => entry.meal === meal.key);
+        const kcal = items.reduce((sum, entry) => sum + macros(entry.food, entry.grams).kcal, 0);
         return (
-          <section key={m.key} className="bg-card rounded-2xl border shadow-card overflow-hidden">
+          <section key={meal.key} className="bg-card rounded-2xl border shadow-card overflow-hidden">
             <header className="flex items-center justify-between p-4 border-b">
               <div>
-                <h3 className="font-display text-2xl">{m.label.toUpperCase()}</h3>
-                <p className="text-xs text-muted-foreground">{Math.round(kcal)} kcal · {items.length} item(ns)</p>
+                <h3 className="font-display text-2xl">{meal.label.toUpperCase()}</h3>
+                <p className="text-xs text-muted-foreground">{Math.round(kcal)} kcal - {items.length} item(ns)</p>
               </div>
-              {user && <AddFoodDialog userId={user.id} meal={m.key} date={date} onAdded={load} />}
+              <AddFoodDialog userId={user.id} meal={meal.key} date={date} onAdded={load} />
             </header>
             <ul className="divide-y">
               {items.length === 0 ? (
                 <li className="px-4 py-6 text-sm text-muted-foreground text-center">Nenhum alimento registrado</li>
-              ) : items.map((e) => {
-                const M = macros(e.food, e.grams);
+              ) : items.map((entry) => {
+                const mealMacros = macros(entry.food, entry.grams);
                 return (
-                  <li key={e.id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/40">
+                  <li key={entry.id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/40">
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{e.food.name}</p>
-                      <p className="text-xs text-muted-foreground">{e.grams}g · {M.p.toFixed(1)}P / {M.c.toFixed(1)}C / {M.g.toFixed(1)}G</p>
+                      <p className="text-sm font-medium truncate">{entry.food.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {entry.grams}g - {mealMacros.p.toFixed(1)}P / {mealMacros.c.toFixed(1)}C / {mealMacros.g.toFixed(1)}G
+                      </p>
                     </div>
-                    <p className="font-display text-xl">{Math.round(M.kcal)}</p>
-                    <Button variant="ghost" size="icon" onClick={() => remove(e.id)}><Trash2 className="size-4" /></Button>
+                    <p className="font-display text-xl">{Math.round(mealMacros.kcal)}</p>
+                    <Button variant="ghost" size="icon" onClick={() => remove(entry.id)}>
+                      <Trash2 className="size-4" />
+                    </Button>
                   </li>
                 );
               })}
@@ -134,42 +156,58 @@ function Macro({ label, value, unit }: { label: string; value: number; unit: str
   );
 }
 
-function AddFoodDialog({ userId, meal, date, onAdded }: { userId: string; meal: Entry["meal"]; date: string; onAdded: () => void }) {
+function AddFoodDialog({ userId, meal, date, onAdded }: { userId: string; meal: Meal; date: string; onAdded: () => void }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const [results, setResults] = useState<Food[]>([]);
   const [selected, setSelected] = useState<Food | null>(null);
   const [grams, setGrams] = useState(100);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-    const t = setTimeout(async () => {
+    const timeout = setTimeout(async () => {
       const query = supabase.from("taco_foods").select("*").order("name").limit(30);
-      const { data } = q.trim()
-        ? await query.ilike("name", `%${q.trim()}%`)
-        : await query;
+      const { data, error } = q.trim() ? await query.ilike("name", `%${q.trim()}%`) : await query;
+      if (error) toast.error(error.message);
       setResults((data ?? []) as Food[]);
     }, 200);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timeout);
   }, [q, open]);
 
   async function add() {
     if (!selected) return;
+    setLoading(true);
     const consumedAt = new Date(date + "T" + new Date().toTimeString().slice(0, 8)).toISOString();
     const { error } = await supabase.from("diet_entries").insert({
-      user_id: userId, food_id: selected.id, grams, meal, consumed_at: consumedAt,
+      user_id: userId,
+      food_id: selected.id,
+      grams,
+      meal,
+      consumed_at: consumedAt,
     });
-    if (error) { toast.error(error.message); return; }
+    setLoading(false);
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
     toast.success("Alimento adicionado");
-    setOpen(false); setSelected(null); setQ(""); setGrams(100);
+    setOpen(false);
+    setSelected(null);
+    setQ("");
+    setGrams(100);
     onAdded();
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild><Button size="sm" variant="secondary"><Plus className="size-4 mr-1" /> Adicionar</Button></DialogTrigger>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="secondary"><Plus className="size-4 mr-1" /> Adicionar</Button>
+      </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
-        <DialogHeader><DialogTitle>Buscar alimento — Tabela TACO</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>Buscar alimento - Tabela TACO</DialogTitle></DialogHeader>
         {!selected ? (
           <>
             <div className="relative">
@@ -177,13 +215,15 @@ function AddFoodDialog({ userId, meal, date, onAdded }: { userId: string; meal: 
               <Input placeholder="ex: arroz, frango, banana..." value={q} onChange={(e) => setQ(e.target.value)} className="pl-9" autoFocus />
             </div>
             <ul className="max-h-80 overflow-auto divide-y rounded-lg border">
-              {results.map((f) => {
-                const m = macros(f, 100);
+              {results.map((food) => {
+                const foodMacros = macros(food, 100);
                 return (
-                  <li key={f.id}>
-                    <button onClick={() => setSelected(f)} className="w-full text-left px-3 py-2 hover:bg-muted">
-                      <p className="text-sm font-medium">{f.name}</p>
-                      <p className="text-xs text-muted-foreground">{Math.round(m.kcal)} kcal · {m.p.toFixed(1)}P/{m.c.toFixed(1)}C/{m.g.toFixed(1)}G por 100g</p>
+                  <li key={food.id}>
+                    <button onClick={() => setSelected(food)} className="w-full text-left px-3 py-2 hover:bg-muted">
+                      <p className="text-sm font-medium">{food.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {Math.round(foodMacros.kcal)} kcal - {foodMacros.p.toFixed(1)}P/{foodMacros.c.toFixed(1)}C/{foodMacros.g.toFixed(1)}G por 100g
+                      </p>
                     </button>
                   </li>
                 );
@@ -193,26 +233,31 @@ function AddFoodDialog({ userId, meal, date, onAdded }: { userId: string; meal: 
           </>
         ) : (
           <div className="space-y-4">
-            <button onClick={() => setSelected(null)} className="text-xs text-primary hover:underline">← outra busca</button>
+            <button onClick={() => setSelected(null)} className="text-xs text-primary hover:underline">Voltar para busca</button>
             <div>
               <p className="font-medium">{selected.name}</p>
               <p className="text-xs text-muted-foreground">{selected.category}</p>
             </div>
             <div>
               <label className="text-xs text-muted-foreground">Quantidade (g)</label>
-              <Input type="number" value={grams} onChange={(e) => setGrams(Number(e.target.value))} />
+              <Input type="number" min="1" value={grams} onChange={(e) => setGrams(Number(e.target.value))} />
             </div>
             <div className="grid grid-cols-4 gap-2 text-center bg-muted rounded-lg p-3">
-              {(() => { const m = macros(selected, grams); return (
-                <>
-                  <div><p className="text-xs text-muted-foreground">kcal</p><p className="font-display text-xl">{Math.round(m.kcal)}</p></div>
-                  <div><p className="text-xs text-muted-foreground">P</p><p className="font-display text-xl">{m.p.toFixed(1)}</p></div>
-                  <div><p className="text-xs text-muted-foreground">C</p><p className="font-display text-xl">{m.c.toFixed(1)}</p></div>
-                  <div><p className="text-xs text-muted-foreground">G</p><p className="font-display text-xl">{m.g.toFixed(1)}</p></div>
-                </>
-              );})()}
+              {(() => {
+                const selectedMacros = macros(selected, grams);
+                return (
+                  <>
+                    <div><p className="text-xs text-muted-foreground">kcal</p><p className="font-display text-xl">{Math.round(selectedMacros.kcal)}</p></div>
+                    <div><p className="text-xs text-muted-foreground">P</p><p className="font-display text-xl">{selectedMacros.p.toFixed(1)}</p></div>
+                    <div><p className="text-xs text-muted-foreground">C</p><p className="font-display text-xl">{selectedMacros.c.toFixed(1)}</p></div>
+                    <div><p className="text-xs text-muted-foreground">G</p><p className="font-display text-xl">{selectedMacros.g.toFixed(1)}</p></div>
+                  </>
+                );
+              })()}
             </div>
-            <Button onClick={add} className="w-full">Adicionar à refeição</Button>
+            <Button onClick={add} disabled={loading} className="w-full">
+              {loading ? "Adicionando..." : "Adicionar a refeicao"}
+            </Button>
           </div>
         )}
       </DialogContent>

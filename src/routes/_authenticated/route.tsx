@@ -1,16 +1,24 @@
-import { createFileRoute, Outlet, Link, useLocation } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect, Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Home, Activity, Apple, Calendar, Settings } from "lucide-react";
+import { Activity, Apple, Calendar, Home, LogOut, Settings, User as UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import logo from "@/assets/logo.png";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
-    const { data } = await supabase.auth.getUser();
-    return { user: data.user ?? null };
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data.user) throw redirect({ to: "/auth" });
+    return { user: data.user };
   },
   component: AppShell,
 });
@@ -20,21 +28,22 @@ type ProfileMini = { username: string; display_name: string; avatar_url: string 
 function AppShell() {
   const { user } = Route.useRouteContext();
   const location = useLocation();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<ProfileMini | null>(null);
 
   useEffect(() => {
-    if (!user) {
-      setProfile(null);
-      return;
-    }
-
     supabase
       .from("profiles")
       .select("username,display_name,avatar_url")
       .eq("id", user.id)
       .maybeSingle()
       .then(({ data }) => setProfile(data));
-  }, [user]);
+  }, [user.id]);
+
+  async function signOut() {
+    await supabase.auth.signOut();
+    navigate({ to: "/auth", replace: true });
+  }
 
   const navItems = [
     { to: "/feed", icon: Home, label: "Feed" },
@@ -66,20 +75,41 @@ function AppShell() {
             })}
           </nav>
 
-          <div className="flex items-center gap-2">
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/settings">
-                <Settings className="size-4 mr-2" />
-                <span className="hidden sm:inline">Configurações</span>
-              </Link>
-            </Button>
-            <Avatar className="size-9 border-2 border-primary/30">
-              <AvatarImage src={profile?.avatar_url ?? undefined} />
-              <AvatarFallback className="bg-gradient-primary text-primary-foreground font-semibold">
-                {(profile?.display_name ?? user?.email ?? "L").slice(0, 1).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="rounded-full outline-none focus-visible:ring-2 ring-ring">
+                <Avatar className="size-9 border-2 border-primary/30">
+                  <AvatarImage src={profile?.avatar_url ?? undefined} />
+                  <AvatarFallback className="bg-gradient-primary text-primary-foreground font-semibold">
+                    {(profile?.display_name ?? user.email ?? "?").slice(0, 1).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <div className="px-2 py-1.5 text-sm">
+                <p className="font-medium">{profile?.display_name ?? "Atleta"}</p>
+                <p className="text-xs text-muted-foreground">@{profile?.username ?? "..."}</p>
+              </div>
+              <DropdownMenuSeparator />
+              {profile && (
+                <DropdownMenuItem asChild>
+                  <Link to="/profile/$username" params={{ username: profile.username }}>
+                    <UserIcon className="size-4 mr-2" /> Meu perfil
+                  </Link>
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem asChild>
+                <Link to="/settings">
+                  <Settings className="size-4 mr-2" /> Configuracoes
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={signOut}>
+                <LogOut className="size-4 mr-2" /> Sair
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 

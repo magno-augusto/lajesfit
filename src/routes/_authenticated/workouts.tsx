@@ -2,7 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Activity, Plus, Zap } from "lucide-react";
+import { ManualWorkoutDialog } from "@/components/manual-workout-dialog";
+import { Activity, Zap } from "lucide-react";
 import { formatDistance, formatDuration, timeAgo } from "@/lib/feed";
 
 export const Route = createFileRoute("/_authenticated/workouts")({
@@ -21,17 +22,14 @@ function WorkoutsPage() {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [stravaConnected, setStravaConnected] = useState(false);
 
-  useEffect(() => {
-    if (!user) {
-      setWorkouts([]);
-      setStravaConnected(false);
-      return;
-    }
+  async function load() {
     supabase.from("workouts").select("*").eq("user_id", user.id).order("started_at", { ascending: false }).limit(50)
       .then(({ data }) => setWorkouts((data ?? []) as Workout[]));
     supabase.from("strava_tokens").select("user_id").eq("user_id", user.id).maybeSingle()
       .then(({ data }) => setStravaConnected(!!data));
-  }, [user]);
+  }
+
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [user.id]);
 
   const totals = workouts.reduce((a, w) => ({
     distance: a.distance + (w.distance_meters ?? 0),
@@ -72,9 +70,7 @@ function WorkoutsPage() {
       <div className="bg-card rounded-2xl border shadow-card">
         <div className="p-4 border-b flex items-center justify-between">
           <h2 className="font-display text-2xl">MEUS TREINOS</h2>
-          {user && (
-            <Button asChild size="sm" variant="secondary"><Link to="/feed"><Plus className="size-4 mr-1" /> Registrar</Link></Button>
-          )}
+          <ManualWorkoutDialog userId={user.id} onCreated={load} />
         </div>
         <ul className="divide-y">
           {workouts.length === 0 && <li className="p-8 text-center text-muted-foreground text-sm">Nenhum treino registrado ainda</li>}

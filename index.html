@@ -1,0 +1,186 @@
+﻿<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lajes Fit</title>
+  <meta name="description" content="Contador de IDR, refeicoes e exercicios do Lajes Fit." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { color-scheme: light; --bg:#f6f7f2; --card:#fff; --text:#172019; --muted:#657066; --line:#dde3da; --primary:#1f8a4c; --primary-dark:#146b39; --accent:#ff6b35; --soft:#e9f6ee; --danger:#d94b4b; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: Inter, system-ui, sans-serif; background:var(--bg); color:var(--text); }
+    h1,h2,h3,.display { font-family:'Bebas Neue', Impact, sans-serif; letter-spacing:0; }
+    button,input,select { font: inherit; }
+    button { border:0; border-radius:8px; background:var(--primary); color:#fff; padding:10px 14px; font-weight:700; cursor:pointer; }
+    button.secondary { background:#edf2ea; color:var(--text); }
+    button.danger { background:var(--danger); }
+    button:disabled { opacity:.55; cursor:not-allowed; }
+    input,select { width:100%; border:1px solid var(--line); border-radius:8px; background:#fff; padding:10px 12px; color:var(--text); }
+    label { display:grid; gap:7px; font-size:13px; font-weight:700; color:#3c463f; }
+    header { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.9); border-bottom:1px solid var(--line); backdrop-filter: blur(10px); }
+    .top { max-width:1040px; margin:auto; height:68px; padding:0 16px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .brand { display:flex; align-items:center; gap:10px; min-width:0; }
+    .logo { width:40px; height:40px; border-radius:9px; background:linear-gradient(135deg,var(--primary),var(--accent)); display:grid; place-items:center; color:#fff; font-weight:900; }
+    .brand .display { font-size:30px; white-space:nowrap; }
+    nav { display:flex; gap:6px; }
+    nav button { background:transparent; color:var(--muted); padding:8px 10px; }
+    nav button.active { color:var(--text); background:#edf2ea; }
+    .counter { min-width:168px; border:1px solid var(--line); background:#fff; border-radius:8px; padding:8px 10px; text-align:right; }
+    .counter small { color:var(--muted); font-size:11px; }
+    .counter .display { font-size:30px; line-height:.9; }
+    main { max-width:1040px; margin:auto; padding:22px 16px 80px; }
+    .setup-wrap { min-height:calc(100vh - 68px); display:grid; align-items:center; }
+    .setup { display:grid; grid-template-columns:1fr 340px; gap:18px; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:8px; box-shadow:0 10px 24px rgba(25,40,30,.06); }
+    .panel { padding:22px; }
+    .hero { background:linear-gradient(135deg,#168b47,#ff7a35); color:#fff; border-radius:8px; padding:24px; }
+    .hero .display { font-size:76px; line-height:.85; }
+    .muted { color:var(--muted); }
+    .grid { display:grid; gap:14px; }
+    .cols2 { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .cols3 { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    .tabs { display:flex; gap:8px; margin-bottom:16px; overflow:auto; }
+    .section-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
+    .section-head h1 { font-size:42px; margin:0; }
+    .summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:14px 0; }
+    .metric { background:#f3f6f0; border-radius:8px; padding:12px; }
+    .metric small { color:var(--muted); }
+    .metric .display { font-size:30px; line-height:1; }
+    .list { display:grid; gap:10px; }
+    .row { display:flex; align-items:center; gap:12px; padding:13px; border:1px solid var(--line); border-radius:8px; background:#fff; }
+    .row .icon { width:42px; height:42px; border-radius:8px; display:grid; place-items:center; background:var(--soft); color:var(--primary); font-weight:900; flex:0 0 auto; }
+    .row-main { flex:1; min-width:0; }
+    .row-main strong { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .post { padding:16px; display:grid; gap:10px; }
+    .post-head { display:flex; align-items:center; gap:12px; }
+    .avatar { width:40px; height:40px; border-radius:999px; display:grid; place-items:center; background:linear-gradient(135deg,var(--primary),var(--accent)); color:#fff; font-weight:900; }
+    .badge { margin-left:auto; border-radius:999px; background:#edf2ea; padding:6px 9px; font-size:12px; font-weight:800; }
+    .empty { text-align:center; padding:32px; color:var(--muted); border:1px dashed var(--line); border-radius:8px; background:#fff; }
+    .hidden { display:none !important; }
+    @media (max-width: 800px) { .setup { grid-template-columns:1fr; } nav { position:fixed; bottom:0; left:0; right:0; background:#fff; border-top:1px solid var(--line); justify-content:space-around; padding:8px; } nav button { display:grid; place-items:center; min-width:96px; } .brand .display { display:none; } .counter { min-width:145px; } .cols2,.cols3,.summary { grid-template-columns:1fr; } .hero .display { font-size:58px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="top">
+      <div class="brand"><div class="logo">LF</div><div class="display">LAJES FIT</div></div>
+      <nav id="nav" class="hidden">
+        <button data-tab="feed" class="active">Feed</button>
+        <button data-tab="diet">Refeicoes</button>
+        <button data-tab="workouts">Exercicios</button>
+      </nav>
+      <div id="counter" class="counter hidden"><small>Restante do IDR</small><div class="display"><span id="remaining">0</span> kcal</div><small id="counterDetail">IDR 0 - comida + treino</small></div>
+    </div>
+  </header>
+
+  <main>
+    <section id="setup" class="setup-wrap">
+      <div class="setup">
+        <div class="card panel">
+          <p class="muted" style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;margin:0 0 8px">Primeiro acesso</p>
+          <h1 class="display" style="font-size:48px;margin:0 0 8px">CALCULE SUA IDR</h1>
+          <p class="muted" style="margin:0 0 22px">Informe os dados para calcular sua ingestao diaria recomendada.</p>
+          <form id="setupForm" class="grid">
+            <div class="grid cols2">
+              <label>Nome<input id="name" required placeholder="Como quer aparecer" /></label>
+              <label>Sexo biologico<select id="sex"><option value="female">Feminino</option><option value="male">Masculino</option></select></label>
+            </div>
+            <div class="grid cols3">
+              <label>Idade<input id="age" type="number" min="12" max="100" value="30" required /></label>
+              <label>Peso (kg)<input id="weight" type="number" min="30" max="250" step="0.1" value="70" required /></label>
+              <label>Altura (cm)<input id="height" type="number" min="120" max="230" value="170" required /></label>
+            </div>
+            <label>Nivel de atividade<select id="activity"><option value="1.2">Pouco ou nenhum exercicio</option><option value="1.375">Exercicio leve 1-3 dias/semana</option><option value="1.55" selected>Exercicio moderado 3-5 dias/semana</option><option value="1.725">Exercicio intenso 6-7 dias/semana</option><option value="1.9">Treino muito intenso ou trabalho fisico</option></select></label>
+            <button type="submit">Salvar IDR e abrir app</button>
+          </form>
+        </div>
+        <aside class="hero">
+          <p style="margin:0 0 14px;text-transform:uppercase;font-size:12px;font-weight:800;opacity:.8;letter-spacing:.12em">Previa do contador</p>
+          <div class="display"><span id="previewIdr">0</span></div>
+          <p style="margin:8px 0 0;opacity:.85">O contador comeca nesse valor. Refeicoes subtraem; exercicios somam calorias disponiveis.</p>
+        </aside>
+      </div>
+    </section>
+
+    <section id="app" class="hidden">
+      <section id="feedView" class="view">
+        <div class="section-head"><div><h1>FEED</h1><p class="muted">Registros ficticios para movimentar a pagina inicial.</p></div></div>
+        <div id="feedList" class="list"></div>
+      </section>
+
+      <section id="dietView" class="view hidden">
+        <div class="section-head"><div><h1>REFEICOES</h1><p class="muted">Calorias consumidas subtraem do IDR.</p></div></div>
+        <div class="card panel">
+          <form id="mealForm" class="grid cols3">
+            <label>Refeicao<select id="mealType"><option value="Cafe da manha">Cafe da manha</option><option value="Almoco" selected>Almoco</option><option value="Lanche">Lanche</option><option value="Jantar">Jantar</option></select></label>
+            <label>Alimento<select id="food"></select></label>
+            <label>Quantidade (g)<input id="grams" type="number" min="1" value="100" /></label>
+            <button type="submit">Adicionar refeicao</button>
+          </form>
+        </div>
+        <div class="summary"><div class="metric"><small>Consumido</small><div class="display"><span id="mealKcal">0</span> kcal</div></div><div class="metric"><small>Proteina</small><div class="display"><span id="protein">0</span> g</div></div><div class="metric"><small>Itens</small><div class="display" id="mealCount">0</div></div></div>
+        <div id="mealList" class="list"></div>
+      </section>
+
+      <section id="workoutsView" class="view hidden">
+        <div class="section-head"><div><h1>EXERCICIOS</h1><p class="muted">Calorias gastas somam ao total disponivel para consumo.</p></div></div>
+        <div class="card panel">
+          <form id="workoutForm" class="grid cols3">
+            <label>Modalidade<select id="activityType"><option>Corrida</option><option>Caminhada</option><option>Ciclismo</option><option>Musculacao</option><option>Trilha</option><option>Natacao</option><option>Outro</option></select></label>
+            <label>Nome<input id="workoutName" placeholder="Treino matinal" /></label>
+            <label>Calorias<input id="workoutCalories" type="number" min="0" value="300" /></label>
+            <label>Distancia (km)<input id="distance" type="number" min="0" step="0.01" placeholder="5.2" /></label>
+            <label>Horas<input id="hours" type="number" min="0" value="0" /></label>
+            <label>Minutos<input id="minutes" type="number" min="0" max="59" value="45" /></label>
+            <button type="submit">Adicionar exercicio</button>
+          </form>
+        </div>
+        <div class="summary"><div class="metric"><small>Gasto</small><div class="display"><span id="workoutKcal">0</span> kcal</div></div><div class="metric"><small>Distancia</small><div class="display"><span id="workoutKm">0.0</span> km</div></div><div class="metric"><small>Treinos</small><div class="display" id="workoutCount">0</div></div></div>
+        <div id="workoutList" class="list"></div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const keys = { profile:'lajes-fit-idr-profile', meals:'lajes-fit-meals', workouts:'lajes-fit-workouts' };
+    const foods = [
+      ['Arroz branco cozido',128,2.5,28.1,0.2], ['Feijao carioca cozido',76,4.8,13.6,0.5], ['Frango grelhado',159,32,0,2.5], ['Ovo cozido',146,13.3,.6,9.5], ['Banana prata',98,1.3,26,.1], ['Batata doce cozida',77,.6,18.4,.1], ['Macarrao cozido',158,5.8,30.9,.9], ['Carne bovina grelhada',219,32.4,0,8.9], ['Iogurte natural',51,4.1,1.9,3], ['Pao frances',300,8,58.6,3.1]
+    ].map(([name, calories, protein, carbs, fat]) => ({ name, calories, protein, carbs, fat }));
+    const samples = [
+      ['Ana Souza','anafit','Refeicao','Almoco caprichado: arroz, feijao, frango grelhado e salada. Fechou em 612 kcal.','+612 kcal'],
+      ['Bruno Lima','brunocorre','Exercicio','Corrida leve no fim da tarde. 5,2 km para fechar o dia com energia.','-410 kcal'],
+      ['Carla Reis','carlareis','Refeicao','Lanche pos-treino com banana, iogurte natural e ovo cozido.','+328 kcal'],
+      ['Diego Matos','diegomatos','Exercicio','Treino de musculacao completo: peito, ombro e triceps.','-290 kcal'],
+      ['Elisa Rocha','elisarocha','Refeicao','Jantar simples e certeiro: batata doce, carne grelhada e legumes.','+540 kcal']
+    ];
+    const $ = id => document.getElementById(id);
+    const read = (key, fallback) => { try { return JSON.parse(localStorage.getItem(key)) ?? fallback } catch { return fallback } };
+    const write = (key, value) => localStorage.setItem(key, JSON.stringify(value));
+    const uid = () => crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random());
+    function calculateIdr() { const sex = $('sex').value, weight = +$('weight').value, height = +$('height').value, age = +$('age').value, factor = +$('activity').value; const bmr = sex === 'male' ? 10 * weight + 6.25 * height - 5 * age + 5 : 10 * weight + 6.25 * height - 5 * age - 161; return Math.round(bmr * factor); }
+    function profile() { return read(keys.profile, null); }
+    function meals() { return read(keys.meals, []); }
+    function workouts() { return read(keys.workouts, []); }
+    function totals() { const p = profile(); const meal = meals().reduce((s, item) => s + item.calories, 0); const workout = workouts().reduce((s, item) => s + item.calories, 0); return { idr: p?.idrCalories || 0, meal, workout, remaining: (p?.idrCalories || 0) - meal + workout }; }
+    function showApp() { $('setup').classList.add('hidden'); $('app').classList.remove('hidden'); $('nav').classList.remove('hidden'); $('counter').classList.remove('hidden'); render(); }
+    function showSetup() { $('setup').classList.remove('hidden'); $('app').classList.add('hidden'); $('nav').classList.add('hidden'); $('counter').classList.add('hidden'); updatePreview(); }
+    function updatePreview() { $('previewIdr').textContent = calculateIdr(); }
+    function renderCounter() { const t = totals(); $('remaining').textContent = Math.round(t.remaining); $('counterDetail').textContent = `IDR ${Math.round(t.idr)} - comida + treino`; }
+    function renderFeed() { $('feedList').innerHTML = samples.map(([name,user,type,text,stat]) => `<article class="card post"><div class="post-head"><div class="avatar">${name[0]}</div><div><strong>${name}</strong><div class="muted">@${user} - agora</div></div><div class="badge">${type}</div></div><p style="margin:0">${text}</p><div class="display" style="font-size:30px;color:var(--primary)">${stat}</div></article>`).join(''); }
+    function renderMeals() { const list = meals(); const kcal = list.reduce((s, m) => s + m.calories, 0); const protein = list.reduce((s, m) => s + m.protein, 0); $('mealKcal').textContent = Math.round(kcal); $('protein').textContent = protein.toFixed(1); $('mealCount').textContent = list.length; $('mealList').innerHTML = list.length ? list.map(m => `<div class="row"><div class="icon">🍽</div><div class="row-main"><strong>${m.name}</strong><span class="muted">${m.meal} - ${m.grams}g - ${m.protein.toFixed(1)}P/${m.carbs.toFixed(1)}C/${m.fat.toFixed(1)}G</span></div><strong>${Math.round(m.calories)} kcal</strong><button class="danger" onclick="removeMeal('${m.id}')">Remover</button></div>`).join('') : '<div class="empty">Nenhuma refeicao registrada</div>'; }
+    function renderWorkouts() { const list = workouts(); $('workoutKcal').textContent = Math.round(list.reduce((s, w) => s + w.calories, 0)); $('workoutKm').textContent = (list.reduce((s, w) => s + (w.distanceKm || 0), 0)).toFixed(1); $('workoutCount').textContent = list.length; $('workoutList').innerHTML = list.length ? list.map(w => `<div class="row"><div class="icon">🏃</div><div class="row-main"><strong>${w.name || w.activityType}</strong><span class="muted">${w.activityType} - ${w.durationMinutes || 0} min - ${w.distanceKm || 0} km</span></div><strong>${Math.round(w.calories)} kcal</strong></div>`).join('') : '<div class="empty">Nenhum exercicio registrado</div>'; }
+    function render() { renderCounter(); renderFeed(); renderMeals(); renderWorkouts(); }
+    window.removeMeal = id => { write(keys.meals, meals().filter(m => m.id !== id)); render(); };
+    $('food').innerHTML = foods.map(f => `<option value="${f.name}">${f.name}</option>`).join('');
+    ['sex','age','weight','height','activity'].forEach(id => $(id).addEventListener('input', updatePreview));
+    $('setupForm').addEventListener('submit', e => { e.preventDefault(); const idrCalories = calculateIdr(); write(keys.profile, { name:$('name').value.trim(), sex:$('sex').value, age:+$('age').value, weightKg:+$('weight').value, heightCm:+$('height').value, idrCalories, createdAt:new Date().toISOString() }); showApp(); });
+    $('mealForm').addEventListener('submit', e => { e.preventDefault(); const food = foods.find(f => f.name === $('food').value) || foods[0]; const grams = Math.max(1, +$('grams').value || 1), factor = grams / 100; write(keys.meals, [{ id:uid(), name:food.name, meal:$('mealType').value, grams, calories:food.calories * factor, protein:food.protein * factor, carbs:food.carbs * factor, fat:food.fat * factor, createdAt:new Date().toISOString() }, ...meals()]); render(); });
+    $('workoutForm').addEventListener('submit', e => { e.preventDefault(); const hours = +$('hours').value || 0, minutes = +$('minutes').value || 0; write(keys.workouts, [{ id:uid(), activityType:$('activityType').value, name:$('workoutName').value.trim(), calories:+$('workoutCalories').value || 0, distanceKm:+$('distance').value || 0, durationMinutes:hours * 60 + minutes, startedAt:new Date().toISOString() }, ...workouts()]); $('workoutName').value=''; render(); });
+    $('nav').addEventListener('click', e => { const btn = e.target.closest('button[data-tab]'); if (!btn) return; document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b === btn)); document.querySelectorAll('.view').forEach(v => v.classList.add('hidden')); $(`${btn.dataset.tab}View`).classList.remove('hidden'); });
+    profile() ? showApp() : showSetup();
+  </script>
+</body>
+</html>

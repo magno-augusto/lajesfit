@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
+import { useLocalAuth } from "@/lib/local-auth";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({ meta: [{ title: "Configurações - Lajes Fit" }] }),
@@ -15,7 +16,7 @@ export const Route = createFileRoute("/_authenticated/settings")({
 });
 
 function SettingsPage() {
-  const { user } = Route.useRouteContext();
+  const { user } = useLocalAuth();
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -25,6 +26,7 @@ function SettingsPage() {
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
+    if (!user) return;
     supabase.from("profiles").select("username, display_name, bio, avatar_url").eq("id", user.id).maybeSingle()
       .then(({ data }) => {
         if (!data) return;
@@ -33,10 +35,11 @@ function SettingsPage() {
         setBio(data.bio ?? "");
         setAvatarUrl(data.avatar_url);
       });
-  }, [user.id]);
+  }, [user]);
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
+    if (!user) return;
     setLoading(true);
     const { error } = await supabase.from("profiles").update({
       display_name: displayName,
@@ -49,6 +52,7 @@ function SettingsPage() {
   }
 
   async function uploadAvatar(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!user) return;
     const f = e.target.files?.[0];
     if (!f) return;
     setUploading(true);
@@ -67,6 +71,8 @@ function SettingsPage() {
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
   }
+
+  if (!user) return <div className="min-h-screen bg-muted/40" />;
 
   return (
     <div className="max-w-xl mx-auto space-y-4">
@@ -95,7 +101,7 @@ function SettingsPage() {
 
       <Card className="p-6">
         <p className="text-sm font-semibold mb-1">E-mail</p>
-        <p className="text-sm text-muted-foreground mb-4">{user.email}</p>
+        <p className="text-sm text-muted-foreground mb-4">{user?.email}</p>
         <Button variant="destructive" onClick={signOut} className="w-full">Sair da conta</Button>
       </Card>
     </div>

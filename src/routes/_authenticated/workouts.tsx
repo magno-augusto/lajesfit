@@ -10,10 +10,10 @@ export const Route = createFileRoute("/_authenticated/workouts")({
 });
 
 function WorkoutsPage() {
-  const { workouts } = useLocalFitness();
+  const { workouts, loading } = useLocalFitness();
 
-  function handleCreate(workout: Omit<LocalWorkout, "id">) {
-    addWorkout(workout);
+  async function handleCreate(workout: Omit<LocalWorkout, "id">) {
+    await addWorkout(workout);
   }
 
   const totals = workouts.reduce(
@@ -57,7 +57,10 @@ function WorkoutsPage() {
           <h2 className="font-display text-2xl">MEUS TREINOS</h2>
         </div>
         <ul className="divide-y">
-          {workouts.length === 0 && (
+          {loading && (
+            <li className="p-8 text-center text-muted-foreground text-sm">Carregando treinos...</li>
+          )}
+          {!loading && workouts.length === 0 && (
             <li className="p-8 text-center text-muted-foreground text-sm">
               Nenhum treino registrado ainda
             </li>

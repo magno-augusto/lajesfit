@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useLocalAuth } from "@/lib/local-auth";
 
 type Profile = { id: string; username: string; display_name: string; avatar_url: string | null; bio: string | null };
 
@@ -15,13 +16,14 @@ export const Route = createFileRoute("/_authenticated/profile/$username")({
 
 function ProfilePage() {
   const { username } = Route.useParams();
-  const { user } = Route.useRouteContext();
+  const { user } = useLocalAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [counts, setCounts] = useState({ followers: 0, following: 0, workouts: 0, posts: 0 });
   const [isFollowing, setIsFollowing] = useState(false);
 
   const load = useCallback(async () => {
+    if (!user) return;
     setLoading(true);
     const { data: p } = await supabase.from("profiles").select("id, username, display_name, avatar_url, bio").eq("username", username).maybeSingle();
     if (!p) { setProfile(null); setLoading(false); throw notFound(); }
@@ -36,12 +38,12 @@ function ProfilePage() {
     setCounts({ followers: followers ?? 0, following: following ?? 0, workouts: workouts ?? 0, posts: posts ?? 0 });
     setIsFollowing(!!rel);
     setLoading(false);
-  }, [username, user.id]);
+  }, [username, user]);
 
   useEffect(() => { load(); }, [load]);
 
   async function toggleFollow() {
-    if (!profile) return;
+    if (!profile || !user) return;
     if (isFollowing) {
       await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", profile.id);
       setIsFollowing(false); setCounts((c) => ({ ...c, followers: c.followers - 1 }));
@@ -51,7 +53,7 @@ function ProfilePage() {
     }
   }
 
-  if (loading) return <Skeleton className="h-64 rounded-2xl max-w-2xl mx-auto" />;
+  if (!user || loading) return <Skeleton className="h-64 rounded-2xl max-w-2xl mx-auto" />;
   if (!profile) return <p className="text-center py-20">Perfil não encontrado</p>;
 
   const isMe = profile.id === user.id;

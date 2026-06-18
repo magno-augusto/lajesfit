@@ -47,7 +47,7 @@ function scale(value: number, grams: number) {
 }
 
 function DietPage() {
-  const { meals } = useLocalFitness();
+  const { meals, loading } = useLocalFitness();
 
   const totals = useMemo(() => {
     return meals.reduce(
@@ -61,9 +61,13 @@ function DietPage() {
     );
   }, [meals]);
 
-  function handleRemove(id: string) {
-    removeMeal(id);
-    toast.success("Refeicao removida");
+  async function handleRemove(id: string) {
+    try {
+      await removeMeal(id);
+      toast.success("Refeicao removida");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel remover a refeicao");
+    }
   }
 
   return (
@@ -102,7 +106,11 @@ function DietPage() {
               </div>
             </header>
             <ul className="divide-y">
-              {items.length === 0 ? (
+              {loading ? (
+                <li className="px-4 py-6 text-sm text-muted-foreground text-center">
+                  Carregando refeicoes...
+                </li>
+              ) : items.length === 0 ? (
                 <li className="px-4 py-6 text-sm text-muted-foreground text-center">
                   Nenhuma refeicao registrada
                 </li>
@@ -153,6 +161,7 @@ function Macro({ label, value, unit }: { label: string; value: number; unit: str
 
 function AddFoodDialog() {
   const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [foodName, setFoodName] = useState(FOOD_OPTIONS[0].name);
   const [meal, setMeal] = useState<Meal>("lunch");
   const [grams, setGrams] = useState(100);
@@ -165,20 +174,27 @@ function AddFoodDialog() {
     fat: scale(selected.fat, grams),
   };
 
-  function submit(e: React.FormEvent<HTMLFormElement>) {
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    addMeal({
-      name: selected.name,
-      meal,
-      grams,
-      calories: preview.calories,
-      protein: preview.protein,
-      carbs: preview.carbs,
-      fat: preview.fat,
-    });
-    toast.success("Refeicao adicionada");
-    setOpen(false);
-    setGrams(100);
+    setSaving(true);
+    try {
+      await addMeal({
+        name: selected.name,
+        meal,
+        grams,
+        calories: preview.calories,
+        protein: preview.protein,
+        carbs: preview.carbs,
+        fat: preview.fat,
+      });
+      toast.success("Refeicao adicionada");
+      setOpen(false);
+      setGrams(100);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel salvar a refeicao");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -240,8 +256,8 @@ function AddFoodDialog() {
             <Preview label="C" value={preview.carbs.toFixed(1)} />
             <Preview label="G" value={preview.fat.toFixed(1)} />
           </div>
-          <Button type="submit" className="w-full">
-            Salvar refeicao
+          <Button type="submit" className="w-full" disabled={saving}>
+            {saving ? "Salvando..." : "Salvar refeicao"}
           </Button>
         </form>
       </DialogContent>

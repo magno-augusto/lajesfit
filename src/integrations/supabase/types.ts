@@ -174,8 +174,14 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          calorie_goal: number | null
           created_at: string
           display_name: string
+          goal_activity_level: string | null
+          goal_age: number | null
+          goal_height_cm: number | null
+          goal_sex: string | null
+          goal_weight_kg: number | null
           id: string
           updated_at: string
           username: string
@@ -183,8 +189,14 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          calorie_goal?: number | null
           created_at?: string
           display_name: string
+          goal_activity_level?: string | null
+          goal_age?: number | null
+          goal_height_cm?: number | null
+          goal_sex?: string | null
+          goal_weight_kg?: number | null
           id: string
           updated_at?: string
           username: string
@@ -192,8 +204,14 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          calorie_goal?: number | null
           created_at?: string
           display_name?: string
+          goal_activity_level?: string | null
+          goal_age?: number | null
+          goal_height_cm?: number | null
+          goal_sex?: string | null
+          goal_weight_kg?: number | null
           id?: string
           updated_at?: string
           username?: string

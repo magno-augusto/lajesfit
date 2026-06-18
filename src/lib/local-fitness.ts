@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 export type LocalMeal = {
   id: string;
@@ -40,16 +41,7 @@ export type IdrProfile = {
   createdAt: string;
 };
 
-const MEALS_KEY = "lajes-fit-meals";
-const WORKOUTS_KEY = "lajes-fit-workouts";
-const IDR_PROFILE_KEY = "lajes-fit-idr-profile";
-const CHANGE_EVENT = "lajes-fit-storage-change";
-
-export const LOCAL_USER = {
-  id: "local-user",
-  username: "atleta",
-  displayName: "Atleta Local",
-};
+const CHANGE_EVENT = "lajes-fit-backend-change";
 
 export const FOOD_OPTIONS = [
   { name: "Arroz branco cozido", calories: 128, protein: 2.5, carbs: 28.1, fat: 0.2 },
@@ -75,59 +67,147 @@ export const ACTIVITY_FACTORS: Record<
   very_active: { label: "Treino muito intenso ou trabalho fisico", factor: 1.9 },
 };
 
-function readStorage<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
-  try {
-    const value = window.localStorage.getItem(key);
-    return value ? (JSON.parse(value) as T) : fallback;
-  } catch {
-    return fallback;
-  }
+function notifyChange() {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(CHANGE_EVENT));
 }
 
-function writeStorage<T>(key: string, value: T) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(key, JSON.stringify(value));
-  window.dispatchEvent(new Event(CHANGE_EVENT));
+async function getUserId() {
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data.user) throw new Error("Sessao expirada. Entre novamente.");
+  return data.user.id;
 }
 
-export function getMeals() {
-  return readStorage<LocalMeal[]>(MEALS_KEY, []);
-}
-
-export function saveMeals(meals: LocalMeal[]) {
-  writeStorage(MEALS_KEY, meals);
-}
-
-export function addMeal(meal: Omit<LocalMeal, "id" | "createdAt">) {
-  const next: LocalMeal = {
-    ...meal,
-    id: crypto.randomUUID(),
-    createdAt: new Date().toISOString(),
+function mapMeal(row: {
+  id: string;
+  food_name: string;
+  meal: string;
+  grams: number;
+  kcal: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  consumed_at: string;
+}): LocalMeal {
+  return {
+    id: row.id,
+    name: row.food_name,
+    meal: row.meal as LocalMeal["meal"],
+    grams: row.grams,
+    calories: row.kcal,
+    protein: row.protein_g,
+    carbs: row.carbs_g,
+    fat: row.fat_g,
+    createdAt: row.consumed_at,
   };
-  saveMeals([next, ...getMeals()]);
-  return next;
 }
 
-export function removeMeal(id: string) {
-  saveMeals(getMeals().filter((meal) => meal.id !== id));
-}
-
-export function getWorkouts() {
-  return readStorage<LocalWorkout[]>(WORKOUTS_KEY, []);
-}
-
-export function saveWorkouts(workouts: LocalWorkout[]) {
-  writeStorage(WORKOUTS_KEY, workouts);
-}
-
-export function addWorkout(workout: Omit<LocalWorkout, "id">) {
-  const next: LocalWorkout = {
-    ...workout,
-    id: crypto.randomUUID(),
+function mapWorkout(row: {
+  id: string;
+  activity_type: string;
+  title: string | null;
+  distance_meters: number | null;
+  duration_seconds: number | null;
+  calories: number | null;
+  performed_at: string;
+}): LocalWorkout {
+  return {
+    id: row.id,
+    activityType: row.activity_type,
+    name: row.title,
+    distanceMeters: row.distance_meters,
+    durationSeconds: row.duration_seconds,
+    calories: row.calories ?? 0,
+    startedAt: row.performed_at,
   };
-  saveWorkouts([next, ...getWorkouts()]);
-  return next;
+}
+
+function mapProfile(row: any): IdrProfile | null {
+  if (!row?.calorie_goal) return null;
+
+  return {
+    name: row.display_name,
+    sex: row.goal_sex,
+    age: row.goal_age,
+    weightKg: row.goal_weight_kg,
+    heightCm: row.goal_height_cm,
+    activityLevel: row.goal_activity_level,
+    idrCalories: row.calorie_goal,
+    createdAt: row.updated_at ?? row.created_at,
+  };
+}
+
+export async function getMeals() {
+  const userId = await getUserId();
+  const { data, error } = await supabase
+    .from("diet_entries")
+    .select("id, food_name, meal, grams, kcal, protein_g, carbs_g, fat_g, consumed_at")
+    .eq("user_id", userId)
+    .order("consumed_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapMeal);
+}
+
+export async function addMeal(meal: Omit<LocalMeal, "id" | "createdAt">) {
+  const userId = await getUserId();
+  const { data, error } = await supabase
+    .from("diet_entries")
+    .insert({
+      user_id: userId,
+      food_name: meal.name,
+      meal: meal.meal,
+      grams: meal.grams,
+      kcal: meal.calories,
+      protein_g: meal.protein,
+      carbs_g: meal.carbs,
+      fat_g: meal.fat,
+    })
+    .select("id, food_name, meal, grams, kcal, protein_g, carbs_g, fat_g, consumed_at")
+    .single();
+
+  if (error) throw new Error(error.message);
+  notifyChange();
+  return mapMeal(data);
+}
+
+export async function removeMeal(id: string) {
+  const userId = await getUserId();
+  const { error } = await supabase.from("diet_entries").delete().eq("id", id).eq("user_id", userId);
+  if (error) throw new Error(error.message);
+  notifyChange();
+}
+
+export async function getWorkouts() {
+  const userId = await getUserId();
+  const { data, error } = await supabase
+    .from("workouts")
+    .select("id, activity_type, title, distance_meters, duration_seconds, calories, performed_at")
+    .eq("user_id", userId)
+    .order("performed_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapWorkout);
+}
+
+export async function addWorkout(workout: Omit<LocalWorkout, "id">) {
+  const userId = await getUserId();
+  const { data, error } = await supabase
+    .from("workouts")
+    .insert({
+      user_id: userId,
+      activity_type: workout.activityType,
+      title: workout.name,
+      distance_meters: workout.distanceMeters,
+      duration_seconds: workout.durationSeconds,
+      calories: Math.round(workout.calories),
+      performed_at: workout.startedAt,
+    })
+    .select("id, activity_type, title, distance_meters, duration_seconds, calories, performed_at")
+    .single();
+
+  if (error) throw new Error(error.message);
+  notifyChange();
+  return mapWorkout(data);
 }
 
 export function calculateIdr(input: Omit<IdrProfile, "idrCalories" | "createdAt">) {
@@ -139,49 +219,80 @@ export function calculateIdr(input: Omit<IdrProfile, "idrCalories" | "createdAt"
   return Math.round(base * ACTIVITY_FACTORS[input.activityLevel].factor);
 }
 
-export function getIdrProfile() {
-  return readStorage<IdrProfile | null>(IDR_PROFILE_KEY, null);
+export async function getIdrProfile() {
+  const userId = await getUserId();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select(
+      "display_name, created_at, updated_at, calorie_goal, goal_sex, goal_age, goal_weight_kg, goal_height_cm, goal_activity_level",
+    )
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return mapProfile(data);
 }
 
-export function saveIdrProfile(profile: Omit<IdrProfile, "idrCalories" | "createdAt">) {
-  const next: IdrProfile = {
-    ...profile,
-    idrCalories: calculateIdr(profile),
-    createdAt: new Date().toISOString(),
-  };
-  writeStorage(IDR_PROFILE_KEY, next);
-  return next;
-}
+export async function saveIdrProfile(profile: Omit<IdrProfile, "idrCalories" | "createdAt">) {
+  const userId = await getUserId();
+  const calorieGoal = calculateIdr(profile);
+  const { data, error } = await supabase
+    .from("profiles")
+    .update({
+      display_name: profile.name,
+      calorie_goal: calorieGoal,
+      goal_sex: profile.sex,
+      goal_age: profile.age,
+      goal_weight_kg: profile.weightKg,
+      goal_height_cm: profile.heightCm,
+      goal_activity_level: profile.activityLevel,
+    } as any)
+    .eq("id", userId)
+    .select(
+      "display_name, created_at, updated_at, calorie_goal, goal_sex, goal_age, goal_weight_kg, goal_height_cm, goal_activity_level",
+    )
+    .single();
 
-export function getCalorieSummary(): CalorieSummary {
-  const dailyTarget = getIdrProfile()?.idrCalories ?? 0;
-  const mealCalories = getMeals().reduce((sum, meal) => sum + meal.calories, 0);
-  const workoutCalories = getWorkouts().reduce((sum, workout) => sum + workout.calories, 0);
-  return {
-    dailyTarget,
-    mealCalories,
-    workoutCalories,
-    remainingCalories: dailyTarget - mealCalories + workoutCalories,
-  };
+  if (error) throw new Error(error.message);
+  notifyChange();
+  return mapProfile(data);
 }
 
 export function useLocalFitness() {
-  const [meals, setMeals] = useState<LocalMeal[]>(() => getMeals());
-  const [workouts, setWorkouts] = useState<LocalWorkout[]>(() => getWorkouts());
-  const [idrProfile, setIdrProfile] = useState<IdrProfile | null>(() => getIdrProfile());
+  const [meals, setMeals] = useState<LocalMeal[]>([]);
+  const [workouts, setWorkouts] = useState<LocalWorkout[]>([]);
+  const [idrProfile, setIdrProfile] = useState<IdrProfile | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    function sync() {
-      setMeals(getMeals());
-      setWorkouts(getWorkouts());
-      setIdrProfile(getIdrProfile());
+    let mounted = true;
+
+    async function sync() {
+      try {
+        const [nextMeals, nextWorkouts, nextProfile] = await Promise.all([
+          getMeals(),
+          getWorkouts(),
+          getIdrProfile(),
+        ]);
+        if (!mounted) return;
+        setMeals(nextMeals);
+        setWorkouts(nextWorkouts);
+        setIdrProfile(nextProfile);
+      } catch {
+        if (!mounted) return;
+        setMeals([]);
+        setWorkouts([]);
+        setIdrProfile(null);
+      } finally {
+        if (mounted) setLoading(false);
+      }
     }
 
+    sync();
     window.addEventListener(CHANGE_EVENT, sync);
-    window.addEventListener("storage", sync);
     return () => {
+      mounted = false;
       window.removeEventListener(CHANGE_EVENT, sync);
-      window.removeEventListener("storage", sync);
     };
   }, []);
 
@@ -197,7 +308,7 @@ export function useLocalFitness() {
     };
   }, [idrProfile, meals, workouts]);
 
-  return { meals, workouts, idrProfile, summary };
+  return { meals, workouts, idrProfile, summary, loading };
 }
 
 export function caloriesFromGrams(caloriesPer100g: number, grams: number) {

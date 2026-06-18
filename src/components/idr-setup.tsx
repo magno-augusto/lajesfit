@@ -24,6 +24,7 @@ type SetupState = Omit<IdrProfile, "idrCalories" | "createdAt">;
 
 export function IdrSetup() {
   const navigate = useNavigate();
+  const [saving, setSaving] = useState(false);
   const [state, setState] = useState<SetupState>({
     name: "",
     sex: "female",
@@ -39,16 +40,23 @@ export function IdrSetup() {
     setState((current) => ({ ...current, [key]: value }));
   }
 
-  function submit(e: React.FormEvent<HTMLFormElement>) {
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!state.name.trim()) {
       toast.error("Informe seu nome para continuar");
       return;
     }
 
-    saveIdrProfile({ ...state, name: state.name.trim() });
-    toast.success("IDR calculada");
-    navigate({ to: "/feed", replace: true });
+    setSaving(true);
+    try {
+      await saveIdrProfile({ ...state, name: state.name.trim() });
+      toast.success("Objetivo calorico calculado");
+      navigate({ to: "/feed", replace: true });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel salvar seu objetivo");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -69,9 +77,11 @@ export function IdrSetup() {
               <p className="text-xs font-medium uppercase tracking-widest text-primary">
                 Primeiro acesso
               </p>
-              <h1 className="mt-2 font-display text-4xl leading-none">CALCULE SUA IDR</h1>
+              <h1 className="mt-2 font-display text-4xl leading-none">
+                CALCULE SEU OBJETIVO CALORICO
+              </h1>
               <p className="mt-2 text-sm text-muted-foreground">
-                Responda os dados abaixo para definir sua ingestao diaria recomendada.
+                Responda os dados abaixo para definir sua meta diaria de calorias.
               </p>
             </div>
 
@@ -150,22 +160,23 @@ export function IdrSetup() {
                 </Select>
               </div>
 
-              <Button type="submit" className="w-full sm:w-auto">
-                <Calculator className="mr-2 size-4" /> Salvar IDR e abrir app
+              <Button type="submit" className="w-full sm:w-auto" disabled={saving}>
+                <Calculator className="mr-2 size-4" />
+                {saving ? "Salvando..." : "Salvar objetivo e abrir app"}
               </Button>
             </form>
           </section>
 
           <aside className="rounded-lg bg-gradient-hero p-6 text-primary-foreground shadow-glow">
-            <p className="text-xs uppercase tracking-widest opacity-80">Previa do contador</p>
+            <p className="text-xs uppercase tracking-widest opacity-80">Previa da meta</p>
             <div className="mt-4 flex items-end gap-2">
               <Flame className="mb-2 size-9" />
               <p className="font-display text-6xl leading-none">{preview}</p>
               <p className="mb-2 text-sm">kcal</p>
             </div>
             <p className="mt-4 text-sm text-primary-foreground/80">
-              Esse sera o valor inicial do contador. Refeicoes subtraem calorias; exercicios
-              adicionam calorias disponiveis.
+              Esse sera seu objetivo calorico diario. Refeicoes subtraem calorias; exercicios
+              adicionam calorias disponiveis ao dia.
             </p>
           </aside>
         </div>

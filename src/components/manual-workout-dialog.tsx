@@ -26,7 +26,7 @@ export function ManualWorkoutDialog({
   onCreated,
 }: {
   userId?: string;
-  onCreated: (workout: Omit<LocalWorkout, "id">) => void;
+  onCreated: (workout: Omit<LocalWorkout, "id">) => void | Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -42,7 +42,7 @@ export function ManualWorkoutDialog({
 
     setLoading(true);
     try {
-      onCreated({
+      await onCreated({
         activityType: String(fd.get("activity_type") || "Corrida"),
         name: String(fd.get("name") || "") || null,
         distanceMeters: fd.get("distance_km") ? Number(fd.get("distance_km")) * 1000 : null,
@@ -54,7 +54,6 @@ export function ManualWorkoutDialog({
       toast.success("Treino registrado!");
       form.reset();
       setOpen(false);
-      onCreated();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Erro ao registrar treino");
     } finally {

@@ -1,31 +1,44 @@
 import { createFileRoute, Outlet, Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { Activity, Apple, Flame, Home } from "lucide-react";
+import { Activity, Apple, Flame, Home, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LOCAL_USER, useLocalFitness } from "@/lib/local-fitness";
+import { logout, useLocalAuth } from "@/lib/local-auth";
+import { useLocalFitness } from "@/lib/local-fitness";
 import logo from "@/assets/logo.png";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
-  beforeLoad: async () => ({ user: LOCAL_USER }),
   component: AppShell,
 });
 
 function AppShell() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { idrProfile, summary } = useLocalFitness();
+  const { user, session, loading: authLoading } = useLocalAuth();
+  const { idrProfile, summary, loading: fitnessLoading } = useLocalFitness();
 
   useEffect(() => {
+    if (authLoading || fitnessLoading) return;
+    if (!session) {
+      navigate({ to: "/auth", replace: true });
+      return;
+    }
     if (!idrProfile) navigate({ to: "/setup", replace: true });
-  }, [idrProfile, navigate]);
+  }, [authLoading, fitnessLoading, idrProfile, navigate, session]);
+
+  async function handleLogout() {
+    await logout();
+    navigate({ to: "/auth", replace: true });
+  }
 
   const navItems = [
     { to: "/feed", icon: Home, label: "Feed" },
     { to: "/workouts", icon: Activity, label: "Treinos" },
     { to: "/diet", icon: Apple, label: "Dieta" },
   ] as const;
+
+  if (authLoading || fitnessLoading || !session) return <div className="min-h-screen bg-muted/40" />;
 
   return (
     <div className="min-h-screen bg-muted/40">
@@ -50,24 +63,27 @@ function AppShell() {
             })}
           </nav>
 
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg border bg-card px-3 py-1.5 text-right shadow-sm">
-              <p className="flex items-center justify-end gap-1 text-xs text-muted-foreground">
-                <Flame className="size-3.5 text-primary" /> Restante do IDR
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="min-w-[148px] rounded-lg bg-gradient-hero px-3 py-2 text-right text-primary-foreground shadow-glow sm:min-w-[190px] sm:px-4">
+              <p className="flex items-center justify-end gap-1 text-[11px] font-semibold uppercase text-primary-foreground/85 sm:text-xs">
+                <Flame className="size-4" /> Restante do objetivo
               </p>
-              <p className="font-display text-2xl leading-none">
+              <p className="font-display text-3xl leading-none sm:text-4xl">
                 {Math.round(summary.remainingCalories)} kcal
               </p>
-              <p className="text-[10px] text-muted-foreground">
-                IDR {Math.round(summary.dailyTarget)} - comida + treino
+              <p className="mt-0.5 text-[10px] text-primary-foreground/80 sm:text-xs">
+                Meta {Math.round(summary.dailyTarget)} - comida + treino
               </p>
             </div>
             <Avatar className="size-9 border-2 border-primary/30">
               <AvatarImage src={undefined} />
               <AvatarFallback className="bg-gradient-primary text-primary-foreground font-semibold">
-                {(idrProfile?.name ?? LOCAL_USER.displayName).slice(0, 1).toUpperCase()}
+                {(idrProfile?.name ?? user?.user_metadata?.username ?? "U").slice(0, 1).toUpperCase()}
               </AvatarFallback>
             </Avatar>
+            <Button variant="ghost" size="icon" onClick={handleLogout} aria-label="Sair">
+              <LogOut className="size-4" />
+            </Button>
           </div>
         </div>
       </header>

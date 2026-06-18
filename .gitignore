@@ -17,6 +17,7 @@ dist-ssr
 *.local
 .env
 .vercel/
+supabase/.temp/
 
 # Wrangler / Cloudflare
 .wrangler/

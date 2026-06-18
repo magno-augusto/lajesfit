@@ -117,7 +117,7 @@ function AppShell() {
       </main>
 
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 border-t bg-background">
-        <div className="grid grid-cols-4">
+        <div className="grid grid-cols-3">
           {navItems.map((item) => {
             const active = location.pathname.startsWith(item.to);
             return (

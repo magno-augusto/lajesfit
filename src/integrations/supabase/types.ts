@@ -14,7 +14,264 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      diet_entries: {
+        Row: {
+          carbs_g: number
+          consumed_at: string
+          created_at: string
+          fat_g: number
+          food_id: number | null
+          food_name: string
+          grams: number
+          id: string
+          kcal: number
+          meal: string
+          protein_g: number
+          user_id: string
+        }
+        Insert: {
+          carbs_g?: number
+          consumed_at?: string
+          created_at?: string
+          fat_g?: number
+          food_id?: number | null
+          food_name: string
+          grams: number
+          id?: string
+          kcal: number
+          meal: string
+          protein_g?: number
+          user_id: string
+        }
+        Update: {
+          carbs_g?: number
+          consumed_at?: string
+          created_at?: string
+          fat_g?: number
+          food_id?: number | null
+          food_name?: string
+          grams?: number
+          id?: string
+          kcal?: number
+          meal?: string
+          protein_g?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diet_entries_food_id_fkey"
+            columns: ["food_id"]
+            isOneToOne: false
+            referencedRelation: "taco_foods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      follows: {
+        Row: {
+          created_at: string
+          follower_id: string
+          following_id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          following_id: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          following_id?: string
+        }
+        Relationships: []
+      }
+      post_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_likes: {
+        Row: {
+          created_at: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      posts: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          media_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          media_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          media_url?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          display_name: string
+          id: string
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name: string
+          id: string
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string
+          id?: string
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      taco_foods: {
+        Row: {
+          carbs_g: number
+          category: string | null
+          fat_g: number
+          fiber_g: number
+          id: number
+          kcal: number
+          name: string
+          protein_g: number
+        }
+        Insert: {
+          carbs_g?: number
+          category?: string | null
+          fat_g?: number
+          fiber_g?: number
+          id?: number
+          kcal: number
+          name: string
+          protein_g?: number
+        }
+        Update: {
+          carbs_g?: number
+          category?: string | null
+          fat_g?: number
+          fiber_g?: number
+          id?: number
+          kcal?: number
+          name?: string
+          protein_g?: number
+        }
+        Relationships: []
+      }
+      workouts: {
+        Row: {
+          activity_type: string
+          calories: number | null
+          created_at: string
+          distance_meters: number | null
+          duration_seconds: number | null
+          id: string
+          notes: string | null
+          performed_at: string
+          title: string | null
+          user_id: string
+        }
+        Insert: {
+          activity_type: string
+          calories?: number | null
+          created_at?: string
+          distance_meters?: number | null
+          duration_seconds?: number | null
+          id?: string
+          notes?: string | null
+          performed_at?: string
+          title?: string | null
+          user_id: string
+        }
+        Update: {
+          activity_type?: string
+          calories?: number | null
+          created_at?: string
+          distance_meters?: number | null
+          duration_seconds?: number | null
+          id?: string
+          notes?: string | null
+          performed_at?: string
+          title?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

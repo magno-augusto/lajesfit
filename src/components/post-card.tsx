@@ -36,12 +36,16 @@ export function PostCard({ post, currentUserId }: { post: FeedPost; currentUserI
   async function loadComments() {
     setShowComments(true);
     if (comments !== null) return;
-    const { data } = await supabase
+    const { data: raw } = await supabase
       .from("post_comments")
-      .select("id, content, created_at, user_id, author:profiles!post_comments_user_id_fkey(username, display_name, avatar_url)")
+      .select("id, content, created_at, user_id")
       .eq("post_id", post.id)
       .order("created_at", { ascending: true });
-    setComments((data as Comment[] | null) ?? []);
+    if (!raw) { setComments([]); return; }
+    const userIds = Array.from(new Set(raw.map((c) => c.user_id)));
+    const { data: authors } = await supabase.from("profiles").select("id, username, display_name, avatar_url").in("id", userIds);
+    const map = new Map((authors ?? []).map((a) => [a.id, { username: a.username, display_name: a.display_name, avatar_url: a.avatar_url }]));
+    setComments(raw.map((c) => ({ ...c, author: map.get(c.user_id) ?? null })));
   }
 
   async function addComment(e: React.FormEvent) {
@@ -51,10 +55,11 @@ export function PostCard({ post, currentUserId }: { post: FeedPost; currentUserI
     const { data, error } = await supabase
       .from("post_comments")
       .insert({ post_id: post.id, user_id: currentUserId, content })
-      .select("id, content, created_at, user_id, author:profiles!post_comments_user_id_fkey(username, display_name, avatar_url)")
+      .select("id, content, created_at, user_id")
       .single();
-    if (error) { toast.error("Erro ao comentar"); return; }
-    setComments((c) => [...(c ?? []), data as Comment]);
+    if (error || !data) { toast.error("Erro ao comentar"); return; }
+    const { data: me } = await supabase.from("profiles").select("username, display_name, avatar_url").eq("id", currentUserId).maybeSingle();
+    setComments((c) => [...(c ?? []), { ...data, author: me ? { username: me.username, display_name: me.display_name, avatar_url: me.avatar_url } : null }]);
     setNewComment("");
     setCount((n) => n + 1);
   }

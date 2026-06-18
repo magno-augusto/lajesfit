@@ -55,9 +55,10 @@ function SettingsPage() {
     const path = `${user.id}/avatar-${Date.now()}`;
     const { error: upErr } = await supabase.storage.from("media").upload(path, f, { upsert: true });
     if (upErr) { toast.error("Erro no upload"); setUploading(false); return; }
-    const { data } = supabase.storage.from("media").getPublicUrl(path);
-    setAvatarUrl(data.publicUrl);
-    await supabase.from("profiles").update({ avatar_url: data.publicUrl }).eq("id", user.id);
+    const { data: signed } = await supabase.storage.from("media").createSignedUrl(path, 60 * 60 * 24 * 365 * 5);
+    const url = signed?.signedUrl ?? null;
+    setAvatarUrl(url);
+    await supabase.from("profiles").update({ avatar_url: url }).eq("id", user.id);
     setUploading(false);
     toast.success("Foto atualizada!");
   }

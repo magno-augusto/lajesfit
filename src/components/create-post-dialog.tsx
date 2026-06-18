@@ -37,8 +37,8 @@ export function CreatePostDialog({ userId, onCreated }: { userId: string; onCrea
         const path = `${userId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
         const { error: upErr } = await supabase.storage.from("media").upload(path, file);
         if (upErr) throw upErr;
-        const { data } = supabase.storage.from("media").getPublicUrl(path);
-        media_url = data.publicUrl;
+        const { data: signed } = await supabase.storage.from("media").createSignedUrl(path, 60 * 60 * 24 * 365 * 5);
+        media_url = signed?.signedUrl ?? null;
       }
       const { error } = await supabase.from("posts").insert({ user_id: userId, content: text, media_url });
       if (error) throw error;

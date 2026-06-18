@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, redirect, Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Activity, Apple, Calendar, Home, LogOut, Settings, User as UserIcon } from "lucide-react";
+import { Activity, Apple, Home, LogOut, Settings, User as UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -49,7 +49,6 @@ function AppShell() {
     { to: "/feed", icon: Home, label: "Feed" },
     { to: "/workouts", icon: Activity, label: "Treinos" },
     { to: "/diet", icon: Apple, label: "Dieta" },
-    { to: "/events", icon: Calendar, label: "Eventos" },
   ] as const;
 
   return (
@@ -118,7 +117,7 @@ function AppShell() {
       </main>
 
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 border-t bg-background">
-        <div className="grid grid-cols-4">
+        <div className="grid grid-cols-3">
           {navItems.map((item) => {
             const active = location.pathname.startsWith(item.to);
             return (

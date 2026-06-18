@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Activity, Apple, Calendar, Users } from "lucide-react";
+import { Activity, Apple, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo.png";
@@ -91,12 +91,11 @@ function Landing() {
       </section>
 
       <section className="container mx-auto px-4 py-20">
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid md:grid-cols-3 gap-6">
           {[
             { icon: Activity, title: "Treinos", desc: "Registre corridas, bikes, trilhas e treinos manuais." },
             { icon: Apple, title: "Dieta com TACO", desc: "Conte calorias e macros usando alimentos da tabela brasileira." },
             { icon: Users, title: "Feed da galera", desc: "Publique, curta e acompanhe atletas da comunidade." },
-            { icon: Calendar, title: "Eventos", desc: "Crie e participe de corridas, treinoes e desafios da regiao." },
           ].map((f) => (
             <div key={f.title} className="rounded-2xl border bg-card p-6 shadow-card hover:shadow-glow transition-shadow">
               <div className="size-12 rounded-xl bg-gradient-primary grid place-items-center text-primary-foreground mb-4">

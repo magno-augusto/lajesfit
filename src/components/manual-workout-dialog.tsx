@@ -1,20 +1,15 @@
 import { useState } from "react";
-import { Activity, Plus } from "lucide-react";
-import { toast } from "sonner";
+import { Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
-const ACTIVITIES = ["Corrida", "Caminhada", "Ciclismo", "Musculacao", "Trilha", "Natacao", "Outro"];
+const ACTIVITIES = ["Corrida", "Caminhada", "Bike", "Trilha", "Musculação", "Natação", "Funcional", "Outro"];
 
 export function ManualWorkoutDialog({ userId, onCreated }: { userId: string; onCreated: () => void }) {
   const [open, setOpen] = useState(false);
@@ -22,34 +17,31 @@ export function ManualWorkoutDialog({ userId, onCreated }: { userId: string; onC
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const form = e.currentTarget;
-    const fd = new FormData(form);
-    const hours = Number(fd.get("hours") || 0);
-    const minutes = Number(fd.get("minutes") || 0);
-    const duration = hours * 3600 + minutes * 60;
-    const startedAt = String(fd.get("started_at") || "");
+    const fd = new FormData(e.currentTarget);
+    const activity_type = String(fd.get("activity_type") || "Outro");
+    const title = String(fd.get("title") || "") || null;
+    const duration_min = Number(fd.get("duration_min") || 0);
+    const distance_km = Number(fd.get("distance_km") || 0);
+    const calories = Number(fd.get("calories") || 0);
+    const notes = String(fd.get("notes") || "") || null;
 
     setLoading(true);
     try {
       const { error } = await supabase.from("workouts").insert({
         user_id: userId,
-        source: "manual",
-        activity_type: String(fd.get("activity_type") || "Corrida"),
-        name: String(fd.get("name") || "") || null,
-        distance_meters: fd.get("distance_km") ? Number(fd.get("distance_km")) * 1000 : null,
-        duration_seconds: duration || null,
-        calories: fd.get("calories") ? Number(fd.get("calories")) : null,
-        started_at: startedAt ? new Date(startedAt).toISOString() : new Date().toISOString(),
+        activity_type,
+        title,
+        duration_seconds: duration_min ? duration_min * 60 : null,
+        distance_meters: distance_km ? distance_km * 1000 : null,
+        calories: calories || null,
+        notes,
       });
-
       if (error) throw error;
-
       toast.success("Treino registrado!");
-      form.reset();
       setOpen(false);
       onCreated();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Erro ao registrar treino");
+      toast.error(err instanceof Error ? err.message : "Erro ao salvar");
     } finally {
       setLoading(false);
     }
@@ -58,66 +50,34 @@ export function ManualWorkoutDialog({ userId, onCreated }: { userId: string; onC
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" variant="secondary">
-          <Plus className="size-4 mr-1" /> Registrar
-        </Button>
+        <Button><Plus className="size-4 mr-2" /> Registrar treino</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Activity className="size-5" /> Registrar treino
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Novo treino</DialogTitle></DialogHeader>
         <form onSubmit={submit} className="space-y-4">
-          <div className="grid sm:grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label>Modalidade</Label>
-              <Select name="activity_type" defaultValue="Corrida">
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ACTIVITIES.map((activity) => (
-                    <SelectItem key={activity} value={activity}>
-                      {activity}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="workout-name">Nome</Label>
-              <Input id="workout-name" name="name" placeholder="Treino matinal" maxLength={120} />
-            </div>
-          </div>
-
           <div className="space-y-2">
-            <Label htmlFor="started-at">Data e hora</Label>
-            <Input id="started-at" name="started_at" type="datetime-local" />
+            <Label>Atividade</Label>
+            <Select name="activity_type" defaultValue="Corrida">
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {ACTIVITIES.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="distance-km">Distancia (km)</Label>
-              <Input id="distance-km" name="distance_km" type="number" min="0" step="0.01" placeholder="5.2" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="calories">Calorias</Label>
-              <Input id="calories" name="calories" type="number" min="0" step="1" placeholder="320" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="hours">Horas</Label>
-              <Input id="hours" name="hours" type="number" min="0" step="1" placeholder="0" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="minutes">Minutos</Label>
-              <Input id="minutes" name="minutes" type="number" min="0" max="59" step="1" placeholder="45" />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="w-title">Título (opcional)</Label>
+            <Input id="w-title" name="title" placeholder="Corrida no final da tarde" />
           </div>
-
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Registrando..." : "Salvar treino"}
-          </Button>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-2"><Label htmlFor="w-dur">Minutos</Label><Input id="w-dur" name="duration_min" type="number" min={0} /></div>
+            <div className="space-y-2"><Label htmlFor="w-dist">Km</Label><Input id="w-dist" name="distance_km" type="number" step="0.01" min={0} /></div>
+            <div className="space-y-2"><Label htmlFor="w-cal">Kcal</Label><Input id="w-cal" name="calories" type="number" min={0} /></div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="w-notes">Notas</Label>
+            <Textarea id="w-notes" name="notes" rows={3} placeholder="Como foi o treino?" />
+          </div>
+          <Button type="submit" className="w-full" disabled={loading}>{loading ? "Salvando..." : "Salvar treino"}</Button>
         </form>
       </DialogContent>
     </Dialog>

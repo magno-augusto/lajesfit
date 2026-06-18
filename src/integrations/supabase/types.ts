@@ -16,30 +16,45 @@ export type Database = {
     Tables: {
       diet_entries: {
         Row: {
+          carbs_g: number
           consumed_at: string
           created_at: string
-          food_id: number
+          fat_g: number
+          food_id: number | null
+          food_name: string
           grams: number
           id: string
-          meal: Database["public"]["Enums"]["meal_type"]
+          kcal: number
+          meal: string
+          protein_g: number
           user_id: string
         }
         Insert: {
+          carbs_g?: number
           consumed_at?: string
           created_at?: string
-          food_id: number
+          fat_g?: number
+          food_id?: number | null
+          food_name: string
           grams: number
           id?: string
-          meal?: Database["public"]["Enums"]["meal_type"]
+          kcal: number
+          meal: string
+          protein_g?: number
           user_id: string
         }
         Update: {
+          carbs_g?: number
           consumed_at?: string
           created_at?: string
-          food_id?: number
+          fat_g?: number
+          food_id?: number | null
+          food_name?: string
           grams?: number
           id?: string
-          meal?: Database["public"]["Enums"]["meal_type"]
+          kcal?: number
+          meal?: string
+          protein_g?: number
           user_id?: string
         }
         Relationships: [
@@ -51,71 +66,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      event_participants: {
-        Row: {
-          created_at: string
-          event_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          event_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          event_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "event_participants_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "events"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      events: {
-        Row: {
-          cover_url: string | null
-          created_at: string
-          creator_id: string
-          description: string | null
-          distance_km: number | null
-          event_date: string
-          id: string
-          location: string
-          max_participants: number | null
-          title: string
-        }
-        Insert: {
-          cover_url?: string | null
-          created_at?: string
-          creator_id: string
-          description?: string | null
-          distance_km?: number | null
-          event_date: string
-          id?: string
-          location: string
-          max_participants?: number | null
-          title: string
-        }
-        Update: {
-          cover_url?: string | null
-          created_at?: string
-          creator_id?: string
-          description?: string | null
-          distance_km?: number | null
-          event_date?: string
-          id?: string
-          location?: string
-          max_participants?: number | null
-          title?: string
-        }
-        Relationships: []
       }
       follows: {
         Row: {
@@ -195,31 +145,28 @@ export type Database = {
       }
       posts: {
         Row: {
-          content: string | null
+          content: string
           created_at: string
           id: string
-          media_urls: string[]
-          type: Database["public"]["Enums"]["post_type"]
+          media_url: string | null
+          updated_at: string
           user_id: string
-          workout_id: string | null
         }
         Insert: {
-          content?: string | null
+          content: string
           created_at?: string
           id?: string
-          media_urls?: string[]
-          type?: Database["public"]["Enums"]["post_type"]
+          media_url?: string | null
+          updated_at?: string
           user_id: string
-          workout_id?: string | null
         }
         Update: {
-          content?: string | null
+          content?: string
           created_at?: string
           id?: string
-          media_urls?: string[]
-          type?: Database["public"]["Enums"]["post_type"]
+          media_url?: string | null
+          updated_at?: string
           user_id?: string
-          workout_id?: string | null
         }
         Relationships: []
       }
@@ -227,7 +174,6 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
-          city: string | null
           created_at: string
           display_name: string
           id: string
@@ -237,7 +183,6 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           bio?: string | null
-          city?: string | null
           created_at?: string
           display_name: string
           id: string
@@ -247,7 +192,6 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           bio?: string | null
-          city?: string | null
           created_at?: string
           display_name?: string
           id?: string
@@ -256,119 +200,74 @@ export type Database = {
         }
         Relationships: []
       }
-      strava_tokens: {
-        Row: {
-          access_token: string
-          athlete_id: number | null
-          created_at: string
-          expires_at: string
-          refresh_token: string
-          scope: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          access_token: string
-          athlete_id?: number | null
-          created_at?: string
-          expires_at: string
-          refresh_token: string
-          scope?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          access_token?: string
-          athlete_id?: number | null
-          created_at?: string
-          expires_at?: string
-          refresh_token?: string
-          scope?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       taco_foods: {
         Row: {
           carbs_g: number
           category: string | null
-          energy_kcal: number
           fat_g: number
           fiber_g: number
           id: number
+          kcal: number
           name: string
           protein_g: number
-          sodium_mg: number
         }
         Insert: {
           carbs_g?: number
           category?: string | null
-          energy_kcal: number
           fat_g?: number
           fiber_g?: number
-          id: number
+          id?: number
+          kcal: number
           name: string
           protein_g?: number
-          sodium_mg?: number
         }
         Update: {
           carbs_g?: number
           category?: string | null
-          energy_kcal?: number
           fat_g?: number
           fiber_g?: number
           id?: number
+          kcal?: number
           name?: string
           protein_g?: number
-          sodium_mg?: number
         }
         Relationships: []
       }
       workouts: {
         Row: {
           activity_type: string
-          avg_heart_rate: number | null
           calories: number | null
           created_at: string
           distance_meters: number | null
           duration_seconds: number | null
-          elevation_gain_meters: number | null
           id: string
-          name: string | null
-          source: Database["public"]["Enums"]["workout_source"]
-          started_at: string
-          strava_activity_id: number | null
+          notes: string | null
+          performed_at: string
+          title: string | null
           user_id: string
         }
         Insert: {
-          activity_type?: string
-          avg_heart_rate?: number | null
+          activity_type: string
           calories?: number | null
           created_at?: string
           distance_meters?: number | null
           duration_seconds?: number | null
-          elevation_gain_meters?: number | null
           id?: string
-          name?: string | null
-          source?: Database["public"]["Enums"]["workout_source"]
-          started_at: string
-          strava_activity_id?: number | null
+          notes?: string | null
+          performed_at?: string
+          title?: string | null
           user_id: string
         }
         Update: {
           activity_type?: string
-          avg_heart_rate?: number | null
           calories?: number | null
           created_at?: string
           distance_meters?: number | null
           duration_seconds?: number | null
-          elevation_gain_meters?: number | null
           id?: string
-          name?: string | null
-          source?: Database["public"]["Enums"]["workout_source"]
-          started_at?: string
-          strava_activity_id?: number | null
+          notes?: string | null
+          performed_at?: string
+          title?: string | null
           user_id?: string
         }
         Relationships: []

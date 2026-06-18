@@ -1,8 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ManualWorkoutDialog } from "@/components/manual-workout-dialog";
-import { Activity } from "lucide-react";
+import { useState } from "react";
+import { Activity, Flame, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { formatDistance, formatDuration, timeAgo } from "@/lib/feed";
-import { addWorkout, useLocalFitness, type LocalWorkout } from "@/lib/local-fitness";
+import {
+  addWorkout,
+  removeWorkout,
+  updateWorkout,
+  useLocalFitness,
+  type LocalWorkout,
+} from "@/lib/local-fitness";
 
 export const Route = createFileRoute("/_authenticated/workouts")({
   head: () => ({ meta: [{ title: "Treinos - Lajes Fit" }] }),
@@ -11,6 +20,7 @@ export const Route = createFileRoute("/_authenticated/workouts")({
 
 function WorkoutsPage() {
   const { workouts, loading } = useLocalFitness();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   async function handleCreate(workout: Omit<LocalWorkout, "id">) {
     await addWorkout(workout);
@@ -20,11 +30,23 @@ function WorkoutsPage() {
     (acc, workout) => ({
       distance: acc.distance + (workout.distanceMeters ?? 0),
       duration: acc.duration + (workout.durationSeconds ?? 0),
-      calories: acc.calories + workout.calories,
+      calories: acc.calories + (workout.calories ?? 0),
       count: acc.count + 1,
     }),
     { distance: 0, duration: 0, calories: 0, count: 0 },
   );
+
+  async function handleRemove(id: string) {
+    setDeletingId(id);
+    try {
+      await removeWorkout(id);
+      toast.success("Treino removido");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel remover o treino");
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -34,7 +56,7 @@ function WorkoutsPage() {
             <p className="text-xs uppercase tracking-widest opacity-80">Resumo dos exercicios</p>
             <p className="font-display text-5xl mt-1">{formatDistance(totals.distance)}</p>
           </div>
-          <ManualWorkoutDialog onCreated={handleCreate} />
+          <ManualWorkoutDialog onSaved={handleCreate} />
         </div>
         <div className="grid grid-cols-3 gap-2 mt-4 text-sm">
           <div>
@@ -46,8 +68,10 @@ function WorkoutsPage() {
             <p className="font-display text-xl">{formatDuration(totals.duration)}</p>
           </div>
           <div>
-            <p className="opacity-70 text-xs">Calorias</p>
-            <p className="font-display text-xl">{Math.round(totals.calories)}</p>
+            <p className="opacity-70 text-xs">Calorias queimadas</p>
+            <p className="font-display text-xl">
+              {Math.round(totals.calories)} <span className="text-xs font-sans">kcal</span>
+            </p>
           </div>
         </div>
       </div>
@@ -65,7 +89,11 @@ function WorkoutsPage() {
               Nenhum treino registrado ainda
             </li>
           )}
-          {workouts.map((workout) => (
+          {workouts.map((workout) => {
+            const hasCalories = typeof workout.calories === "number" && workout.calories > 0;
+            const durationLabel = formatDuration(workout.durationSeconds);
+            const distanceLabel = formatDistance(workout.distanceMeters);
+            return (
             <li key={workout.id} className="px-4 py-3 flex items-center gap-3 hover:bg-muted/40">
               <div className="size-10 rounded-lg bg-primary/10 text-primary grid place-items-center">
                 <Activity className="size-5" />
@@ -78,14 +106,35 @@ function WorkoutsPage() {
                   {workout.activityType} - {timeAgo(workout.startedAt)}
                 </p>
               </div>
-              <div className="text-right">
-                <p className="font-display text-lg">{formatDistance(workout.distanceMeters)}</p>
-                <p className="text-xs text-muted-foreground">
-                  {formatDuration(workout.durationSeconds)} - {Math.round(workout.calories)} kcal
-                </p>
+              <div className="text-right shrink-0">
+                {distanceLabel !== "-" && <p className="font-display text-lg">{distanceLabel}</p>}
+                <div className="mt-0.5 flex items-center justify-end gap-1 text-xs text-muted-foreground">
+                  {durationLabel !== "-" && (
+                    <>
+                      <span>{durationLabel}</span>
+                      <span>-</span>
+                    </>
+                  )}
+                  <Flame className="size-3.5" />
+                  <span>{hasCalories ? `${Math.round(workout.calories!)} kcal` : "nao informado"}</span>
+                </div>
               </div>
+              <ManualWorkoutDialog
+                initialWorkout={workout}
+                onSaved={(updatedWorkout) => updateWorkout(workout.id, updatedWorkout)}
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleRemove(workout.id)}
+                disabled={deletingId === workout.id}
+                aria-label="Remover treino"
+              >
+                <Trash2 className="size-4" />
+              </Button>
             </li>
-          ))}
+            );
+          })}
         </ul>
       </div>
     </div>

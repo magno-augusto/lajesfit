@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Activity, Plus } from "lucide-react";
+import { Activity, Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,13 +23,28 @@ import { type LocalWorkout } from "@/lib/local-fitness";
 const ACTIVITIES = ["Corrida", "Caminhada", "Ciclismo", "Musculacao", "Trilha", "Natacao", "Outro"];
 
 export function ManualWorkoutDialog({
-  onCreated,
+  initialWorkout,
+  onSaved,
 }: {
   userId?: string;
-  onCreated: (workout: Omit<LocalWorkout, "id">) => void | Promise<void>;
+  initialWorkout?: LocalWorkout;
+  onCreated?: (workout: Omit<LocalWorkout, "id">) => void | Promise<void>;
+  onSaved: (workout: Omit<LocalWorkout, "id">) => void | Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const editing = Boolean(initialWorkout);
+  const durationSeconds = initialWorkout?.durationSeconds ?? 0;
+  const defaultHours = Math.floor(durationSeconds / 3600);
+  const defaultMinutes = Math.floor((durationSeconds % 3600) / 60);
+
+  function formatDateTimeLocal(value?: string) {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return offsetDate.toISOString().slice(0, 16);
+  }
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -42,16 +57,16 @@ export function ManualWorkoutDialog({
 
     setLoading(true);
     try {
-      await onCreated({
+      await onSaved({
         activityType: String(fd.get("activity_type") || "Corrida"),
         name: String(fd.get("name") || "") || null,
         distanceMeters: fd.get("distance_km") ? Number(fd.get("distance_km")) * 1000 : null,
         durationSeconds: duration || null,
-        calories: fd.get("calories") ? Number(fd.get("calories")) : 0,
+        calories: fd.get("calories") ? Number(fd.get("calories")) : null,
         startedAt: startedAt ? new Date(startedAt).toISOString() : new Date().toISOString(),
       });
 
-      toast.success("Treino registrado!");
+      toast.success(editing ? "Treino atualizado!" : "Treino registrado!");
       form.reset();
       setOpen(false);
     } catch (err: unknown) {
@@ -64,21 +79,27 @@ export function ManualWorkoutDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" variant="secondary">
-          <Plus className="size-4 mr-1" /> Registrar
-        </Button>
+        {editing ? (
+          <Button variant="ghost" size="icon" aria-label="Editar treino">
+            <Pencil className="size-4" />
+          </Button>
+        ) : (
+          <Button size="sm" variant="secondary">
+            <Plus className="size-4 mr-1" /> Registrar
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Activity className="size-5" /> Registrar treino
+            <Activity className="size-5" /> {editing ? "Editar treino" : "Registrar treino"}
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-4">
           <div className="grid sm:grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>Modalidade</Label>
-              <Select name="activity_type" defaultValue="Corrida">
+              <Select name="activity_type" defaultValue={initialWorkout?.activityType ?? "Corrida"}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -93,13 +114,24 @@ export function ManualWorkoutDialog({
             </div>
             <div className="space-y-2">
               <Label htmlFor="workout-name">Nome</Label>
-              <Input id="workout-name" name="name" placeholder="Treino matinal" maxLength={120} />
+              <Input
+                id="workout-name"
+                name="name"
+                placeholder="Treino matinal"
+                maxLength={120}
+                defaultValue={initialWorkout?.name ?? ""}
+              />
             </div>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="started-at">Data e hora</Label>
-            <Input id="started-at" name="started_at" type="datetime-local" />
+            <Input
+              id="started-at"
+              name="started_at"
+              type="datetime-local"
+              defaultValue={formatDateTimeLocal(initialWorkout?.startedAt)}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -112,10 +144,13 @@ export function ManualWorkoutDialog({
                 min="0"
                 step="0.01"
                 placeholder="5.2"
+                defaultValue={
+                  initialWorkout?.distanceMeters ? initialWorkout.distanceMeters / 1000 : ""
+                }
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="calories">Calorias</Label>
+              <Label htmlFor="calories">Calorias queimadas (kcal)</Label>
               <Input
                 id="calories"
                 name="calories"
@@ -123,11 +158,20 @@ export function ManualWorkoutDialog({
                 min="0"
                 step="1"
                 placeholder="320"
+                defaultValue={initialWorkout?.calories ?? ""}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="hours">Horas</Label>
-              <Input id="hours" name="hours" type="number" min="0" step="1" placeholder="0" />
+              <Input
+                id="hours"
+                name="hours"
+                type="number"
+                min="0"
+                step="1"
+                placeholder="0"
+                defaultValue={defaultHours || ""}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="minutes">Minutos</Label>
@@ -139,12 +183,13 @@ export function ManualWorkoutDialog({
                 max="59"
                 step="1"
                 placeholder="45"
+                defaultValue={defaultMinutes || ""}
               />
             </div>
           </div>
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Registrando..." : "Salvar treino"}
+            {loading ? "Salvando..." : editing ? "Salvar alteracoes" : "Salvar treino"}
           </Button>
         </form>
       </DialogContent>

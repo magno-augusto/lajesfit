@@ -1,4 +1,4 @@
-const CACHE_NAME = "lajes-fit-pwa-v1";
+const CACHE_NAME = "lajes-fit-pwa-v2";
 const PRECACHE_URLS = [
   "/manifest.webmanifest",
   "/offline.html",

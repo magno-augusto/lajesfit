@@ -19,7 +19,7 @@ export type LocalWorkout = {
   name: string | null;
   distanceMeters: number | null;
   durationSeconds: number | null;
-  calories: number;
+  calories: number | null;
   startedAt: string;
 };
 
@@ -116,7 +116,7 @@ function mapWorkout(row: {
     name: row.title,
     distanceMeters: row.distance_meters,
     durationSeconds: row.duration_seconds,
-    calories: row.calories ?? 0,
+    calories: row.calories,
     startedAt: row.performed_at,
   };
 }
@@ -199,7 +199,7 @@ export async function addWorkout(workout: Omit<LocalWorkout, "id">) {
       title: workout.name,
       distance_meters: workout.distanceMeters,
       duration_seconds: workout.durationSeconds,
-      calories: Math.round(workout.calories),
+      calories: workout.calories === null ? null : Math.round(workout.calories),
       performed_at: workout.startedAt,
     })
     .select("id, activity_type, title, distance_meters, duration_seconds, calories, performed_at")
@@ -208,6 +208,35 @@ export async function addWorkout(workout: Omit<LocalWorkout, "id">) {
   if (error) throw new Error(error.message);
   notifyChange();
   return mapWorkout(data);
+}
+
+export async function updateWorkout(id: string, workout: Omit<LocalWorkout, "id">) {
+  const userId = await getUserId();
+  const { data, error } = await supabase
+    .from("workouts")
+    .update({
+      activity_type: workout.activityType,
+      title: workout.name,
+      distance_meters: workout.distanceMeters,
+      duration_seconds: workout.durationSeconds,
+      calories: workout.calories === null ? null : Math.round(workout.calories),
+      performed_at: workout.startedAt,
+    })
+    .eq("id", id)
+    .eq("user_id", userId)
+    .select("id, activity_type, title, distance_meters, duration_seconds, calories, performed_at")
+    .single();
+
+  if (error) throw new Error(error.message);
+  notifyChange();
+  return mapWorkout(data);
+}
+
+export async function removeWorkout(id: string) {
+  const userId = await getUserId();
+  const { error } = await supabase.from("workouts").delete().eq("id", id).eq("user_id", userId);
+  if (error) throw new Error(error.message);
+  notifyChange();
 }
 
 export function calculateIdr(input: Omit<IdrProfile, "idrCalories" | "createdAt">) {
@@ -269,6 +298,16 @@ export function useLocalFitness() {
 
     async function sync() {
       try {
+        setLoading(true);
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (!sessionData.session) {
+          if (!mounted) return;
+          setMeals([]);
+          setWorkouts([]);
+          setIdrProfile(null);
+          return;
+        }
+
         const [nextMeals, nextWorkouts, nextProfile] = await Promise.all([
           getMeals(),
           getWorkouts(),
@@ -289,9 +328,16 @@ export function useLocalFitness() {
     }
 
     sync();
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
+      sync();
+    });
+
     window.addEventListener(CHANGE_EVENT, sync);
     return () => {
       mounted = false;
+      subscription.unsubscribe();
       window.removeEventListener(CHANGE_EVENT, sync);
     };
   }, []);
@@ -299,7 +345,7 @@ export function useLocalFitness() {
   const summary = useMemo<CalorieSummary>(() => {
     const dailyTarget = idrProfile?.idrCalories ?? 0;
     const mealCalories = meals.reduce((sum, meal) => sum + meal.calories, 0);
-    const workoutCalories = workouts.reduce((sum, workout) => sum + workout.calories, 0);
+    const workoutCalories = workouts.reduce((sum, workout) => sum + (workout.calories ?? 0), 0);
     return {
       dailyTarget,
       mealCalories,

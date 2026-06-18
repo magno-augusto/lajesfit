@@ -38,12 +38,14 @@ function AppShell() {
     { to: "/diet", icon: Apple, label: "Dieta" },
   ] as const;
 
-  if (authLoading || fitnessLoading || !session) return <div className="min-h-screen bg-muted/40" />;
+  if (authLoading || fitnessLoading || !session || !idrProfile) {
+    return <div className="min-h-screen bg-muted/40" />;
+  }
 
   return (
     <div className="min-h-screen bg-muted/40">
       <header className="sticky top-0 z-30 border-b bg-background/85 backdrop-blur">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4">
+        <div className="container mx-auto flex min-h-20 items-center justify-between px-4 py-2">
           <Link to="/feed" className="flex items-center gap-2">
             <img src={logo} alt="Lajes Fit" className="h-9 w-9 rounded-lg object-cover" />
             <span className="font-display text-2xl hidden sm:block">LAJES FIT</span>
@@ -64,7 +66,7 @@ function AppShell() {
           </nav>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="min-w-[148px] rounded-lg bg-gradient-hero px-3 py-2 text-right text-primary-foreground shadow-glow sm:min-w-[190px] sm:px-4">
+            <div className="min-w-[148px] rounded-lg bg-gradient-hero px-3 py-3 text-right text-primary-foreground shadow-glow sm:min-w-[190px] sm:px-4">
               <p className="flex items-center justify-end gap-1 text-[11px] font-semibold uppercase text-primary-foreground/85 sm:text-xs">
                 <Flame className="size-4" /> Restante do objetivo
               </p>

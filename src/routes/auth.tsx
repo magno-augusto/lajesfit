@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { loginWithPassword, signUpWithPassword, useLocalAuth } from "@/lib/local-auth";
-import { useLocalFitness } from "@/lib/local-fitness";
+import { getIdrProfile, useLocalFitness } from "@/lib/local-fitness";
 import logo from "@/assets/logo.png";
 
 export const Route = createFileRoute("/auth")({
@@ -41,8 +41,9 @@ function AuthPage() {
       }
 
       await loginWithPassword(username, password);
+      const savedProfile = await getIdrProfile();
       toast.success("Sessao iniciada");
-      navigate({ to: idrProfile ? "/feed" : "/setup", replace: true });
+      navigate({ to: savedProfile ? "/feed" : "/setup", replace: true });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Nao foi possivel entrar");
     } finally {

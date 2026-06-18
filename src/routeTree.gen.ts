@@ -15,7 +15,6 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedWorkoutsRouteImport } from './routes/_authenticated/workouts'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedFeedRouteImport } from './routes/_authenticated/feed'
-import { Route as AuthenticatedEventsRouteImport } from './routes/_authenticated/events'
 import { Route as AuthenticatedDietRouteImport } from './routes/_authenticated/diet'
 import { Route as AuthenticatedProfileUsernameRouteImport } from './routes/_authenticated/profile.$username'
 
@@ -48,11 +47,6 @@ const AuthenticatedFeedRoute = AuthenticatedFeedRouteImport.update({
   path: '/feed',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedEventsRoute = AuthenticatedEventsRouteImport.update({
-  id: '/events',
-  path: '/events',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedDietRoute = AuthenticatedDietRouteImport.update({
   id: '/diet',
   path: '/diet',
@@ -69,7 +63,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/diet': typeof AuthenticatedDietRoute
-  '/events': typeof AuthenticatedEventsRoute
   '/feed': typeof AuthenticatedFeedRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/workouts': typeof AuthenticatedWorkoutsRoute
@@ -79,7 +72,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/diet': typeof AuthenticatedDietRoute
-  '/events': typeof AuthenticatedEventsRoute
   '/feed': typeof AuthenticatedFeedRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/workouts': typeof AuthenticatedWorkoutsRoute
@@ -91,7 +83,6 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/diet': typeof AuthenticatedDietRoute
-  '/_authenticated/events': typeof AuthenticatedEventsRoute
   '/_authenticated/feed': typeof AuthenticatedFeedRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/workouts': typeof AuthenticatedWorkoutsRoute
@@ -103,7 +94,6 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/diet'
-    | '/events'
     | '/feed'
     | '/settings'
     | '/workouts'
@@ -113,7 +103,6 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/diet'
-    | '/events'
     | '/feed'
     | '/settings'
     | '/workouts'
@@ -124,7 +113,6 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/diet'
-    | '/_authenticated/events'
     | '/_authenticated/feed'
     | '/_authenticated/settings'
     | '/_authenticated/workouts'
@@ -181,13 +169,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFeedRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/events': {
-      id: '/_authenticated/events'
-      path: '/events'
-      fullPath: '/events'
-      preLoaderRoute: typeof AuthenticatedEventsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/diet': {
       id: '/_authenticated/diet'
       path: '/diet'
@@ -207,7 +188,6 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDietRoute: typeof AuthenticatedDietRoute
-  AuthenticatedEventsRoute: typeof AuthenticatedEventsRoute
   AuthenticatedFeedRoute: typeof AuthenticatedFeedRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedWorkoutsRoute: typeof AuthenticatedWorkoutsRoute
@@ -216,7 +196,6 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDietRoute: AuthenticatedDietRoute,
-  AuthenticatedEventsRoute: AuthenticatedEventsRoute,
   AuthenticatedFeedRoute: AuthenticatedFeedRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedWorkoutsRoute: AuthenticatedWorkoutsRoute,
@@ -234,3 +213,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

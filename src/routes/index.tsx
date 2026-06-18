@@ -91,7 +91,7 @@ function Landing() {
       </section>
 
       <section className="container mx-auto px-4 py-20">
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid md:grid-cols-3 gap-6">
           {[
             { icon: Activity, title: "Treinos", desc: "Registre corridas, bikes, trilhas e treinos manuais." },
             { icon: Apple, title: "Dieta com TACO", desc: "Conte calorias e macros usando alimentos da tabela brasileira." },

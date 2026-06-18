@@ -1,96 +1,91 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useCallback, useEffect, useState } from "react";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
 import { ManualWorkoutDialog } from "@/components/manual-workout-dialog";
-import { Activity, Zap } from "lucide-react";
-import { formatDistance, formatDuration, timeAgo } from "@/lib/feed";
+import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Activity } from "lucide-react";
+
+type Workout = {
+  id: string;
+  activity_type: string;
+  title: string | null;
+  duration_seconds: number | null;
+  distance_meters: number | null;
+  calories: number | null;
+  notes: string | null;
+  performed_at: string;
+};
 
 export const Route = createFileRoute("/_authenticated/workouts")({
-  head: () => ({ meta: [{ title: "Treinos · Lajes Fit" }] }),
+  head: () => ({ meta: [{ title: "Treinos - Lajes Fit" }] }),
   component: WorkoutsPage,
 });
 
-type Workout = {
-  id: string; activity_type: string; name: string | null; source: "manual" | "strava";
-  distance_meters: number | null; duration_seconds: number | null; calories: number | null;
-  started_at: string;
-};
+function fmtDuration(sec: number | null) {
+  if (!sec) return "—";
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  return h > 0 ? `${h}h${String(m).padStart(2, "0")}` : `${m} min`;
+}
+
+function fmtDist(m: number | null) {
+  if (!m) return "—";
+  return `${(m / 1000).toFixed(2)} km`;
+}
 
 function WorkoutsPage() {
   const { user } = Route.useRouteContext();
-  const [workouts, setWorkouts] = useState<Workout[]>([]);
-  const [stravaConnected, setStravaConnected] = useState(false);
+  const [workouts, setWorkouts] = useState<Workout[] | null>(null);
 
-  async function load() {
-    supabase.from("workouts").select("*").eq("user_id", user.id).order("started_at", { ascending: false }).limit(50)
-      .then(({ data }) => setWorkouts((data ?? []) as Workout[]));
-    supabase.from("strava_tokens").select("user_id").eq("user_id", user.id).maybeSingle()
-      .then(({ data }) => setStravaConnected(!!data));
-  }
+  const load = useCallback(async () => {
+    const { data } = await supabase
+      .from("workouts")
+      .select("id, activity_type, title, duration_seconds, distance_meters, calories, notes, performed_at")
+      .eq("user_id", user.id)
+      .order("performed_at", { ascending: false })
+      .limit(100);
+    setWorkouts(data ?? []);
+  }, [user.id]);
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [user.id]);
-
-  const totals = workouts.reduce((a, w) => ({
-    distance: a.distance + (w.distance_meters ?? 0),
-    duration: a.duration + (w.duration_seconds ?? 0),
-    calories: a.calories + (w.calories ?? 0),
-    count: a.count + 1,
-  }), { distance: 0, duration: 0, calories: 0, count: 0 });
+  useEffect(() => { load(); }, [load]);
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <div className="grid sm:grid-cols-2 gap-4">
-        <div className="rounded-2xl bg-gradient-hero text-primary-foreground p-6 shadow-glow">
-          <p className="text-xs uppercase tracking-widest opacity-80">Resumo total</p>
-          <p className="font-display text-5xl mt-1">{formatDistance(totals.distance)}</p>
-          <div className="grid grid-cols-3 gap-2 mt-4 text-sm">
-            <div><p className="opacity-70 text-xs">Treinos</p><p className="font-display text-xl">{totals.count}</p></div>
-            <div><p className="opacity-70 text-xs">Tempo</p><p className="font-display text-xl">{Math.round(totals.duration / 3600)}h</p></div>
-            <div><p className="opacity-70 text-xs">Calorias</p><p className="font-display text-xl">{Math.round(totals.calories)}</p></div>
-          </div>
-        </div>
-        <div className="rounded-2xl bg-card border shadow-card p-6 flex flex-col">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="size-10 rounded-lg bg-[#FC4C02] grid place-items-center text-white"><Zap className="size-5" /></div>
-            <div>
-              <p className="font-display text-xl leading-none">STRAVA</p>
-              <p className="text-xs text-muted-foreground">Importe seus treinos</p>
-            </div>
-          </div>
-          <p className="text-sm text-muted-foreground flex-1 my-2">
-            {stravaConnected ? "Sua conta Strava está conectada." : "Conecte sua conta Strava para importar corridas e bikes automaticamente."}
-          </p>
-          <Button asChild variant={stravaConnected ? "outline" : "default"} className="w-full">
-            <Link to="/settings">{stravaConnected ? "Gerenciar" : "Conectar Strava"}</Link>
-          </Button>
-        </div>
-      </div>
+    <div className="max-w-3xl mx-auto space-y-4">
+      <header className="flex items-center justify-between">
+        <h1 className="font-display text-4xl">SEUS TREINOS</h1>
+        <ManualWorkoutDialog userId={user.id} onCreated={load} />
+      </header>
 
-      <div className="bg-card rounded-2xl border shadow-card">
-        <div className="p-4 border-b flex items-center justify-between">
-          <h2 className="font-display text-2xl">MEUS TREINOS</h2>
-          <ManualWorkoutDialog userId={user.id} onCreated={load} />
-        </div>
-        <ul className="divide-y">
-          {workouts.length === 0 && <li className="p-8 text-center text-muted-foreground text-sm">Nenhum treino registrado ainda</li>}
-          {workouts.map((w) => (
-            <li key={w.id} className="px-4 py-3 flex items-center gap-3 hover:bg-muted/40">
-              <div className="size-10 rounded-lg bg-primary/10 text-primary grid place-items-center">
-                <Activity className="size-5" />
-              </div>
+      {workouts === null ? (
+        <div className="space-y-3">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
+      ) : workouts.length === 0 ? (
+        <Card className="p-12 text-center text-muted-foreground">
+          <Activity className="size-12 mx-auto mb-3 opacity-50" />
+          <p className="font-display text-2xl">NENHUM TREINO AINDA</p>
+          <p className="text-sm mt-1">Clique em "Registrar treino" pra começar.</p>
+        </Card>
+      ) : (
+        workouts.map((w) => (
+          <Card key={w.id} className="p-4">
+            <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm truncate">{w.name ?? w.activity_type}</p>
-                <p className="text-xs text-muted-foreground">{w.activity_type} · {timeAgo(w.started_at)} {w.source === "strava" && "· via Strava"}</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">{w.activity_type}</p>
+                <h3 className="font-semibold text-lg mt-0.5">{w.title ?? w.activity_type}</h3>
+                <p className="text-xs text-muted-foreground mt-1">{formatDistanceToNow(new Date(w.performed_at), { addSuffix: true, locale: ptBR })}</p>
+                {w.notes && <p className="text-sm mt-2 text-muted-foreground">{w.notes}</p>}
               </div>
-              <div className="text-right">
-                <p className="font-display text-lg">{formatDistance(w.distance_meters)}</p>
-                <p className="text-xs text-muted-foreground">{formatDuration(w.duration_seconds)} · {w.calories ? `${Math.round(w.calories)} kcal` : "—"}</p>
+              <div className="text-right text-sm space-y-1 shrink-0">
+                <p><span className="text-muted-foreground">Tempo:</span> <span className="font-semibold">{fmtDuration(w.duration_seconds)}</span></p>
+                <p><span className="text-muted-foreground">Dist:</span> <span className="font-semibold">{fmtDist(w.distance_meters)}</span></p>
+                <p><span className="text-muted-foreground">Kcal:</span> <span className="font-semibold">{w.calories ?? "—"}</span></p>
               </div>
-            </li>
-          ))}
-        </ul>
-      </div>
+            </div>
+          </Card>
+        ))
+      )}
     </div>
   );
 }

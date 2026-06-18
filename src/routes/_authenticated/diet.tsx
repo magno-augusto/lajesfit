@@ -1,263 +1,210 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import { Flame, Plus, Search, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Plus, Search, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
+
+type Food = { id: number; name: string; kcal: number; protein_g: number; carbs_g: number; fat_g: number };
+
+type Entry = {
+  id: string;
+  food_name: string;
+  grams: number;
+  kcal: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  meal: string;
+  consumed_at: string;
+};
+
+const MEALS = ["Café da manhã", "Almoço", "Lanche", "Jantar", "Ceia"];
 
 export const Route = createFileRoute("/_authenticated/diet")({
   head: () => ({ meta: [{ title: "Dieta - Lajes Fit" }] }),
   component: DietPage,
 });
 
-type Food = {
-  id: number;
-  name: string;
-  category: string | null;
-  energy_kcal: number;
-  protein_g: number;
-  carbs_g: number;
-  fat_g: number;
-};
-type Meal = "breakfast" | "lunch" | "snack" | "dinner";
-type Entry = { id: string; food_id: number; grams: number; meal: Meal; consumed_at: string; food: Food };
-
-const MEALS: { key: Meal; label: string }[] = [
-  { key: "breakfast", label: "Cafe da manha" },
-  { key: "lunch", label: "Almoco" },
-  { key: "snack", label: "Lanche" },
-  { key: "dinner", label: "Jantar" },
-];
-
-function macros(food: Food, grams: number) {
-  const factor = grams / 100;
-  return {
-    kcal: Number(food.energy_kcal) * factor,
-    p: Number(food.protein_g) * factor,
-    c: Number(food.carbs_g) * factor,
-    g: Number(food.fat_g) * factor,
-  };
+function todayRange() {
+  const start = new Date(); start.setHours(0, 0, 0, 0);
+  const end = new Date(); end.setHours(23, 59, 59, 999);
+  return { start: start.toISOString(), end: end.toISOString() };
 }
 
 function DietPage() {
   const { user } = Route.useRouteContext();
-  const [entries, setEntries] = useState<Entry[]>([]);
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [entries, setEntries] = useState<Entry[] | null>(null);
+  const [open, setOpen] = useState(false);
 
-  async function load() {
-    const start = new Date(date + "T00:00:00").toISOString();
-    const end = new Date(date + "T23:59:59").toISOString();
-    const { data, error } = await supabase
+  const load = useCallback(async () => {
+    const { start, end } = todayRange();
+    const { data } = await supabase
       .from("diet_entries")
-      .select("id, food_id, grams, meal, consumed_at, food:taco_foods(*)")
+      .select("id, food_name, grams, kcal, protein_g, carbs_g, fat_g, meal, consumed_at")
       .eq("user_id", user.id)
       .gte("consumed_at", start)
       .lte("consumed_at", end)
-      .order("consumed_at");
-    if (error) toast.error(error.message);
-    setEntries((data ?? []) as Entry[]);
-  }
+      .order("consumed_at", { ascending: true });
+    setEntries(data ?? []);
+  }, [user.id]);
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [date, user.id]);
+  useEffect(() => { load(); }, [load]);
 
-  async function remove(id: string) {
+  async function removeEntry(id: string) {
     const { error } = await supabase.from("diet_entries").delete().eq("id", id);
-    if (error) toast.error(error.message);
-    else {
-      toast.success("Alimento removido");
-      load();
-    }
+    if (error) { toast.error("Erro ao remover"); return; }
+    load();
   }
 
   const totals = useMemo(() => {
-    return entries.reduce((acc, entry) => {
-      const mealMacros = macros(entry.food, entry.grams);
-      return {
-        kcal: acc.kcal + mealMacros.kcal,
-        p: acc.p + mealMacros.p,
-        c: acc.c + mealMacros.c,
-        g: acc.g + mealMacros.g,
-      };
-    }, { kcal: 0, p: 0, c: 0, g: 0 });
+    const t = { kcal: 0, protein: 0, carbs: 0, fat: 0 };
+    (entries ?? []).forEach((e) => { t.kcal += Number(e.kcal); t.protein += Number(e.protein_g); t.carbs += Number(e.carbs_g); t.fat += Number(e.fat_g); });
+    return t;
+  }, [entries]);
+
+  const byMeal = useMemo(() => {
+    const m: Record<string, Entry[]> = {};
+    (entries ?? []).forEach((e) => { (m[e.meal] ??= []).push(e); });
+    return m;
   }, [entries]);
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <div className="rounded-2xl bg-gradient-hero text-primary-foreground p-6 shadow-glow">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div>
-            <p className="text-primary-foreground/80 text-xs uppercase tracking-widest">Resumo do dia</p>
-            <p className="font-display text-5xl mt-1 flex items-center gap-2">
-              <Flame className="size-8" /> {Math.round(totals.kcal)} <span className="text-lg font-sans">kcal</span>
-            </p>
+    <div className="max-w-3xl mx-auto space-y-4">
+      <header className="flex items-center justify-between">
+        <div>
+          <h1 className="font-display text-4xl">DIETA DE HOJE</h1>
+          <p className="text-sm text-muted-foreground">{new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}</p>
+        </div>
+        <AddEntryDialog userId={user.id} open={open} setOpen={setOpen} onAdded={load} />
+      </header>
+
+      <Card className="p-4 grid grid-cols-4 gap-2 text-center">
+        <div><p className="font-display text-3xl text-primary">{Math.round(totals.kcal)}</p><p className="text-xs text-muted-foreground">kcal</p></div>
+        <div><p className="font-display text-3xl">{Math.round(totals.protein)}<span className="text-sm">g</span></p><p className="text-xs text-muted-foreground">Proteína</p></div>
+        <div><p className="font-display text-3xl">{Math.round(totals.carbs)}<span className="text-sm">g</span></p><p className="text-xs text-muted-foreground">Carbo</p></div>
+        <div><p className="font-display text-3xl">{Math.round(totals.fat)}<span className="text-sm">g</span></p><p className="text-xs text-muted-foreground">Gordura</p></div>
+      </Card>
+
+      {entries === null ? (
+        <Skeleton className="h-40 rounded-xl" />
+      ) : entries.length === 0 ? (
+        <Card className="p-10 text-center text-muted-foreground">
+          <p className="font-display text-2xl">NADA REGISTRADO HOJE</p>
+          <p className="text-sm mt-1">Clique em "Adicionar" pra começar.</p>
+        </Card>
+      ) : (
+        MEALS.filter((m) => byMeal[m]?.length).map((meal) => (
+          <div key={meal} className="space-y-2">
+            <h2 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground px-2">{meal}</h2>
+            {byMeal[meal].map((e) => (
+              <Card key={e.id} className="p-3 flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate">{e.food_name}</p>
+                  <p className="text-xs text-muted-foreground">{Number(e.grams)}g · {Math.round(Number(e.kcal))} kcal · P {Math.round(Number(e.protein_g))}g · C {Math.round(Number(e.carbs_g))}g · G {Math.round(Number(e.fat_g))}g</p>
+                </div>
+                <Button size="icon" variant="ghost" onClick={() => removeEntry(e.id)}><Trash2 className="size-4 text-destructive" /></Button>
+              </Card>
+            ))}
           </div>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="bg-primary-foreground/15 border border-primary-foreground/30 rounded-lg px-3 py-2 text-sm text-primary-foreground"
-          />
-        </div>
-        <div className="grid grid-cols-3 gap-4 mt-4">
-          <Macro label="Proteina" value={totals.p} unit="g" />
-          <Macro label="Carboidrato" value={totals.c} unit="g" />
-          <Macro label="Gordura" value={totals.g} unit="g" />
-        </div>
-      </div>
-
-      {MEALS.map((meal) => {
-        const items = entries.filter((entry) => entry.meal === meal.key);
-        const kcal = items.reduce((sum, entry) => sum + macros(entry.food, entry.grams).kcal, 0);
-        return (
-          <section key={meal.key} className="bg-card rounded-2xl border shadow-card overflow-hidden">
-            <header className="flex items-center justify-between p-4 border-b">
-              <div>
-                <h3 className="font-display text-2xl">{meal.label.toUpperCase()}</h3>
-                <p className="text-xs text-muted-foreground">{Math.round(kcal)} kcal - {items.length} item(ns)</p>
-              </div>
-              <AddFoodDialog userId={user.id} meal={meal.key} date={date} onAdded={load} />
-            </header>
-            <ul className="divide-y">
-              {items.length === 0 ? (
-                <li className="px-4 py-6 text-sm text-muted-foreground text-center">Nenhum alimento registrado</li>
-              ) : items.map((entry) => {
-                const mealMacros = macros(entry.food, entry.grams);
-                return (
-                  <li key={entry.id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/40">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{entry.food.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {entry.grams}g - {mealMacros.p.toFixed(1)}P / {mealMacros.c.toFixed(1)}C / {mealMacros.g.toFixed(1)}G
-                      </p>
-                    </div>
-                    <p className="font-display text-xl">{Math.round(mealMacros.kcal)}</p>
-                    <Button variant="ghost" size="icon" onClick={() => remove(entry.id)}>
-                      <Trash2 className="size-4" />
-                    </Button>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
-        );
-      })}
+        ))
+      )}
     </div>
   );
 }
 
-function Macro({ label, value, unit }: { label: string; value: number; unit: string }) {
-  return (
-    <div className="bg-primary-foreground/10 rounded-xl p-3">
-      <p className="text-xs text-primary-foreground/70">{label}</p>
-      <p className="font-display text-2xl">{value.toFixed(1)}<span className="text-sm font-sans ml-1">{unit}</span></p>
-    </div>
-  );
-}
-
-function AddFoodDialog({ userId, meal, date, onAdded }: { userId: string; meal: Meal; date: string; onAdded: () => void }) {
-  const [open, setOpen] = useState(false);
-  const [q, setQ] = useState("");
+function AddEntryDialog({ userId, open, setOpen, onAdded }: { userId: string; open: boolean; setOpen: (b: boolean) => void; onAdded: () => void }) {
+  const [query, setQuery] = useState("");
   const [results, setResults] = useState<Food[]>([]);
   const [selected, setSelected] = useState<Food | null>(null);
   const [grams, setGrams] = useState(100);
+  const [meal, setMeal] = useState("Almoço");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-    const timeout = setTimeout(async () => {
-      const query = supabase.from("taco_foods").select("*").order("name").limit(30);
-      const { data, error } = q.trim() ? await query.ilike("name", `%${q.trim()}%`) : await query;
-      if (error) toast.error(error.message);
-      setResults((data ?? []) as Food[]);
+    const t = setTimeout(async () => {
+      if (query.trim().length < 2) { setResults([]); return; }
+      const { data } = await supabase
+        .from("taco_foods")
+        .select("id, name, kcal, protein_g, carbs_g, fat_g")
+        .ilike("name", `%${query}%`)
+        .limit(20);
+      setResults(data ?? []);
     }, 200);
-    return () => clearTimeout(timeout);
-  }, [q, open]);
+    return () => clearTimeout(t);
+  }, [query, open]);
 
-  async function add() {
+  async function save() {
     if (!selected) return;
+    const factor = grams / 100;
     setLoading(true);
-    const consumedAt = new Date(date + "T" + new Date().toTimeString().slice(0, 8)).toISOString();
     const { error } = await supabase.from("diet_entries").insert({
       user_id: userId,
       food_id: selected.id,
+      food_name: selected.name,
       grams,
+      kcal: Number(selected.kcal) * factor,
+      protein_g: Number(selected.protein_g) * factor,
+      carbs_g: Number(selected.carbs_g) * factor,
+      fat_g: Number(selected.fat_g) * factor,
       meal,
-      consumed_at: consumedAt,
     });
     setLoading(false);
-
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-
-    toast.success("Alimento adicionado");
-    setOpen(false);
-    setSelected(null);
-    setQ("");
-    setGrams(100);
+    if (error) { toast.error("Erro ao adicionar"); return; }
+    toast.success("Alimento adicionado!");
+    setSelected(null); setQuery(""); setResults([]); setOpen(false);
     onAdded();
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" variant="secondary"><Plus className="size-4 mr-1" /> Adicionar</Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader><DialogTitle>Buscar alimento - Tabela TACO</DialogTitle></DialogHeader>
+      <DialogTrigger asChild><Button><Plus className="size-4 mr-2" /> Adicionar</Button></DialogTrigger>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Adicionar alimento</DialogTitle></DialogHeader>
         {!selected ? (
-          <>
+          <div className="space-y-3">
             <div className="relative">
-              <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input placeholder="ex: arroz, frango, banana..." value={q} onChange={(e) => setQ(e.target.value)} className="pl-9" autoFocus />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar (arroz, frango, banana...)" className="pl-9" autoFocus />
             </div>
-            <ul className="max-h-80 overflow-auto divide-y rounded-lg border">
-              {results.map((food) => {
-                const foodMacros = macros(food, 100);
-                return (
-                  <li key={food.id}>
-                    <button onClick={() => setSelected(food)} className="w-full text-left px-3 py-2 hover:bg-muted">
-                      <p className="text-sm font-medium">{food.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {Math.round(foodMacros.kcal)} kcal - {foodMacros.p.toFixed(1)}P/{foodMacros.c.toFixed(1)}C/{foodMacros.g.toFixed(1)}G por 100g
-                      </p>
-                    </button>
-                  </li>
-                );
-              })}
-              {results.length === 0 && <li className="px-3 py-6 text-center text-sm text-muted-foreground">Nenhum resultado</li>}
-            </ul>
-          </>
+            <div className="max-h-72 overflow-auto space-y-1">
+              {results.map((f) => (
+                <button key={f.id} onClick={() => setSelected(f)} className="w-full text-left p-2 rounded hover:bg-muted">
+                  <p className="font-medium text-sm">{f.name}</p>
+                  <p className="text-xs text-muted-foreground">{Math.round(Number(f.kcal))} kcal / 100g</p>
+                </button>
+              ))}
+              {query.length >= 2 && results.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Nenhum alimento encontrado</p>}
+            </div>
+          </div>
         ) : (
-          <div className="space-y-4">
-            <button onClick={() => setSelected(null)} className="text-xs text-primary hover:underline">Voltar para busca</button>
+          <div className="space-y-3">
             <div>
-              <p className="font-medium">{selected.name}</p>
-              <p className="text-xs text-muted-foreground">{selected.category}</p>
+              <p className="font-semibold">{selected.name}</p>
+              <p className="text-xs text-muted-foreground">{Math.round(Number(selected.kcal))} kcal por 100g</p>
             </div>
-            <div>
-              <label className="text-xs text-muted-foreground">Quantidade (g)</label>
-              <Input type="number" min="1" value={grams} onChange={(e) => setGrams(Number(e.target.value))} />
+            <div className="space-y-2"><Label>Quantidade (g)</Label><Input type="number" min={1} value={grams} onChange={(e) => setGrams(Number(e.target.value))} /></div>
+            <div className="space-y-2">
+              <Label>Refeição</Label>
+              <Select value={meal} onValueChange={setMeal}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{MEALS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+              </Select>
             </div>
-            <div className="grid grid-cols-4 gap-2 text-center bg-muted rounded-lg p-3">
-              {(() => {
-                const selectedMacros = macros(selected, grams);
-                return (
-                  <>
-                    <div><p className="text-xs text-muted-foreground">kcal</p><p className="font-display text-xl">{Math.round(selectedMacros.kcal)}</p></div>
-                    <div><p className="text-xs text-muted-foreground">P</p><p className="font-display text-xl">{selectedMacros.p.toFixed(1)}</p></div>
-                    <div><p className="text-xs text-muted-foreground">C</p><p className="font-display text-xl">{selectedMacros.c.toFixed(1)}</p></div>
-                    <div><p className="text-xs text-muted-foreground">G</p><p className="font-display text-xl">{selectedMacros.g.toFixed(1)}</p></div>
-                  </>
-                );
-              })()}
+            <div className="text-sm bg-muted rounded p-3">
+              <p>Total: <strong>{Math.round(Number(selected.kcal) * grams / 100)} kcal</strong></p>
             </div>
-            <Button onClick={add} disabled={loading} className="w-full">
-              {loading ? "Adicionando..." : "Adicionar a refeicao"}
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setSelected(null)} className="flex-1">Voltar</Button>
+              <Button onClick={save} disabled={loading} className="flex-1">{loading ? "Salvando..." : "Adicionar"}</Button>
+            </div>
           </div>
         )}
       </DialogContent>

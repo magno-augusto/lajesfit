@@ -1,47 +1,62 @@
 import { useState } from "react";
-import { Plus } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Activity, Plus } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { type LocalWorkout } from "@/lib/local-fitness";
 
-const ACTIVITIES = ["Corrida", "Caminhada", "Bike", "Trilha", "Musculação", "Natação", "Funcional", "Outro"];
+const ACTIVITIES = ["Corrida", "Caminhada", "Ciclismo", "Musculacao", "Trilha", "Natacao", "Outro"];
 
-export function ManualWorkoutDialog({ userId, onCreated }: { userId: string; onCreated: () => void }) {
+export function ManualWorkoutDialog({
+  onCreated,
+}: {
+  userId?: string;
+  onCreated: (workout: Omit<LocalWorkout, "id">) => void;
+}) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const activity_type = String(fd.get("activity_type") || "Outro");
-    const title = String(fd.get("title") || "") || null;
-    const duration_min = Number(fd.get("duration_min") || 0);
-    const distance_km = Number(fd.get("distance_km") || 0);
-    const calories = Number(fd.get("calories") || 0);
-    const notes = String(fd.get("notes") || "") || null;
+    const form = e.currentTarget;
+    const fd = new FormData(form);
+    const hours = Number(fd.get("hours") || 0);
+    const minutes = Number(fd.get("minutes") || 0);
+    const duration = hours * 3600 + minutes * 60;
+    const startedAt = String(fd.get("started_at") || "");
 
     setLoading(true);
     try {
-      const { error } = await supabase.from("workouts").insert({
-        user_id: userId,
-        activity_type,
-        title,
-        duration_seconds: duration_min ? duration_min * 60 : null,
-        distance_meters: distance_km ? distance_km * 1000 : null,
-        calories: calories || null,
-        notes,
+      onCreated({
+        activityType: String(fd.get("activity_type") || "Corrida"),
+        name: String(fd.get("name") || "") || null,
+        distanceMeters: fd.get("distance_km") ? Number(fd.get("distance_km")) * 1000 : null,
+        durationSeconds: duration || null,
+        calories: fd.get("calories") ? Number(fd.get("calories")) : 0,
+        startedAt: startedAt ? new Date(startedAt).toISOString() : new Date().toISOString(),
       });
-      if (error) throw error;
+
       toast.success("Treino registrado!");
+      form.reset();
       setOpen(false);
       onCreated();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Erro ao salvar");
+      toast.error(err instanceof Error ? err.message : "Erro ao registrar treino");
     } finally {
       setLoading(false);
     }
@@ -50,34 +65,88 @@ export function ManualWorkoutDialog({ userId, onCreated }: { userId: string; onC
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button><Plus className="size-4 mr-2" /> Registrar treino</Button>
+        <Button size="sm" variant="secondary">
+          <Plus className="size-4 mr-1" /> Registrar
+        </Button>
       </DialogTrigger>
-      <DialogContent>
-        <DialogHeader><DialogTitle>Novo treino</DialogTitle></DialogHeader>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Activity className="size-5" /> Registrar treino
+          </DialogTitle>
+        </DialogHeader>
         <form onSubmit={submit} className="space-y-4">
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Modalidade</Label>
+              <Select name="activity_type" defaultValue="Corrida">
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ACTIVITIES.map((activity) => (
+                    <SelectItem key={activity} value={activity}>
+                      {activity}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="workout-name">Nome</Label>
+              <Input id="workout-name" name="name" placeholder="Treino matinal" maxLength={120} />
+            </div>
+          </div>
+
           <div className="space-y-2">
-            <Label>Atividade</Label>
-            <Select name="activity_type" defaultValue="Corrida">
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {ACTIVITIES.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <Label htmlFor="started-at">Data e hora</Label>
+            <Input id="started-at" name="started_at" type="datetime-local" />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="w-title">Título (opcional)</Label>
-            <Input id="w-title" name="title" placeholder="Corrida no final da tarde" />
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="distance-km">Distancia (km)</Label>
+              <Input
+                id="distance-km"
+                name="distance_km"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="5.2"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="calories">Calorias</Label>
+              <Input
+                id="calories"
+                name="calories"
+                type="number"
+                min="0"
+                step="1"
+                placeholder="320"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="hours">Horas</Label>
+              <Input id="hours" name="hours" type="number" min="0" step="1" placeholder="0" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="minutes">Minutos</Label>
+              <Input
+                id="minutes"
+                name="minutes"
+                type="number"
+                min="0"
+                max="59"
+                step="1"
+                placeholder="45"
+              />
+            </div>
           </div>
-          <div className="grid grid-cols-3 gap-3">
-            <div className="space-y-2"><Label htmlFor="w-dur">Minutos</Label><Input id="w-dur" name="duration_min" type="number" min={0} /></div>
-            <div className="space-y-2"><Label htmlFor="w-dist">Km</Label><Input id="w-dist" name="distance_km" type="number" step="0.01" min={0} /></div>
-            <div className="space-y-2"><Label htmlFor="w-cal">Kcal</Label><Input id="w-cal" name="calories" type="number" min={0} /></div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="w-notes">Notas</Label>
-            <Textarea id="w-notes" name="notes" rows={3} placeholder="Como foi o treino?" />
-          </div>
-          <Button type="submit" className="w-full" disabled={loading}>{loading ? "Salvando..." : "Salvar treino"}</Button>
+
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? "Registrando..." : "Salvar treino"}
+          </Button>
         </form>
       </DialogContent>
     </Dialog>

@@ -1,49 +1,25 @@
-import { createFileRoute, Outlet, redirect, Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Activity, Apple, Home, LogOut, Settings, User as UserIcon } from "lucide-react";
+import { createFileRoute, Outlet, Link, useLocation, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { Activity, Apple, Flame, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { LOCAL_USER, useLocalFitness } from "@/lib/local-fitness";
 import logo from "@/assets/logo.png";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
-  beforeLoad: async () => {
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) throw redirect({ to: "/auth" });
-    return { user: data.user };
-  },
+  beforeLoad: async () => ({ user: LOCAL_USER }),
   component: AppShell,
 });
 
-type ProfileMini = { username: string; display_name: string; avatar_url: string | null };
-
 function AppShell() {
-  const { user } = Route.useRouteContext();
   const location = useLocation();
   const navigate = useNavigate();
-  const [profile, setProfile] = useState<ProfileMini | null>(null);
+  const { idrProfile, summary } = useLocalFitness();
 
   useEffect(() => {
-    supabase
-      .from("profiles")
-      .select("username,display_name,avatar_url")
-      .eq("id", user.id)
-      .maybeSingle()
-      .then(({ data }) => setProfile(data));
-  }, [user.id]);
-
-  async function signOut() {
-    await supabase.auth.signOut();
-    navigate({ to: "/auth", replace: true });
-  }
+    if (!idrProfile) navigate({ to: "/setup", replace: true });
+  }, [idrProfile, navigate]);
 
   const navItems = [
     { to: "/feed", icon: Home, label: "Feed" },
@@ -74,41 +50,25 @@ function AppShell() {
             })}
           </nav>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="rounded-full outline-none focus-visible:ring-2 ring-ring">
-                <Avatar className="size-9 border-2 border-primary/30">
-                  <AvatarImage src={profile?.avatar_url ?? undefined} />
-                  <AvatarFallback className="bg-gradient-primary text-primary-foreground font-semibold">
-                    {(profile?.display_name ?? user.email ?? "?").slice(0, 1).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <div className="px-2 py-1.5 text-sm">
-                <p className="font-medium">{profile?.display_name ?? "Atleta"}</p>
-                <p className="text-xs text-muted-foreground">@{profile?.username ?? "..."}</p>
-              </div>
-              <DropdownMenuSeparator />
-              {profile && (
-                <DropdownMenuItem asChild>
-                  <Link to="/profile/$username" params={{ username: profile.username }}>
-                    <UserIcon className="size-4 mr-2" /> Meu perfil
-                  </Link>
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem asChild>
-                <Link to="/settings">
-                  <Settings className="size-4 mr-2" /> Configuracoes
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={signOut}>
-                <LogOut className="size-4 mr-2" /> Sair
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg border bg-card px-3 py-1.5 text-right shadow-sm">
+              <p className="flex items-center justify-end gap-1 text-xs text-muted-foreground">
+                <Flame className="size-3.5 text-primary" /> Restante do IDR
+              </p>
+              <p className="font-display text-2xl leading-none">
+                {Math.round(summary.remainingCalories)} kcal
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                IDR {Math.round(summary.dailyTarget)} - comida + treino
+              </p>
+            </div>
+            <Avatar className="size-9 border-2 border-primary/30">
+              <AvatarImage src={undefined} />
+              <AvatarFallback className="bg-gradient-primary text-primary-foreground font-semibold">
+                {(idrProfile?.name ?? LOCAL_USER.displayName).slice(0, 1).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          </div>
         </div>
       </header>
 

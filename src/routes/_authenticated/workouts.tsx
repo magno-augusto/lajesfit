@@ -1,9 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ManualWorkoutDialog } from "@/components/manual-workout-dialog";
-import { useEffect, useState } from "react";
-import { Activity, Flame, RefreshCw, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Activity,
+  Calendar as CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
+  Flame,
+  RefreshCw,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { formatDistance, formatDuration, timeAgo } from "@/lib/feed";
 import {
   addWorkout,
@@ -24,12 +34,49 @@ export const Route = createFileRoute("/_authenticated/workouts")({
   component: WorkoutsPage,
 });
 
+function startOfLocalDay(date: Date) {
+  const nextDate = new Date(date);
+  nextDate.setHours(0, 0, 0, 0);
+  return nextDate;
+}
+
+function addDays(date: Date, days: number) {
+  const nextDate = new Date(date);
+  nextDate.setDate(nextDate.getDate() + days);
+  return startOfLocalDay(nextDate);
+}
+
+function isSameLocalDate(isoDate: string, day: Date) {
+  const date = new Date(isoDate);
+  return (
+    date.getFullYear() === day.getFullYear() &&
+    date.getMonth() === day.getMonth() &&
+    date.getDate() === day.getDate()
+  );
+}
+
+function formatSelectedDate(date: Date) {
+  return date.toLocaleDateString("pt-BR", {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+  });
+}
+
+function buildStartedAtForSelectedDay(day: Date) {
+  const now = new Date();
+  const startedAt = new Date(day);
+  startedAt.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+  return startedAt.toISOString();
+}
+
 function WorkoutsPage() {
   const { workouts, loading } = useLocalFitness();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [addWorkoutOpen, setAddWorkoutOpen] = useState(false);
   const [stravaConnected, setStravaConnected] = useState(false);
   const [stravaBusy, setStravaBusy] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(() => startOfLocalDay(new Date()));
 
   useEffect(() => {
     if (consumePendingNewAction("workout")) setAddWorkoutOpen(true);
@@ -52,14 +99,23 @@ function WorkoutsPage() {
     await addWorkout(workout);
   }
 
-  const totals = workouts.reduce(
-    (acc, workout) => ({
-      distance: acc.distance + (workout.distanceMeters ?? 0),
-      duration: acc.duration + (workout.durationSeconds ?? 0),
-      calories: acc.calories + (workout.calories ?? 0),
-      count: acc.count + 1,
-    }),
-    { distance: 0, duration: 0, calories: 0, count: 0 },
+  const dayWorkouts = useMemo(
+    () => workouts.filter((workout) => isSameLocalDate(workout.startedAt, selectedDate)),
+    [selectedDate, workouts],
+  );
+
+  const totals = useMemo(
+    () =>
+      dayWorkouts.reduce(
+        (acc, workout) => ({
+          distance: acc.distance + (workout.distanceMeters ?? 0),
+          duration: acc.duration + (workout.durationSeconds ?? 0),
+          calories: acc.calories + (workout.calories ?? 0),
+          count: acc.count + 1,
+        }),
+        { distance: 0, duration: 0, calories: 0, count: 0 },
+      ),
+    [dayWorkouts],
   );
 
   async function handleRemove(id: string) {
@@ -107,6 +163,50 @@ function WorkoutsPage() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
+      <div className="flex items-center justify-center gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="rounded-full"
+          onClick={() => setSelectedDate((date) => addDays(date, -1))}
+          aria-label="Ver dia anterior"
+        >
+          <ChevronLeft className="size-5" />
+        </Button>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              className="min-w-44 rounded-full px-4 capitalize"
+            >
+              <CalendarIcon className="mr-2 size-4" />
+              {formatSelectedDate(selectedDate)}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="center">
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={(date) => {
+                if (date) setSelectedDate(startOfLocalDay(date));
+              }}
+            />
+          </PopoverContent>
+        </Popover>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="rounded-full"
+          onClick={() => setSelectedDate((date) => addDays(date, 1))}
+          aria-label="Ver dia posterior"
+        >
+          <ChevronRight className="size-5" />
+        </Button>
+      </div>
+
       <div className="rounded-lg bg-gradient-hero text-primary-foreground p-6 shadow-glow">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
@@ -117,6 +217,7 @@ function WorkoutsPage() {
             onSaved={handleCreate}
             open={addWorkoutOpen}
             onOpenChange={setAddWorkoutOpen}
+            defaultStartedAt={buildStartedAtForSelectedDay(selectedDate)}
           />
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
@@ -178,55 +279,57 @@ function WorkoutsPage() {
           {loading && (
             <li className="p-8 text-center text-muted-foreground text-sm">Carregando treinos...</li>
           )}
-          {!loading && workouts.length === 0 && (
+          {!loading && dayWorkouts.length === 0 && (
             <li className="p-8 text-center text-muted-foreground text-sm">
-              Nenhum treino registrado ainda
+              Nenhum treino registrado neste dia
             </li>
           )}
-          {workouts.map((workout) => {
+          {dayWorkouts.map((workout) => {
             const hasCalories = typeof workout.calories === "number" && workout.calories > 0;
             const durationLabel = formatDuration(workout.durationSeconds);
             const distanceLabel = formatDistance(workout.distanceMeters);
             return (
-            <li key={workout.id} className="px-4 py-3 flex items-center gap-3 hover:bg-muted/40">
-              <div className="size-10 rounded-lg bg-primary/10 text-primary grid place-items-center">
-                <Activity className="size-5" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm truncate">
-                  {workout.name ?? workout.activityType}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {workout.activityType} - {timeAgo(workout.startedAt)}
-                </p>
-              </div>
-              <div className="text-right shrink-0">
-                {distanceLabel !== "-" && <p className="font-display text-lg">{distanceLabel}</p>}
-                <div className="mt-0.5 flex items-center justify-end gap-1 text-xs text-muted-foreground">
-                  {durationLabel !== "-" && (
-                    <>
-                      <span>{durationLabel}</span>
-                      <span>-</span>
-                    </>
-                  )}
-                  <Flame className="size-3.5" />
-                  <span>{hasCalories ? `${Math.round(workout.calories!)} kcal` : "nao informado"}</span>
+              <li key={workout.id} className="px-4 py-3 flex items-center gap-3 hover:bg-muted/40">
+                <div className="size-10 rounded-lg bg-primary/10 text-primary grid place-items-center">
+                  <Activity className="size-5" />
                 </div>
-              </div>
-              <ManualWorkoutDialog
-                initialWorkout={workout}
-                onSaved={(updatedWorkout) => updateWorkout(workout.id, updatedWorkout)}
-              />
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleRemove(workout.id)}
-                disabled={deletingId === workout.id}
-                aria-label="Remover treino"
-              >
-                <Trash2 className="size-4" />
-              </Button>
-            </li>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">
+                    {workout.name ?? workout.activityType}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {workout.activityType} - {timeAgo(workout.startedAt)}
+                  </p>
+                </div>
+                <div className="text-right shrink-0">
+                  {distanceLabel !== "-" && <p className="font-display text-lg">{distanceLabel}</p>}
+                  <div className="mt-0.5 flex items-center justify-end gap-1 text-xs text-muted-foreground">
+                    {durationLabel !== "-" && (
+                      <>
+                        <span>{durationLabel}</span>
+                        <span>-</span>
+                      </>
+                    )}
+                    <Flame className="size-3.5" />
+                    <span>
+                      {hasCalories ? `${Math.round(workout.calories!)} kcal` : "nao informado"}
+                    </span>
+                  </div>
+                </div>
+                <ManualWorkoutDialog
+                  initialWorkout={workout}
+                  onSaved={(updatedWorkout) => updateWorkout(workout.id, updatedWorkout)}
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleRemove(workout.id)}
+                  disabled={deletingId === workout.id}
+                  aria-label="Remover treino"
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              </li>
             );
           })}
         </ul>

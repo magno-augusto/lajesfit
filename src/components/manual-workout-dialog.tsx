@@ -27,6 +27,7 @@ export function ManualWorkoutDialog({
   onSaved,
   open: controlledOpen,
   onOpenChange,
+  defaultStartedAt,
   showTrigger = true,
 }: {
   userId?: string;
@@ -35,6 +36,7 @@ export function ManualWorkoutDialog({
   onSaved: (workout: Omit<LocalWorkout, "id">) => void | Promise<void>;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  defaultStartedAt?: string;
   showTrigger?: boolean;
 }) {
   const [internalOpen, setInternalOpen] = useState(false);
@@ -144,7 +146,7 @@ export function ManualWorkoutDialog({
               id="started-at"
               name="started_at"
               type="datetime-local"
-              defaultValue={formatDateTimeLocal(initialWorkout?.startedAt)}
+              defaultValue={formatDateTimeLocal(initialWorkout?.startedAt ?? defaultStartedAt)}
             />
           </div>
 

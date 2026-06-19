@@ -84,7 +84,7 @@ export function mapStravaActivity(activity: StravaActivity, userId: string) {
       typeof activity.calories === "number" && activity.calories > 0
         ? Math.round(activity.calories)
         : null,
-    performed_at: activity.start_date ?? activity.start_date_local ?? new Date().toISOString(),
+    performed_at: activity.start_date_local ?? activity.start_date ?? new Date().toISOString(),
   };
 }
 

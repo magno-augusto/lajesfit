@@ -120,7 +120,7 @@ function AppShell() {
             <div className="hidden md:block">
               <NewActionMenu />
             </div>
-            <div className="fixed left-1/2 top-0 z-40 min-w-[178px] -translate-x-1/2 rounded-b-lg rounded-t-none bg-gradient-hero px-4 py-3 text-center text-primary-foreground shadow-glow sm:min-w-[230px] sm:px-5">
+            <div className="fixed left-1/2 top-0 z-40 min-w-[178px] -translate-x-1/2 rounded-b-lg rounded-t-none bg-gradient-hero px-4 py-3 text-center text-primary-foreground shadow-glow sm:min-w-[230px] sm:px-5 md:static md:z-auto md:min-w-[210px] md:translate-x-0 md:rounded-lg md:px-4 md:py-2 md:shadow-card lg:min-w-[230px]">
               <Popover>
                 <PopoverTrigger asChild>
                   <button
@@ -148,12 +148,14 @@ function AppShell() {
                   </div>
                 </PopoverContent>
               </Popover>
-              <p className="flex items-center justify-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-primary-foreground/85 sm:text-xs">
+              <p className="flex items-center justify-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-primary-foreground/85 sm:text-xs md:text-[10px] lg:text-xs">
                 <Flame className="size-3.5" />
                 Calorias
               </p>
               <p className="flex items-baseline justify-center gap-1.5 whitespace-nowrap font-display leading-none">
-                <span className="text-3xl sm:text-4xl">{Math.round(summary.mealCalories)}</span>
+                <span className="text-3xl sm:text-4xl md:text-3xl lg:text-4xl">
+                  {Math.round(summary.mealCalories)}
+                </span>
                 <span className="text-xl text-primary-foreground/75 sm:text-2xl">/</span>
                 <span className="text-lg text-primary-foreground/85 sm:text-xl">
                   {Math.round(summary.limitCalories)}

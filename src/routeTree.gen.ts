@@ -13,10 +13,12 @@ import { Route as SetupRouteImport } from './routes/setup'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as StravaCallbackRouteImport } from './routes/strava.callback'
 import { Route as AuthenticatedWorkoutsRouteImport } from './routes/_authenticated/workouts'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedFeedRouteImport } from './routes/_authenticated/feed'
 import { Route as AuthenticatedDietRouteImport } from './routes/_authenticated/diet'
+import { Route as ApiStravaWebhookRouteImport } from './routes/api/strava/webhook'
 import { Route as AuthenticatedProfileUsernameRouteImport } from './routes/_authenticated/profile.$username'
 
 const SetupRoute = SetupRouteImport.update({
@@ -36,6 +38,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StravaCallbackRoute = StravaCallbackRouteImport.update({
+  id: '/strava/callback',
+  path: '/strava/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedWorkoutsRoute = AuthenticatedWorkoutsRouteImport.update({
@@ -58,6 +65,11 @@ const AuthenticatedDietRoute = AuthenticatedDietRouteImport.update({
   path: '/diet',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiStravaWebhookRoute = ApiStravaWebhookRouteImport.update({
+  id: '/api/strava/webhook',
+  path: '/api/strava/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedProfileUsernameRoute =
   AuthenticatedProfileUsernameRouteImport.update({
     id: '/profile/$username',
@@ -73,7 +85,9 @@ export interface FileRoutesByFullPath {
   '/feed': typeof AuthenticatedFeedRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/workouts': typeof AuthenticatedWorkoutsRoute
+  '/strava/callback': typeof StravaCallbackRoute
   '/profile/$username': typeof AuthenticatedProfileUsernameRoute
+  '/api/strava/webhook': typeof ApiStravaWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -83,7 +97,9 @@ export interface FileRoutesByTo {
   '/feed': typeof AuthenticatedFeedRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/workouts': typeof AuthenticatedWorkoutsRoute
+  '/strava/callback': typeof StravaCallbackRoute
   '/profile/$username': typeof AuthenticatedProfileUsernameRoute
+  '/api/strava/webhook': typeof ApiStravaWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -95,7 +111,9 @@ export interface FileRoutesById {
   '/_authenticated/feed': typeof AuthenticatedFeedRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/workouts': typeof AuthenticatedWorkoutsRoute
+  '/strava/callback': typeof StravaCallbackRoute
   '/_authenticated/profile/$username': typeof AuthenticatedProfileUsernameRoute
+  '/api/strava/webhook': typeof ApiStravaWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -107,7 +125,9 @@ export interface FileRouteTypes {
     | '/feed'
     | '/settings'
     | '/workouts'
+    | '/strava/callback'
     | '/profile/$username'
+    | '/api/strava/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -117,7 +137,9 @@ export interface FileRouteTypes {
     | '/feed'
     | '/settings'
     | '/workouts'
+    | '/strava/callback'
     | '/profile/$username'
+    | '/api/strava/webhook'
   id:
     | '__root__'
     | '/'
@@ -128,7 +150,9 @@ export interface FileRouteTypes {
     | '/_authenticated/feed'
     | '/_authenticated/settings'
     | '/_authenticated/workouts'
+    | '/strava/callback'
     | '/_authenticated/profile/$username'
+    | '/api/strava/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -136,6 +160,8 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   SetupRoute: typeof SetupRoute
+  StravaCallbackRoute: typeof StravaCallbackRoute
+  ApiStravaWebhookRoute: typeof ApiStravaWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -168,6 +194,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/strava/callback': {
+      id: '/strava/callback'
+      path: '/strava/callback'
+      fullPath: '/strava/callback'
+      preLoaderRoute: typeof StravaCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/workouts': {
       id: '/_authenticated/workouts'
       path: '/workouts'
@@ -195,6 +228,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/diet'
       preLoaderRoute: typeof AuthenticatedDietRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/strava/webhook': {
+      id: '/api/strava/webhook'
+      path: '/api/strava/webhook'
+      fullPath: '/api/strava/webhook'
+      preLoaderRoute: typeof ApiStravaWebhookRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/profile/$username': {
       id: '/_authenticated/profile/$username'
@@ -230,6 +270,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   SetupRoute: SetupRoute,
+  StravaCallbackRoute: StravaCallbackRoute,
+  ApiStravaWebhookRoute: ApiStravaWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

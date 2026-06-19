@@ -88,6 +88,99 @@ export type Database = {
         }
         Relationships: []
       }
+      follow_requests: {
+        Row: {
+          created_at: string
+          requested_id: string
+          requester_id: string
+        }
+        Insert: {
+          created_at?: string
+          requested_id: string
+          requester_id: string
+        }
+        Update: {
+          created_at?: string
+          requested_id?: string
+          requester_id?: string
+        }
+        Relationships: []
+      }
+      strava_tokens: {
+        Row: {
+          access_token: string
+          athlete_id: number | null
+          expires_at: number
+          refresh_token: string
+          scope: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          athlete_id?: number | null
+          expires_at: number
+          refresh_token: string
+          scope?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          athlete_id?: number | null
+          expires_at?: number
+          refresh_token?: string
+          scope?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      strava_webhook_events: {
+        Row: {
+          aspect_type: string
+          created_at: string
+          error_message: string | null
+          event_time: number | null
+          id: string
+          object_id: number
+          object_type: string
+          owner_id: number
+          processed_at: string | null
+          status: string
+          subscription_id: number | null
+          updates: Json
+        }
+        Insert: {
+          aspect_type: string
+          created_at?: string
+          error_message?: string | null
+          event_time?: number | null
+          id?: string
+          object_id: number
+          object_type: string
+          owner_id: number
+          processed_at?: string | null
+          status?: string
+          subscription_id?: number | null
+          updates?: Json
+        }
+        Update: {
+          aspect_type?: string
+          created_at?: string
+          error_message?: string | null
+          event_time?: number | null
+          id?: string
+          object_id?: number
+          object_type?: string
+          owner_id?: number
+          processed_at?: string | null
+          status?: string
+          subscription_id?: number | null
+          updates?: Json
+        }
+        Relationships: []
+      }
       post_comments: {
         Row: {
           content: string
@@ -186,6 +279,7 @@ export type Database = {
           goal_sex: string | null
           goal_weight_kg: number | null
           id: string
+          is_private: boolean
           updated_at: string
           username: string
         }
@@ -201,6 +295,7 @@ export type Database = {
           goal_sex?: string | null
           goal_weight_kg?: number | null
           id: string
+          is_private?: boolean
           updated_at?: string
           username: string
         }
@@ -216,6 +311,7 @@ export type Database = {
           goal_sex?: string | null
           goal_weight_kg?: number | null
           id?: string
+          is_private?: boolean
           updated_at?: string
           username?: string
         }
@@ -264,6 +360,8 @@ export type Database = {
           id: string
           notes: string | null
           performed_at: string
+          source: string
+          strava_activity_id: number | null
           title: string | null
           user_id: string
         }
@@ -276,6 +374,8 @@ export type Database = {
           id?: string
           notes?: string | null
           performed_at?: string
+          source?: string
+          strava_activity_id?: number | null
           title?: string | null
           user_id: string
         }
@@ -288,6 +388,8 @@ export type Database = {
           id?: string
           notes?: string | null
           performed_at?: string
+          source?: string
+          strava_activity_id?: number | null
           title?: string | null
           user_id?: string
         }

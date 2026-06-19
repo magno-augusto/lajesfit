@@ -87,6 +87,67 @@ export async function fetchFeed(currentUserId: string): Promise<FeedPost[]> {
   });
 }
 
+export async function fetchProfilePosts(
+  profileUserId: string,
+  currentUserId: string,
+): Promise<FeedPost[]> {
+  const { data: posts, error } = await supabase
+    .from("posts")
+    .select("id, content, media_url, created_at, user_id")
+    .eq("user_id", profileUserId)
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (error) throw error;
+  if (!posts || posts.length === 0) return [];
+
+  const ids = posts.map((p) => p.id);
+
+  const [{ data: author }, { data: likes }, { data: comments }, { data: myLikes }] =
+    await Promise.all([
+      supabase
+        .from("profiles")
+        .select("id, username, display_name, avatar_url")
+        .eq("id", profileUserId)
+        .maybeSingle(),
+      supabase.from("post_likes").select("post_id").in("post_id", ids),
+      supabase.from("post_comments").select("post_id").in("post_id", ids),
+      supabase.from("post_likes").select("post_id").in("post_id", ids).eq("user_id", currentUserId),
+    ]);
+
+  const likesMap = new Map<string, number>();
+  (likes ?? []).forEach((l) => likesMap.set(l.post_id, (likesMap.get(l.post_id) ?? 0) + 1));
+  const commentsMap = new Map<string, number>();
+  (comments ?? []).forEach((c) =>
+    commentsMap.set(c.post_id, (commentsMap.get(c.post_id) ?? 0) + 1),
+  );
+  const likedSet = new Set((myLikes ?? []).map((l) => l.post_id));
+
+  return posts.map((p) => ({
+    id: p.id,
+    content: p.content,
+    created_at: p.created_at,
+    user_id: p.user_id,
+    type: inferPostType(p.content),
+    media_urls: p.media_url ? [p.media_url] : [],
+    workout_id: null,
+    profile: {
+      username: author?.username ?? "user",
+      display_name: author?.display_name ?? "Atleta",
+      avatar_url: author?.avatar_url ?? null,
+    },
+    workout: null,
+    likes_count: likesMap.get(p.id) ?? 0,
+    comments_count: commentsMap.get(p.id) ?? 0,
+    liked_by_me: likedSet.has(p.id),
+  }));
+}
+
+export async function deletePost(postId: string, userId: string) {
+  const { error } = await supabase.from("posts").delete().eq("id", postId).eq("user_id", userId);
+  if (error) throw error;
+}
+
 export function formatDuration(seconds: number | null | undefined) {
   if (!seconds) return "-";
   const h = Math.floor(seconds / 3600);

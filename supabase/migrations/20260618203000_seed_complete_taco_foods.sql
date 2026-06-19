@@ -1,4 +1,4 @@
-﻿-- Dados extraidos da Tabela Brasileira de Composicao de Alimentos (TACO), 4a edicao revisada e ampliada, NEPA/UNICAMP, 2011.
+-- Dados extraidos da Tabela Brasileira de Composicao de Alimentos (TACO), 4a edicao revisada e ampliada, NEPA/UNICAMP, 2011.
 -- Fonte oficial consultada: https://nepa.unicamp.br/tabela-brasileira-de-composicao-de-alimentos-4a-edicao/
 DELETE FROM public.taco_foods;
 ALTER SEQUENCE public.taco_foods_id_seq RESTART WITH 1;

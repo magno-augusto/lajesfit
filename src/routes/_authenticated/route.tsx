@@ -1,11 +1,20 @@
 import { createFileRoute, Outlet, Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
-import { Activity, Apple, Flame, Home, LogOut } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
+import { Activity, Apple, Flame, Home, Info, LogIn, LogOut, Menu } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { InstallAppButton } from "@/components/install-app-button";
+import { NewActionMenu } from "@/components/new-action-menu";
 import { logout, useLocalAuth } from "@/lib/local-auth";
 import { useLocalFitness } from "@/lib/local-fitness";
+import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/logo.png";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -18,6 +27,11 @@ function AppShell() {
   const navigate = useNavigate();
   const { user, session, loading: authLoading } = useLocalAuth();
   const { idrProfile, summary, loading: fitnessLoading } = useLocalFitness();
+  const [profile, setProfile] = useState<{
+    username: string;
+    display_name: string;
+    avatar_url: string | null;
+  } | null>(null);
 
   useEffect(() => {
     if (authLoading || fitnessLoading) return;
@@ -33,6 +47,35 @@ function AppShell() {
     navigate({ to: "/auth", replace: true });
   }
 
+  useEffect(() => {
+    if (!user) {
+      setProfile(null);
+      return;
+    }
+
+    let mounted = true;
+    supabase
+      .from("profiles")
+      .select("username, display_name, avatar_url")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (mounted && data) setProfile(data);
+      });
+
+    function handleProfileUpdated(event: Event) {
+      const nextProfile = (event as CustomEvent<typeof profile>).detail;
+      if (nextProfile) setProfile(nextProfile);
+    }
+
+    window.addEventListener("lajes-fit-profile-updated", handleProfileUpdated);
+
+    return () => {
+      mounted = false;
+      window.removeEventListener("lajes-fit-profile-updated", handleProfileUpdated);
+    };
+  }, [user]);
+
   const navItems = [
     { to: "/feed", icon: Home, label: "Feed" },
     { to: "/diet", icon: Apple, label: "Dieta" },
@@ -47,26 +90,22 @@ function AppShell() {
     <div className="min-h-screen bg-muted/40">
       <header className="sticky top-0 z-30 border-b bg-background/85 backdrop-blur">
         <div className="container mx-auto flex min-h-20 items-center justify-between px-4 py-2">
-          <Link to="/feed" className="flex items-center gap-2">
-            <img src={logo} alt="Lajes Fit" className="h-9 w-9 rounded-lg object-cover" />
-            <span className="font-display text-2xl hidden sm:block">LAJES FIT</span>
-          </Link>
+          <div className="flex flex-col items-start gap-1">
+            <Link to="/feed" className="flex items-center gap-2">
+              <img src={logo} alt="Lajes Fit" className="h-9 w-9 rounded-lg object-cover" />
+              <span className="font-display text-2xl hidden sm:block">LAJES FIT</span>
+            </Link>
+          </div>
 
           <nav className="hidden md:flex items-center gap-1">
             {navItems.map((item) => {
               const active = location.pathname.startsWith(item.to);
-              const featured = item.to === "/diet";
               return (
                 <Button
                   key={item.to}
                   asChild
-                  variant={active || featured ? "secondary" : "ghost"}
+                  variant={active ? "secondary" : "ghost"}
                   size="sm"
-                  className={
-                    featured
-                      ? "rounded-full border border-primary/20 bg-primary/10 shadow-sm hover:bg-primary/15"
-                      : undefined
-                  }
                 >
                   <Link to={item.to}>
                     <item.icon className="size-4 mr-2" />
@@ -78,26 +117,64 @@ function AppShell() {
           </nav>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="min-w-[148px] rounded-lg bg-gradient-hero px-3 py-3 text-right text-primary-foreground shadow-glow sm:min-w-[190px] sm:px-4">
-              <p className="flex items-center justify-end gap-1 text-[11px] font-semibold uppercase text-primary-foreground/85 sm:text-xs">
-                <Flame className="size-4" /> Restante do objetivo
+            <div className="hidden md:block">
+              <NewActionMenu />
+            </div>
+            <div className="fixed left-1/2 top-0 z-40 min-w-[178px] -translate-x-1/2 rounded-b-lg rounded-t-none bg-gradient-hero px-4 py-3 text-center text-primary-foreground shadow-glow sm:min-w-[230px] sm:px-5">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="absolute right-1.5 top-1.5 inline-flex size-5 items-center justify-center rounded-full text-primary-foreground/85 transition hover:bg-primary-foreground/15 hover:text-primary-foreground focus:outline-none focus:ring-2 focus:ring-primary-foreground/70"
+                    aria-label="Ver detalhes do limite calorico"
+                  >
+                    <Info className="size-3" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-56 text-sm">
+                  <div className="space-y-2">
+                    <p className="text-center font-medium">Limite de calorias</p>
+                    <div className="flex items-center justify-center gap-1">
+                      <span className="text-muted-foreground">Objetivo</span>
+                      <span className="font-medium">{Math.round(summary.dailyTarget)} kcal</span>
+                    </div>
+                    <div className="flex justify-center text-sm font-semibold text-muted-foreground">
+                      +
+                    </div>
+                    <div className="flex items-center justify-center gap-1">
+                      <span className="text-muted-foreground">Exercicios</span>
+                      <span className="font-medium">{Math.round(summary.workoutCalories)} kcal</span>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+              <p className="flex items-center justify-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-primary-foreground/85 sm:text-xs">
+                <Flame className="size-3.5" />
+                Calorias
               </p>
-              <p className="font-display text-3xl leading-none sm:text-4xl">
-                {Math.round(summary.remainingCalories)} kcal
-              </p>
-              <p className="mt-0.5 text-[10px] text-primary-foreground/80 sm:text-xs">
-                Meta {Math.round(summary.dailyTarget)} - comida + treino
+              <p className="flex items-baseline justify-center gap-1.5 whitespace-nowrap font-display leading-none">
+                <span className="text-3xl sm:text-4xl">{Math.round(summary.mealCalories)}</span>
+                <span className="text-xl text-primary-foreground/75 sm:text-2xl">/</span>
+                <span className="text-lg text-primary-foreground/85 sm:text-xl">
+                  {Math.round(summary.limitCalories)}
+                </span>
+                <span className="text-xs font-sans text-primary-foreground/75">kcal</span>
               </p>
             </div>
-            <Avatar className="size-9 border-2 border-primary/30">
-              <AvatarImage src={undefined} />
-              <AvatarFallback className="bg-gradient-primary text-primary-foreground font-semibold">
-                {(idrProfile?.name ?? user?.user_metadata?.username ?? "U").slice(0, 1).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <Button variant="ghost" size="icon" onClick={handleLogout} aria-label="Sair">
-              <LogOut className="size-4" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" aria-label="Abrir menu">
+                  <Menu className="size-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-40">
+                <InstallAppButton menuItem />
+                <DropdownMenuItem onSelect={() => void handleLogout()}>
+                  <LogOut className="mr-2 size-4" />
+                  Sair
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
@@ -107,10 +184,9 @@ function AppShell() {
       </main>
 
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 border-t bg-background">
-        <div className="grid grid-cols-3">
-          {navItems.map((item) => {
+        <div className="grid grid-cols-5 items-end">
+          {[navItems[0], navItems[1]].map((item) => {
             const active = location.pathname.startsWith(item.to);
-            const featured = item.to === "/diet";
             return (
               <Link
                 key={item.to}
@@ -119,26 +195,61 @@ function AppShell() {
                   active ? "text-primary" : "text-muted-foreground"
                 }`}
               >
-                <span
-                  className={
-                    featured
-                      ? `flex size-12 items-center justify-center rounded-full border shadow-[0_8px_22px_rgba(0,0,0,0.14)] transition ${
-                          active
-                            ? "border-primary/30 bg-primary text-primary-foreground"
-                            : "border-primary/20 bg-background text-primary"
-                        }`
-                      : "flex size-8 items-center justify-center"
-                  }
-                >
-                  <item.icon className={featured ? "size-6" : "size-5"} />
+                <span className="flex size-8 items-center justify-center">
+                  <item.icon className="size-5" />
                 </span>
-                <span className={featured ? "font-semibold" : undefined}>{item.label}</span>
+                <span>{item.label}</span>
               </Link>
             );
           })}
+          <div className="-mt-7 flex flex-col items-center gap-1 pb-2 text-xs text-primary">
+            <NewActionMenu compact />
+            <span className="font-semibold">Novo</span>
+          </div>
+          <Link
+            to="/workouts"
+            className={`flex flex-col items-center gap-1 py-3 text-xs ${
+              location.pathname.startsWith("/workouts") ? "text-primary" : "text-muted-foreground"
+            }`}
+          >
+            <span className="flex size-8 items-center justify-center">
+              <Activity className="size-5" />
+            </span>
+            <span>Treinos</span>
+          </Link>
+          {user ? (
+            <Link
+              to="/profile/$username"
+              params={{ username: profile?.username ?? user.user_metadata?.username ?? "user" }}
+              className={`flex flex-col items-center gap-1 py-3 text-xs ${
+                location.pathname.startsWith("/profile") ? "text-primary" : "text-muted-foreground"
+              }`}
+            >
+              <span className="flex size-8 items-center justify-center">
+                <Avatar className="size-7 border border-primary/30">
+                  <AvatarImage src={profile?.avatar_url ?? undefined} />
+                  <AvatarFallback className="bg-gradient-primary text-[11px] font-semibold text-primary-foreground">
+                    {(profile?.display_name ?? user.user_metadata?.username ?? "U")
+                      .slice(0, 1)
+                      .toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              </span>
+              <span>Perfil</span>
+            </Link>
+          ) : (
+            <Link
+              to="/auth"
+              className="flex flex-col items-center gap-1 py-3 text-xs text-muted-foreground"
+            >
+              <span className="flex size-8 items-center justify-center">
+                <LogIn className="size-5" />
+              </span>
+              <span>Login</span>
+            </Link>
+          )}
         </div>
       </nav>
-      <InstallAppButton />
     </div>
   );
 }

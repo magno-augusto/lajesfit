@@ -14,8 +14,24 @@ export type LocalMeal = {
   createdAt: string;
 };
 
+export type FoodSource = "tbca" | "taco" | "open_food_facts" | "manual";
+
+export type FoodMeasureUnit = "g" | "ml" | "unit" | "tsp" | "tbsp" | "cup" | "serving";
+
+export type FoodMeasure = {
+  id: string;
+  label: string;
+  unit: FoodMeasureUnit;
+  grams: number;
+  isDefault?: boolean;
+};
+
 export type TacoFood = {
-  id: number;
+  id: string;
+  foodId: number | null;
+  source: FoodSource;
+  sourceId: string | null;
+  brand: string | null;
   name: string;
   category: string | null;
   calories: number;
@@ -23,6 +39,7 @@ export type TacoFood = {
   carbs: number;
   fat: number;
   fiber: number;
+  measures: FoodMeasure[];
 };
 
 export type MealFoodInput = {
@@ -34,6 +51,8 @@ export type MealFoodInput = {
   carbs: number;
   fat: number;
 };
+
+export type MealPhotoInput = File | Blob;
 
 export type LocalWorkout = {
   id: string;
@@ -49,6 +68,8 @@ export type CalorieSummary = {
   dailyTarget: number;
   mealCalories: number;
   workoutCalories: number;
+  limitCalories: number;
+  balanceCalories: number;
   remainingCalories: number;
 };
 
@@ -78,6 +99,15 @@ export const ACTIVITY_FACTORS: Record<
 
 function notifyChange() {
   if (typeof window !== "undefined") window.dispatchEvent(new Event(CHANGE_EVENT));
+}
+
+function isSameLocalDay(isoDate: string, day: Date) {
+  const date = new Date(isoDate);
+  return (
+    date.getFullYear() === day.getFullYear() &&
+    date.getMonth() === day.getMonth() &&
+    date.getDate() === day.getDate()
+  );
 }
 
 async function getUserId() {
@@ -112,8 +142,9 @@ function mapMeal(row: {
   };
 }
 
-async function uploadMealPhoto(userId: string, file: File) {
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+async function uploadMealPhoto(userId: string, file: MealPhotoInput) {
+  const sourceName = file instanceof File ? file.name : "meal-photo.jpg";
+  const safeName = sourceName.replace(/[^a-zA-Z0-9._-]/g, "_");
   const path = `${userId}/meals/${Date.now()}-${safeName}`;
   const { error: uploadError } = await supabase.storage.from("media").upload(path, file);
   if (uploadError) throw uploadError;
@@ -172,29 +203,257 @@ export async function getMeals() {
   return (data ?? []).map(mapMeal);
 }
 
-export async function getTacoFoods() {
+function normalizeText(value: string | null | undefined) {
+  return (value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function isLiquidFood(food: Pick<TacoFood, "name" | "category">) {
+  const text = `${normalizeText(food.name)} ${normalizeText(food.category)}`;
+  return /\b(bebida|suco|refresco|refrigerante|agua|cafe|cha|leite|iogurte|caldo|sopa|vitamina)\b/.test(
+    text,
+  );
+}
+
+function isFruitFood(food: Pick<TacoFood, "name" | "category">) {
+  const text = `${normalizeText(food.name)} ${normalizeText(food.category)}`;
+  return text.includes("frutas") || /\b(maca|banana|laranja|pera|mamao|manga|uva|abacate|abacaxi|acerola|morango|melancia|melao|kiwi)\b/.test(text);
+}
+
+function isSpoonFriendlyFood(food: Pick<TacoFood, "name" | "category">) {
+  const text = `${normalizeText(food.name)} ${normalizeText(food.category)}`;
+  return /\b(acucar|achocolatado|farinha|aveia|mel|manteiga|margarina|maionese|azeite|oleo|pasta|creme|requeijao|molho)\b/.test(
+    text,
+  );
+}
+
+function isCupFriendlyFood(food: Pick<TacoFood, "name" | "category">) {
+  const text = `${normalizeText(food.name)} ${normalizeText(food.category)}`;
+  return /\b(arroz|feijao|lentilha|grao|cereal|granola|aveia|leite|suco|bebida|iogurte)\b/.test(text);
+}
+
+function uniqueMeasures(measures: FoodMeasure[]) {
+  const seen = new Set<string>();
+  return measures.filter((measure) => {
+    const key = `${measure.unit}:${measure.label}`;
+    if (seen.has(key) || measure.grams <= 0) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function defaultMeasuresForFood(food: Pick<TacoFood, "name" | "category">) {
+  const measures: FoodMeasure[] = [{ id: "g", label: "gramas", unit: "g", grams: 1 }];
+
+  if (isLiquidFood(food)) {
+    measures.push({ id: "ml", label: "ml", unit: "ml", grams: 1, isDefault: true });
+  }
+
+  if (isFruitFood(food)) {
+    measures.push({ id: "unit", label: "unidade", unit: "unit", grams: 130, isDefault: true });
+  }
+
+  if (isSpoonFriendlyFood(food)) {
+    measures.push(
+      { id: "tsp", label: "colher de cha", unit: "tsp", grams: 5 },
+      { id: "tbsp", label: "colher de sopa", unit: "tbsp", grams: 15, isDefault: !isLiquidFood(food) },
+    );
+  }
+
+  if (isCupFriendlyFood(food)) {
+    measures.push({ id: "cup", label: "xicara", unit: "cup", grams: isLiquidFood(food) ? 240 : 160 });
+  }
+
+  if (!measures.some((measure) => measure.isDefault)) {
+    measures[0] = { ...measures[0], isDefault: true };
+  }
+
+  return uniqueMeasures(measures);
+}
+
+function mapFood(row: any): TacoFood {
+  const food = {
+    id: `${row.source}:${row.source_id ?? row.id}`,
+    foodId: row.source === "taco" && row.source_id ? Number(row.source_id) : null,
+    source: row.source as FoodSource,
+    sourceId: row.source_id ?? String(row.id),
+    brand: row.brand ?? null,
+    name: row.name,
+    category: row.category,
+    calories: Number(row.kcal) || 0,
+    protein: Number(row.protein_g) || 0,
+    carbs: Number(row.carbs_g) || 0,
+    fat: Number(row.fat_g) || 0,
+    fiber: Number(row.fiber_g) || 0,
+  };
+  const importedMeasures = Array.isArray(row.food_measures)
+    ? row.food_measures.map((measure: any) => ({
+        id: String(measure.id ?? `${measure.unit}:${measure.label}`),
+        label: String(measure.label ?? measure.unit),
+        unit: measure.unit as FoodMeasureUnit,
+        grams: Number(measure.grams) || 0,
+        isDefault: Boolean(measure.is_default),
+      }))
+    : [];
+  const measures = uniqueMeasures([
+    ...importedMeasures,
+    ...defaultMeasuresForFood(food),
+  ]);
+  return { ...food, measures };
+}
+
+export async function getFoodCatalog() {
+  const { data: foodsData, error: foodsError } = await (supabase as any)
+    .from("foods")
+    .select("id, source, source_id, name, category, brand, kcal, protein_g, carbs_g, fat_g, fiber_g, food_measures(id, label, unit, grams, is_default)")
+    .order("source", { ascending: true })
+    .order("name", { ascending: true })
+    .limit(2500);
+
+  if (!foodsError && foodsData) {
+    return foodsData.map<TacoFood>(mapFood);
+  }
+
   const { data, error } = await supabase
     .from("taco_foods")
     .select("id, name, category, kcal, protein_g, carbs_g, fat_g, fiber_g")
     .order("name", { ascending: true });
 
   if (error) throw new Error(error.message);
-  return (data ?? []).map<TacoFood>((food) => ({
-    id: food.id,
-    name: food.name,
-    category: food.category,
-    calories: food.kcal,
-    protein: food.protein_g,
-    carbs: food.carbs_g,
-    fat: food.fat_g,
-    fiber: food.fiber_g,
-  }));
+  return (data ?? []).map<TacoFood>((food) =>
+    mapFood({
+      id: food.id,
+      source: "taco",
+      source_id: String(food.id),
+      brand: null,
+      name: food.name,
+      category: food.category,
+      kcal: food.kcal,
+      protein_g: food.protein_g,
+      carbs_g: food.carbs_g,
+      fat_g: food.fat_g,
+      fiber_g: food.fiber_g,
+    }),
+  );
+}
+
+export const getTacoFoods = getFoodCatalog;
+
+function numberFromOpenFoodFacts(value: unknown) {
+  const numberValue = typeof value === "string" ? Number(value.replace(",", ".")) : Number(value);
+  return Number.isFinite(numberValue) ? numberValue : 0;
+}
+
+function openFoodFactsCategory(product: any) {
+  if (typeof product.categories === "string" && product.categories.trim()) {
+    return product.categories.split(",")[0]?.trim() || "Produto industrializado";
+  }
+  return "Produto industrializado";
+}
+
+function parseServingGrams(servingSize: unknown) {
+  if (typeof servingSize !== "string") return null;
+  const match = servingSize.toLowerCase().replace(",", ".").match(/(\d+(?:\.\d+)?)\s*(g|ml)/);
+  if (!match) return null;
+  return Number(match[1]);
+}
+
+export async function searchOpenFoodFactsFoods(query: string) {
+  const search = query.trim();
+  if (search.length < 3) return [];
+
+  const params = new URLSearchParams({
+    search_terms: search,
+    search_simple: "1",
+    action: "process",
+    json: "1",
+    page_size: "12",
+    countries_tags_en: "Brazil",
+    fields: "code,product_name,brands,categories,serving_size,nutriments",
+  });
+  const response = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?${params}`);
+  if (!response.ok) throw new Error("Nao foi possivel buscar produtos industrializados");
+
+  const payload = await response.json();
+  const products = Array.isArray(payload.products) ? payload.products : [];
+
+  return products
+    .map<TacoFood | null>((product: any) => {
+      const nutriments = product.nutriments ?? {};
+      const calories =
+        numberFromOpenFoodFacts(nutriments["energy-kcal_100g"]) ||
+        numberFromOpenFoodFacts(nutriments["energy-kcal_value"]);
+      const name = String(product.product_name ?? "").trim();
+      const code = String(product.code ?? "").trim();
+      const servingGrams = parseServingGrams(product.serving_size);
+
+      if (!name || !code || calories <= 0) return null;
+
+      const food = {
+        id: `open_food_facts:${code}`,
+        foodId: null,
+        source: "open_food_facts" as const,
+        sourceId: code,
+        brand: typeof product.brands === "string" && product.brands.trim() ? product.brands : null,
+        name,
+        category: openFoodFactsCategory(product),
+        calories,
+        protein: numberFromOpenFoodFacts(nutriments.proteins_100g),
+        carbs: numberFromOpenFoodFacts(nutriments.carbohydrates_100g),
+        fat: numberFromOpenFoodFacts(nutriments.fat_100g),
+        fiber: numberFromOpenFoodFacts(nutriments.fiber_100g),
+      };
+      const measures = defaultMeasuresForFood(food);
+      if (servingGrams) {
+        measures.unshift({
+          id: "serving",
+          label: "porcao",
+          unit: "serving",
+          grams: servingGrams,
+          isDefault: true,
+        });
+      }
+
+      return { ...food, measures: uniqueMeasures(measures) };
+    })
+    .filter((food): food is TacoFood => Boolean(food));
+}
+
+export async function cacheFoodInCatalog(food: TacoFood) {
+  if (!["open_food_facts", "manual"].includes(food.source)) return;
+
+  const { error } = await (supabase as any).rpc("upsert_catalog_food", {
+    p_source: food.source,
+    p_source_id: food.sourceId ?? food.id,
+    p_name: food.name,
+    p_category: food.category,
+    p_brand: food.brand,
+    p_kcal: food.calories,
+    p_protein_g: food.protein,
+    p_carbs_g: food.carbs,
+    p_fat_g: food.fat,
+    p_fiber_g: food.fiber,
+    p_measures: food.measures.map((measure) => ({
+      id: measure.id,
+      label: measure.label,
+      unit: measure.unit,
+      grams: measure.grams,
+      isDefault: Boolean(measure.isDefault),
+    })),
+  });
+
+  if (error) {
+    console.warn("Nao foi possivel salvar alimento no catalogo combinado", error);
+  }
 }
 
 export async function addMeal(
   meal: Omit<LocalMeal, "id" | "createdAt" | "photoUrl"> & {
     foodId?: number | null;
-    photoFile?: File | null;
+    photoFile?: MealPhotoInput | null;
+    consumedAt?: string;
   },
 ) {
   const userId = await getUserId();
@@ -212,6 +471,7 @@ export async function addMeal(
       carbs_g: meal.carbs,
       fat_g: meal.fat,
       photo_url: photoUrl,
+      consumed_at: meal.consumedAt ?? new Date().toISOString(),
     })
     .select("id, food_name, meal, grams, kcal, protein_g, carbs_g, fat_g, photo_url, consumed_at")
     .single();
@@ -254,16 +514,18 @@ export async function addMealWithItems({
   meal,
   items,
   photoFile,
+  consumedAt: inputConsumedAt,
 }: {
   meal: LocalMeal["meal"];
   items: MealFoodInput[];
-  photoFile?: File | null;
+  photoFile?: MealPhotoInput | null;
+  consumedAt?: string;
 }) {
   if (items.length === 0) throw new Error("Adicione pelo menos um alimento");
 
   const userId = await getUserId();
   const photoUrl = photoFile ? await uploadMealPhoto(userId, photoFile) : null;
-  const consumedAt = new Date().toISOString();
+  const consumedAt = inputConsumedAt ?? new Date().toISOString();
 
   const { data, error } = await supabase
     .from("diet_entries")
@@ -471,12 +733,19 @@ export function useLocalFitness() {
 
   const summary = useMemo<CalorieSummary>(() => {
     const dailyTarget = idrProfile?.idrCalories ?? 0;
-    const mealCalories = meals.reduce((sum, meal) => sum + meal.calories, 0);
-    const workoutCalories = workouts.reduce((sum, workout) => sum + (workout.calories ?? 0), 0);
+    const today = new Date();
+    const mealCalories = meals
+      .filter((meal) => isSameLocalDay(meal.createdAt, today))
+      .reduce((sum, meal) => sum + meal.calories, 0);
+    const workoutCalories = workouts
+      .filter((workout) => isSameLocalDay(workout.startedAt, today))
+      .reduce((sum, workout) => sum + (workout.calories ?? 0), 0);
     return {
       dailyTarget,
       mealCalories,
       workoutCalories,
+      limitCalories: dailyTarget + workoutCalories,
+      balanceCalories: mealCalories - workoutCalories - dailyTarget,
       remainingCalories: dailyTarget - mealCalories + workoutCalories,
     };
   }, [idrProfile, meals, workouts]);

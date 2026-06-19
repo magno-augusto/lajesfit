@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ManualWorkoutDialog } from "@/components/manual-workout-dialog";
-import { useState } from "react";
-import { Activity, Flame, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Activity, Flame, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { formatDistance, formatDuration, timeAgo } from "@/lib/feed";
@@ -12,6 +12,12 @@ import {
   useLocalFitness,
   type LocalWorkout,
 } from "@/lib/local-fitness";
+import { consumePendingNewAction, NEW_ACTION_EVENT } from "@/components/new-action-menu";
+import {
+  getStravaAuthorizationUrl,
+  getStravaConnection,
+  syncStravaActivities,
+} from "@/lib/api/strava.functions";
 
 export const Route = createFileRoute("/_authenticated/workouts")({
   head: () => ({ meta: [{ title: "Treinos - Lajes Fit" }] }),
@@ -21,6 +27,26 @@ export const Route = createFileRoute("/_authenticated/workouts")({
 function WorkoutsPage() {
   const { workouts, loading } = useLocalFitness();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [addWorkoutOpen, setAddWorkoutOpen] = useState(false);
+  const [stravaConnected, setStravaConnected] = useState(false);
+  const [stravaBusy, setStravaBusy] = useState(false);
+
+  useEffect(() => {
+    if (consumePendingNewAction("workout")) setAddWorkoutOpen(true);
+
+    function handleNewAction(event: Event) {
+      if ((event as CustomEvent).detail === "workout") setAddWorkoutOpen(true);
+    }
+
+    window.addEventListener(NEW_ACTION_EVENT, handleNewAction);
+    return () => window.removeEventListener(NEW_ACTION_EVENT, handleNewAction);
+  }, []);
+
+  useEffect(() => {
+    getStravaConnection()
+      .then((connection) => setStravaConnected(connection.connected))
+      .catch(() => setStravaConnected(false));
+  }, []);
 
   async function handleCreate(workout: Omit<LocalWorkout, "id">) {
     await addWorkout(workout);
@@ -48,6 +74,37 @@ function WorkoutsPage() {
     }
   }
 
+  async function connectStrava() {
+    setStravaBusy(true);
+    try {
+      const state = crypto.randomUUID();
+      sessionStorage.setItem("lajes-fit-strava-oauth-state", state);
+      const redirectUri = `${window.location.origin}/strava/callback`;
+      const { url } = await getStravaAuthorizationUrl({ data: { redirectUri, state } });
+      window.location.assign(url);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel iniciar o Strava");
+      setStravaBusy(false);
+    }
+  }
+
+  async function importStravaActivities() {
+    setStravaBusy(true);
+    try {
+      const result = await syncStravaActivities({ data: { afterDays: 90 } });
+      window.dispatchEvent(new Event("lajes-fit-backend-change"));
+      toast.success(
+        result.imported > 0
+          ? `${result.imported} atividade(s) importada(s)`
+          : "Nenhuma atividade nova encontrada",
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel importar do Strava");
+    } finally {
+      setStravaBusy(false);
+    }
+  }
+
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div className="rounded-lg bg-gradient-hero text-primary-foreground p-6 shadow-glow">
@@ -56,7 +113,44 @@ function WorkoutsPage() {
             <p className="text-xs uppercase tracking-widest opacity-80">Resumo dos exercicios</p>
             <p className="font-display text-5xl mt-1">{formatDistance(totals.distance)}</p>
           </div>
-          <ManualWorkoutDialog onSaved={handleCreate} />
+          <ManualWorkoutDialog
+            onSaved={handleCreate}
+            open={addWorkoutOpen}
+            onOpenChange={setAddWorkoutOpen}
+          />
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={stravaConnected ? importStravaActivities : connectStrava}
+            disabled={stravaBusy}
+          >
+            {stravaConnected ? (
+              <>
+                <RefreshCw className="mr-2 size-4" />
+                {stravaBusy ? "Importando..." : "Importar do Strava"}
+              </>
+            ) : (
+              <>
+                <Activity className="mr-2 size-4" />
+                {stravaBusy ? "Abrindo..." : "Conectar Strava"}
+              </>
+            )}
+          </Button>
+          {stravaConnected && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="text-primary-foreground hover:bg-primary-foreground/15 hover:text-primary-foreground"
+              onClick={connectStrava}
+              disabled={stravaBusy}
+            >
+              Reconectar
+            </Button>
+          )}
         </div>
         <div className="grid grid-cols-3 gap-2 mt-4 text-sm">
           <div>

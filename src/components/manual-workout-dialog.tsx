@@ -25,18 +25,30 @@ const ACTIVITIES = ["Corrida", "Caminhada", "Ciclismo", "Musculacao", "Trilha", 
 export function ManualWorkoutDialog({
   initialWorkout,
   onSaved,
+  open: controlledOpen,
+  onOpenChange,
+  showTrigger = true,
 }: {
   userId?: string;
   initialWorkout?: LocalWorkout;
   onCreated?: (workout: Omit<LocalWorkout, "id">) => void | Promise<void>;
   onSaved: (workout: Omit<LocalWorkout, "id">) => void | Promise<void>;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  showTrigger?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const editing = Boolean(initialWorkout);
+  const open = controlledOpen ?? internalOpen;
   const durationSeconds = initialWorkout?.durationSeconds ?? 0;
   const defaultHours = Math.floor(durationSeconds / 3600);
   const defaultMinutes = Math.floor((durationSeconds % 3600) / 60);
+
+  function setOpen(nextOpen: boolean) {
+    if (onOpenChange) onOpenChange(nextOpen);
+    else setInternalOpen(nextOpen);
+  }
 
   function formatDateTimeLocal(value?: string) {
     if (!value) return "";
@@ -78,17 +90,19 @@ export function ManualWorkoutDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {editing ? (
-          <Button variant="ghost" size="icon" aria-label="Editar treino">
-            <Pencil className="size-4" />
-          </Button>
-        ) : (
-          <Button size="sm" variant="secondary">
-            <Plus className="size-4 mr-1" /> Registrar
-          </Button>
-        )}
-      </DialogTrigger>
+      {showTrigger && (
+        <DialogTrigger asChild>
+          {editing ? (
+            <Button variant="ghost" size="icon" aria-label="Editar treino">
+              <Pencil className="size-4" />
+            </Button>
+          ) : (
+            <Button size="sm" variant="secondary">
+              <Plus className="size-4 mr-1" /> Registrar
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

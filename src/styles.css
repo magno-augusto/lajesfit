@@ -122,19 +122,34 @@
 }
 
 @layer base {
-  * { border-color: var(--color-border); }
+  * {
+    border-color: var(--color-border);
+  }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-feature-settings: "ss01", "cv11";
   }
-  .font-display { font-family: var(--font-display); letter-spacing: 0.02em; }
+  .font-display {
+    font-family: var(--font-display);
+    letter-spacing: 0.02em;
+  }
 }
 
 @layer utilities {
-  .bg-gradient-primary { background: var(--gradient-primary); }
-  .bg-gradient-ember { background: var(--gradient-ember); }
-  .bg-gradient-hero { background: var(--gradient-hero); }
-  .shadow-glow { box-shadow: var(--shadow-glow); }
-  .shadow-card { box-shadow: var(--shadow-card); }
+  .bg-gradient-primary {
+    background: var(--gradient-primary);
+  }
+  .bg-gradient-ember {
+    background: var(--gradient-ember);
+  }
+  .bg-gradient-hero {
+    background: var(--gradient-hero);
+  }
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
 }

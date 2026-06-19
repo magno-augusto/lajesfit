@@ -87,7 +87,11 @@ export const getStravaConnection = createServerFn({ method: "GET" })
       .maybeSingle();
 
     if (error) throw new Error(error.message);
-    return { connected: Boolean(data), athleteId: data?.athlete_id ?? null, scope: data?.scope ?? null };
+    return {
+      connected: Boolean(data),
+      athleteId: data?.athlete_id ?? null,
+      scope: data?.scope ?? null,
+    };
   });
 
 export const syncStravaActivities = createServerFn({ method: "POST" })

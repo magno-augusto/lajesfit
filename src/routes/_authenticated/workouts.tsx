@@ -106,7 +106,7 @@ function WorkoutsPage() {
     setStravaBusy(true);
     try {
       const state = crypto.randomUUID();
-      sessionStorage.setItem("lajes-fit-strava-oauth-state", state);
+      sessionStorage.setItem("lajesfit-strava-oauth-state", state);
       const redirectUri = `${window.location.origin}/strava/callback`;
       const { url } = await getStravaAuthorizationUrl({ data: { redirectUri, state } });
       window.location.assign(url);
@@ -120,7 +120,7 @@ function WorkoutsPage() {
     setStravaBusy(true);
     try {
       const result = await syncStravaActivities({ data: { afterDays: 90 } });
-      window.dispatchEvent(new Event("lajes-fit-backend-change"));
+      window.dispatchEvent(new Event("lajesfit-backend-change"));
       toast.success(
         result.imported > 0
           ? `${result.imported} atividade(s) importada(s)`

@@ -65,7 +65,7 @@ const MEALS: { key: Meal; label: string }[] = [
   { key: "dinner", label: "Jantar" },
 ];
 
-const MEAL_DRAFT_KEY = "lajes-fit-meal-draft";
+const MEAL_DRAFT_KEY = "lajesfit-meal-draft";
 
 type MealDraft = {
   meal: Meal;

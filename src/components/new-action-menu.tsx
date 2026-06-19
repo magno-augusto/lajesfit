@@ -10,8 +10,8 @@ import {
 
 export type NewAction = "post" | "meal" | "workout";
 
-export const NEW_ACTION_EVENT = "lajes-fit-new-action";
-export const NEW_ACTION_KEY = "lajes-fit-pending-new-action";
+export const NEW_ACTION_EVENT = "lajesfit-new-action";
+export const NEW_ACTION_KEY = "lajesfit-pending-new-action";
 
 export function consumePendingNewAction(action: NewAction) {
   if (typeof sessionStorage === "undefined") return false;

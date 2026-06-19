@@ -91,7 +91,11 @@ export const Route = createFileRoute("/api/strava/webhook")({
         }
 
         try {
-          const result = await importStravaActivityForAthlete(supabaseAdmin, event.owner_id, event.object_id);
+          const result = await importStravaActivityForAthlete(
+            supabaseAdmin,
+            event.owner_id,
+            event.object_id,
+          );
 
           await supabaseAdmin
             .from("strava_webhook_events")

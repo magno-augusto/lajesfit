@@ -84,7 +84,9 @@ export function PostCard({
           className="min-w-0 flex-1 cursor-pointer rounded-sm focus:outline-none focus:ring-2 focus:ring-primary"
           role="link"
           tabIndex={0}
-          onClick={() => navigate({ to: "/profile/$username", params: { username: profileUsername } })}
+          onClick={() =>
+            navigate({ to: "/profile/$username", params: { username: profileUsername } })
+          }
           onKeyDown={(event) => {
             if (event.key === "Enter" || event.key === " ") {
               event.preventDefault();

@@ -5,7 +5,10 @@ import { supabase } from "@/integrations/supabase/client";
 export type LocalAuthSession = Session;
 
 function normalizeUsername(username: string) {
-  return username.trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
+  return username
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, "");
 }
 
 function usernameToEmail(username: string) {

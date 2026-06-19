@@ -132,7 +132,7 @@ type OpenFoodFactsProduct = {
   serving_size?: unknown;
 };
 
-const CHANGE_EVENT = "lajes-fit-backend-change";
+const CHANGE_EVENT = "lajesfit-backend-change";
 
 export const ACTIVITY_FACTORS: Record<
   IdrProfile["activityLevel"],
@@ -253,7 +253,10 @@ export async function getMeals() {
     .eq("user_id", userId)
     .order("consumed_at", { ascending: false });
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("Erro ao buscar registros de calorias:", error);
+    throw new Error(error.message);
+  }
   return (data ?? []).map(mapMeal);
 }
 
@@ -418,7 +421,10 @@ export async function getFoodCatalog() {
     .select("id, name, category, kcal, protein_g, carbs_g, fat_g, fiber_g")
     .order("name", { ascending: true });
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("Erro ao buscar catalogo de alimentos legado:", error);
+    throw new Error(error.message);
+  }
   return (data ?? []).map<TacoFood>((food) =>
     mapFood({
       id: food.id,
@@ -467,7 +473,10 @@ export async function requestFoodSuggestion(query: string) {
   });
 
   if (error?.code === "23505") return { alreadyExists: true };
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("Erro ao sugerir alimento:", error);
+    throw new Error(error.message);
+  }
   return { alreadyExists: false };
 }
 
@@ -604,7 +613,10 @@ export async function addMeal(
     .select("id")
     .single();
 
-  if (mealError) throw new Error(mealError.message);
+  if (mealError) {
+    console.error("Erro ao criar refeicao:", mealError);
+    throw new Error(mealError.message);
+  }
 
   const { data, error } = await supabase
     .from("diet_entries")
@@ -627,7 +639,10 @@ export async function addMeal(
     )
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("Erro ao registrar alimento:", error);
+    throw new Error(error.message);
+  }
   notifyChange();
   return mapMeal(data);
 }
@@ -688,7 +703,10 @@ export async function addMealWithItems({
     .select("id")
     .single();
 
-  if (mealError) throw new Error(mealError.message);
+  if (mealError) {
+    console.error("Erro ao criar refeicao:", mealError);
+    throw new Error(mealError.message);
+  }
 
   const { data, error } = await supabase
     .from("diet_entries")
@@ -712,14 +730,20 @@ export async function addMealWithItems({
       "id, diet_meal_id, food_name, meal, grams, kcal, protein_g, carbs_g, fat_g, photo_url, consumed_at, diet_meals(photo_url)",
     );
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("Erro ao registrar itens da refeicao:", error);
+    throw new Error(error.message);
+  }
 
   const { error: postError } = await supabase.from("posts").insert({
     user_id: userId,
     content: buildMealPostContent(meal, items),
     media_url: photoUrl,
   });
-  if (postError) throw new Error(postError.message);
+  if (postError) {
+    console.error("Erro ao publicar refeicao no feed:", postError);
+    throw new Error(postError.message);
+  }
 
   notifyChange();
   return (data ?? []).map(mapMeal);
@@ -734,7 +758,10 @@ export async function updateDietMealPhoto(dietMealId: string, photoFile: MealPho
     .eq("id", dietMealId)
     .eq("user_id", userId);
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("Erro ao atualizar foto da refeicao:", error);
+    throw new Error(error.message);
+  }
   notifyChange();
   return photoUrl;
 }
@@ -742,7 +769,10 @@ export async function updateDietMealPhoto(dietMealId: string, photoFile: MealPho
 export async function removeMeal(id: string) {
   const userId = await getUserId();
   const { error } = await supabase.from("diet_entries").delete().eq("id", id).eq("user_id", userId);
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("Erro ao remover registro de calorias:", error);
+    throw new Error(error.message);
+  }
   notifyChange();
 }
 
@@ -754,7 +784,10 @@ export async function getWorkouts() {
     .eq("user_id", userId)
     .order("performed_at", { ascending: false });
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("Erro ao buscar treinos:", error);
+    throw new Error(error.message);
+  }
   return (data ?? []).map(mapWorkout);
 }
 
@@ -774,7 +807,10 @@ export async function addWorkout(workout: Omit<LocalWorkout, "id">) {
     .select("id, activity_type, title, distance_meters, duration_seconds, calories, performed_at")
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("Erro ao salvar treino:", error);
+    throw new Error(error.message);
+  }
   notifyChange();
   return mapWorkout(data);
 }
@@ -796,7 +832,10 @@ export async function updateWorkout(id: string, workout: Omit<LocalWorkout, "id"
     .select("id, activity_type, title, distance_meters, duration_seconds, calories, performed_at")
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("Erro ao atualizar treino:", error);
+    throw new Error(error.message);
+  }
   notifyChange();
   return mapWorkout(data);
 }
@@ -804,7 +843,10 @@ export async function updateWorkout(id: string, workout: Omit<LocalWorkout, "id"
 export async function removeWorkout(id: string) {
   const userId = await getUserId();
   const { error } = await supabase.from("workouts").delete().eq("id", id).eq("user_id", userId);
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("Erro ao remover treino:", error);
+    throw new Error(error.message);
+  }
   notifyChange();
 }
 
@@ -827,7 +869,10 @@ export async function getIdrProfile() {
     .eq("id", userId)
     .maybeSingle();
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("Erro ao buscar objetivo calorico:", error);
+    throw new Error(error.message);
+  }
   return mapProfile(data);
 }
 
@@ -851,7 +896,10 @@ export async function saveIdrProfile(profile: Omit<IdrProfile, "idrCalories" | "
     )
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("Erro ao salvar objetivo calorico:", error);
+    throw new Error(error.message);
+  }
   notifyChange();
   return mapProfile(data);
 }
@@ -861,6 +909,7 @@ export function useLocalFitness() {
   const [workouts, setWorkouts] = useState<LocalWorkout[]>([]);
   const [idrProfile, setIdrProfile] = useState<IdrProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -874,6 +923,7 @@ export function useLocalFitness() {
           setMeals([]);
           setWorkouts([]);
           setIdrProfile(null);
+          setError(null);
           return;
         }
 
@@ -886,11 +936,16 @@ export function useLocalFitness() {
         setMeals(nextMeals);
         setWorkouts(nextWorkouts);
         setIdrProfile(nextProfile);
-      } catch {
+        setError(null);
+      } catch (syncError) {
+        console.error("Erro ao sincronizar dados de fitness:", syncError);
         if (!mounted) return;
         setMeals([]);
         setWorkouts([]);
         setIdrProfile(null);
+        setError(
+          "Nao foi possivel carregar seus dados. Verifique a configuracao do Supabase e tente novamente.",
+        );
       } finally {
         if (mounted) setLoading(false);
       }
@@ -930,7 +985,7 @@ export function useLocalFitness() {
     };
   }, [idrProfile, meals, workouts]);
 
-  return { meals, workouts, idrProfile, summary, loading };
+  return { meals, workouts, idrProfile, summary, loading, error };
 }
 
 export function caloriesFromGrams(caloriesPer100g: number, grams: number) {

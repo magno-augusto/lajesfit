@@ -36,19 +36,18 @@ function FeedPage() {
 
     let mounted = true;
     setLoading(true);
-    loadFeed(user.id)
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
+    loadFeed(user.id).finally(() => {
+      if (mounted) setLoading(false);
+    });
 
     async function loadFeed(currentUserId: string) {
       return fetchFeed(currentUserId)
-      .then((nextPosts) => {
-        if (mounted) setPosts(nextPosts);
-      })
-      .catch((error) => {
-        toast.error(error instanceof Error ? error.message : "Nao foi possivel carregar o feed");
-      });
+        .then((nextPosts) => {
+          if (mounted) setPosts(nextPosts);
+        })
+        .catch((error) => {
+          toast.error(error instanceof Error ? error.message : "Nao foi possivel carregar o feed");
+        });
     }
 
     return () => {
@@ -135,9 +134,7 @@ function FeedPage() {
               <li key={profile.id} className="flex items-center gap-3 p-3">
                 <Avatar className="size-10">
                   <AvatarImage src={profile.avatar_url ?? undefined} />
-                  <AvatarFallback>
-                    {profile.display_name.slice(0, 1).toUpperCase()}
-                  </AvatarFallback>
+                  <AvatarFallback>{profile.display_name.slice(0, 1).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{profile.display_name}</p>

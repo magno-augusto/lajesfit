@@ -68,11 +68,11 @@ function AppShell() {
       if (nextProfile) setProfile(nextProfile);
     }
 
-    window.addEventListener("lajes-fit-profile-updated", handleProfileUpdated);
+    window.addEventListener("lajesfit-profile-updated", handleProfileUpdated);
 
     return () => {
       mounted = false;
-      window.removeEventListener("lajes-fit-profile-updated", handleProfileUpdated);
+      window.removeEventListener("lajesfit-profile-updated", handleProfileUpdated);
     };
   }, [user]);
 
@@ -101,12 +101,7 @@ function AppShell() {
             {navItems.map((item) => {
               const active = location.pathname.startsWith(item.to);
               return (
-                <Button
-                  key={item.to}
-                  asChild
-                  variant={active ? "secondary" : "ghost"}
-                  size="sm"
-                >
+                <Button key={item.to} asChild variant={active ? "secondary" : "ghost"} size="sm">
                   <Link to={item.to}>
                     <item.icon className="size-4 mr-2" />
                     {item.label}
@@ -143,7 +138,9 @@ function AppShell() {
                     </div>
                     <div className="flex items-center justify-center gap-1">
                       <span className="text-muted-foreground">Exercicios</span>
-                      <span className="font-medium">{Math.round(summary.workoutCalories)} kcal</span>
+                      <span className="font-medium">
+                        {Math.round(summary.workoutCalories)} kcal
+                      </span>
                     </div>
                   </div>
                 </PopoverContent>

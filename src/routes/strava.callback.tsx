@@ -8,7 +8,12 @@ export const Route = createFileRoute("/strava/callback")({
 });
 
 function StravaCallbackPage() {
-  const search = Route.useSearch() as { code?: string; scope?: string; state?: string; error?: string };
+  const search = Route.useSearch() as {
+    code?: string;
+    scope?: string;
+    state?: string;
+    error?: string;
+  };
   const navigate = useNavigate();
   const [message, setMessage] = useState("Conectando ao Strava...");
 
@@ -21,8 +26,8 @@ function StravaCallbackPage() {
         return;
       }
 
-      const expectedState = sessionStorage.getItem("lajes-fit-strava-oauth-state");
-      sessionStorage.removeItem("lajes-fit-strava-oauth-state");
+      const expectedState = sessionStorage.getItem("lajesfit-strava-oauth-state");
+      sessionStorage.removeItem("lajesfit-strava-oauth-state");
 
       if (!search.code || !search.state || search.state !== expectedState) {
         setMessage("Nao foi possivel validar o retorno do Strava.");

@@ -47,7 +47,25 @@ export async function exchangeStravaToken(params: Record<string, string>) {
   });
 
   if (!response.ok) {
-    throw new Error("Nao foi possivel autenticar com o Strava");
+    let details = "";
+    try {
+      const body = (await response.json()) as { message?: string; errors?: unknown };
+      details = body.message ?? JSON.stringify(body.errors ?? body) ?? "";
+    } catch {
+      try {
+        details = await response.text();
+      } catch {
+        details = "";
+      }
+    }
+
+    console.error("[Strava] Token exchange failed", {
+      status: response.status,
+      details: details.slice(0, 500),
+    });
+
+    const suffix = details ? `: ${details}` : "";
+    throw new Error(`Nao foi possivel autenticar com o Strava (${response.status})${suffix}`);
   }
 
   return (await response.json()) as StravaTokenResponse;
@@ -115,7 +133,10 @@ export async function fetchStravaActivities(accessToken: string, afterDays: numb
     headers: { authorization: `Bearer ${accessToken}` },
   });
 
-  if (!response.ok) throw new Error("Nao foi possivel buscar atividades no Strava");
+  if (!response.ok) {
+    console.error("[Strava] Activities fetch failed", { status: response.status });
+    throw new Error(`Nao foi possivel buscar atividades no Strava (${response.status})`);
+  }
   return (await response.json()) as StravaActivity[];
 }
 
@@ -124,7 +145,10 @@ export async function fetchStravaActivity(accessToken: string, activityId: numbe
     headers: { authorization: `Bearer ${accessToken}` },
   });
 
-  if (!response.ok) throw new Error("Nao foi possivel buscar a atividade no Strava");
+  if (!response.ok) {
+    console.error("[Strava] Activity fetch failed", { status: response.status, activityId });
+    throw new Error(`Nao foi possivel buscar a atividade no Strava (${response.status})`);
+  }
   return (await response.json()) as StravaActivity;
 }
 

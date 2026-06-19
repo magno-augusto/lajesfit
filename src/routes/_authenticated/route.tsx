@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { Activity, Apple, Flame, Home, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { InstallAppButton } from "@/components/install-app-button";
 import { logout, useLocalAuth } from "@/lib/local-auth";
 import { useLocalFitness } from "@/lib/local-fitness";
 import logo from "@/assets/logo.png";
@@ -34,8 +35,8 @@ function AppShell() {
 
   const navItems = [
     { to: "/feed", icon: Home, label: "Feed" },
-    { to: "/workouts", icon: Activity, label: "Treinos" },
     { to: "/diet", icon: Apple, label: "Dieta" },
+    { to: "/workouts", icon: Activity, label: "Treinos" },
   ] as const;
 
   if (authLoading || fitnessLoading || !session || !idrProfile) {
@@ -54,8 +55,19 @@ function AppShell() {
           <nav className="hidden md:flex items-center gap-1">
             {navItems.map((item) => {
               const active = location.pathname.startsWith(item.to);
+              const featured = item.to === "/diet";
               return (
-                <Button key={item.to} asChild variant={active ? "secondary" : "ghost"} size="sm">
+                <Button
+                  key={item.to}
+                  asChild
+                  variant={active || featured ? "secondary" : "ghost"}
+                  size="sm"
+                  className={
+                    featured
+                      ? "rounded-full border border-primary/20 bg-primary/10 shadow-sm hover:bg-primary/15"
+                      : undefined
+                  }
+                >
                   <Link to={item.to}>
                     <item.icon className="size-4 mr-2" />
                     {item.label}
@@ -98,6 +110,7 @@ function AppShell() {
         <div className="grid grid-cols-3">
           {navItems.map((item) => {
             const active = location.pathname.startsWith(item.to);
+            const featured = item.to === "/diet";
             return (
               <Link
                 key={item.to}
@@ -106,13 +119,26 @@ function AppShell() {
                   active ? "text-primary" : "text-muted-foreground"
                 }`}
               >
-                <item.icon className="size-5" />
-                {item.label}
+                <span
+                  className={
+                    featured
+                      ? `flex size-12 items-center justify-center rounded-full border shadow-[0_8px_22px_rgba(0,0,0,0.14)] transition ${
+                          active
+                            ? "border-primary/30 bg-primary text-primary-foreground"
+                            : "border-primary/20 bg-background text-primary"
+                        }`
+                      : "flex size-8 items-center justify-center"
+                  }
+                >
+                  <item.icon className={featured ? "size-6" : "size-5"} />
+                </span>
+                <span className={featured ? "font-semibold" : undefined}>{item.label}</span>
               </Link>
             );
           })}
         </div>
       </nav>
+      <InstallAppButton />
     </div>
   );
 }

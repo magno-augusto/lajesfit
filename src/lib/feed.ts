@@ -2,19 +2,37 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type FeedPost = {
   id: string;
+  type: "general" | "workout" | "diet";
   content: string;
-  media_url: string | null;
+  media_urls: string[];
   created_at: string;
   user_id: string;
-  author: {
+  workout_id: string | null;
+  profile: {
     username: string;
     display_name: string;
     avatar_url: string | null;
   };
+  workout: {
+    activity_type: string;
+    distance_meters: number | null;
+    duration_seconds: number | null;
+    calories: number | null;
+    name: string | null;
+  } | null;
   likes_count: number;
   comments_count: number;
   liked_by_me: boolean;
 };
+
+function inferPostType(content: string): FeedPost["type"] {
+  return content.startsWith("Cafe da manha registrado") ||
+    content.startsWith("Almoco registrado") ||
+    content.startsWith("Lanche registrado") ||
+    content.startsWith("Jantar registrado")
+    ? "diet"
+    : "general";
+}
 
 export async function fetchFeed(currentUserId: string): Promise<FeedPost[]> {
   const { data: posts, error } = await supabase
@@ -51,14 +69,17 @@ export async function fetchFeed(currentUserId: string): Promise<FeedPost[]> {
     return {
       id: p.id,
       content: p.content,
-      media_url: p.media_url,
       created_at: p.created_at,
       user_id: p.user_id,
-      author: {
+      type: inferPostType(p.content),
+      media_urls: p.media_url ? [p.media_url] : [],
+      workout_id: null,
+      profile: {
         username: a?.username ?? "user",
         display_name: a?.display_name ?? "Atleta",
         avatar_url: a?.avatar_url ?? null,
       },
+      workout: null,
       likes_count: likesMap.get(p.id) ?? 0,
       comments_count: commentsMap.get(p.id) ?? 0,
       liked_by_me: likedSet.has(p.id),

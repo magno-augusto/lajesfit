@@ -10,7 +10,29 @@ export type LocalMeal = {
   protein: number;
   carbs: number;
   fat: number;
+  photoUrl: string | null;
   createdAt: string;
+};
+
+export type TacoFood = {
+  id: number;
+  name: string;
+  category: string | null;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber: number;
+};
+
+export type MealFoodInput = {
+  name: string;
+  foodId?: number | null;
+  grams: number;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
 };
 
 export type LocalWorkout = {
@@ -43,19 +65,6 @@ export type IdrProfile = {
 
 const CHANGE_EVENT = "lajes-fit-backend-change";
 
-export const FOOD_OPTIONS = [
-  { name: "Arroz branco cozido", calories: 128, protein: 2.5, carbs: 28.1, fat: 0.2 },
-  { name: "Feijao carioca cozido", calories: 76, protein: 4.8, carbs: 13.6, fat: 0.5 },
-  { name: "Frango grelhado", calories: 159, protein: 32, carbs: 0, fat: 2.5 },
-  { name: "Ovo cozido", calories: 146, protein: 13.3, carbs: 0.6, fat: 9.5 },
-  { name: "Banana prata", calories: 98, protein: 1.3, carbs: 26, fat: 0.1 },
-  { name: "Batata doce cozida", calories: 77, protein: 0.6, carbs: 18.4, fat: 0.1 },
-  { name: "Macarrao cozido", calories: 158, protein: 5.8, carbs: 30.9, fat: 0.9 },
-  { name: "Carne bovina grelhada", calories: 219, protein: 32.4, carbs: 0, fat: 8.9 },
-  { name: "Iogurte natural", calories: 51, protein: 4.1, carbs: 1.9, fat: 3 },
-  { name: "Pao frances", calories: 300, protein: 8, carbs: 58.6, fat: 3.1 },
-];
-
 export const ACTIVITY_FACTORS: Record<
   IdrProfile["activityLevel"],
   { label: string; factor: number }
@@ -86,6 +95,7 @@ function mapMeal(row: {
   protein_g: number;
   carbs_g: number;
   fat_g: number;
+  photo_url: string | null;
   consumed_at: string;
 }): LocalMeal {
   return {
@@ -97,8 +107,22 @@ function mapMeal(row: {
     protein: row.protein_g,
     carbs: row.carbs_g,
     fat: row.fat_g,
+    photoUrl: row.photo_url,
     createdAt: row.consumed_at,
   };
+}
+
+async function uploadMealPhoto(userId: string, file: File) {
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const path = `${userId}/meals/${Date.now()}-${safeName}`;
+  const { error: uploadError } = await supabase.storage.from("media").upload(path, file);
+  if (uploadError) throw uploadError;
+
+  const { data, error } = await supabase.storage
+    .from("media")
+    .createSignedUrl(path, 60 * 60 * 24 * 365 * 5);
+  if (error) throw error;
+  return data.signedUrl;
 }
 
 function mapWorkout(row: {
@@ -140,7 +164,7 @@ export async function getMeals() {
   const userId = await getUserId();
   const { data, error } = await supabase
     .from("diet_entries")
-    .select("id, food_name, meal, grams, kcal, protein_g, carbs_g, fat_g, consumed_at")
+    .select("id, food_name, meal, grams, kcal, protein_g, carbs_g, fat_g, photo_url, consumed_at")
     .eq("user_id", userId)
     .order("consumed_at", { ascending: false });
 
@@ -148,12 +172,38 @@ export async function getMeals() {
   return (data ?? []).map(mapMeal);
 }
 
-export async function addMeal(meal: Omit<LocalMeal, "id" | "createdAt">) {
+export async function getTacoFoods() {
+  const { data, error } = await supabase
+    .from("taco_foods")
+    .select("id, name, category, kcal, protein_g, carbs_g, fat_g, fiber_g")
+    .order("name", { ascending: true });
+
+  if (error) throw new Error(error.message);
+  return (data ?? []).map<TacoFood>((food) => ({
+    id: food.id,
+    name: food.name,
+    category: food.category,
+    calories: food.kcal,
+    protein: food.protein_g,
+    carbs: food.carbs_g,
+    fat: food.fat_g,
+    fiber: food.fiber_g,
+  }));
+}
+
+export async function addMeal(
+  meal: Omit<LocalMeal, "id" | "createdAt" | "photoUrl"> & {
+    foodId?: number | null;
+    photoFile?: File | null;
+  },
+) {
   const userId = await getUserId();
+  const photoUrl = meal.photoFile ? await uploadMealPhoto(userId, meal.photoFile) : null;
   const { data, error } = await supabase
     .from("diet_entries")
     .insert({
       user_id: userId,
+      food_id: meal.foodId ?? null,
       food_name: meal.name,
       meal: meal.meal,
       grams: meal.grams,
@@ -161,13 +211,90 @@ export async function addMeal(meal: Omit<LocalMeal, "id" | "createdAt">) {
       protein_g: meal.protein,
       carbs_g: meal.carbs,
       fat_g: meal.fat,
+      photo_url: photoUrl,
     })
-    .select("id, food_name, meal, grams, kcal, protein_g, carbs_g, fat_g, consumed_at")
+    .select("id, food_name, meal, grams, kcal, protein_g, carbs_g, fat_g, photo_url, consumed_at")
     .single();
 
   if (error) throw new Error(error.message);
   notifyChange();
   return mapMeal(data);
+}
+
+function mealLabel(meal: LocalMeal["meal"]) {
+  const labels: Record<LocalMeal["meal"], string> = {
+    breakfast: "Cafe da manha",
+    lunch: "Almoco",
+    snack: "Lanche",
+    dinner: "Jantar",
+  };
+  return labels[meal];
+}
+
+function buildMealPostContent(meal: LocalMeal["meal"], items: MealFoodInput[]) {
+  const totals = items.reduce(
+    (acc, item) => ({
+      calories: acc.calories + item.calories,
+      protein: acc.protein + item.protein,
+      carbs: acc.carbs + item.carbs,
+      fat: acc.fat + item.fat,
+    }),
+    { calories: 0, protein: 0, carbs: 0, fat: 0 },
+  );
+  const itemList = items.map((item) => `${item.name} (${item.grams}g)`).join(", ");
+
+  return [
+    `${mealLabel(meal)} registrado na dieta.`,
+    `Total: ${Math.round(totals.calories)} kcal - ${totals.protein.toFixed(1)}P / ${totals.carbs.toFixed(1)}C / ${totals.fat.toFixed(1)}G.`,
+    `Itens: ${itemList}.`,
+  ].join("\n");
+}
+
+export async function addMealWithItems({
+  meal,
+  items,
+  photoFile,
+}: {
+  meal: LocalMeal["meal"];
+  items: MealFoodInput[];
+  photoFile?: File | null;
+}) {
+  if (items.length === 0) throw new Error("Adicione pelo menos um alimento");
+
+  const userId = await getUserId();
+  const photoUrl = photoFile ? await uploadMealPhoto(userId, photoFile) : null;
+  const consumedAt = new Date().toISOString();
+
+  const { data, error } = await supabase
+    .from("diet_entries")
+    .insert(
+      items.map((item) => ({
+        user_id: userId,
+        food_id: item.foodId ?? null,
+        food_name: item.name,
+        meal,
+        grams: item.grams,
+        kcal: item.calories,
+        protein_g: item.protein,
+        carbs_g: item.carbs,
+        fat_g: item.fat,
+        photo_url: photoUrl,
+        consumed_at: consumedAt,
+      })),
+    )
+    .select("id, food_name, meal, grams, kcal, protein_g, carbs_g, fat_g, photo_url, consumed_at");
+
+  if (error) throw new Error(error.message);
+
+  const { error: postError } = await supabase.from("posts").insert({
+    user_id: userId,
+    content: buildMealPostContent(meal, items),
+    media_url: photoUrl,
+  });
+  if (postError) throw new Error(postError.message);
+
+  notifyChange();
+  return (data ?? []).map(mapMeal);
 }
 
 export async function removeMeal(id: string) {

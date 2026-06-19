@@ -26,6 +26,7 @@ export type Database = {
           id: string
           kcal: number
           meal: string
+          photo_url: string | null
           protein_g: number
           user_id: string
         }
@@ -40,6 +41,7 @@ export type Database = {
           id?: string
           kcal: number
           meal: string
+          photo_url?: string | null
           protein_g?: number
           user_id: string
         }
@@ -54,6 +56,7 @@ export type Database = {
           id?: string
           kcal?: number
           meal?: string
+          photo_url?: string | null
           protein_g?: number
           user_id?: string
         }

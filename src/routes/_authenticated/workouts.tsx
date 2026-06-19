@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { addDays, formatSelectedDate, isSameLocalDate, startOfLocalDay } from "@/lib/date";
 import { formatDistance, formatDuration, timeAgo } from "@/lib/feed";
 import {
   addWorkout,
@@ -33,35 +34,6 @@ export const Route = createFileRoute("/_authenticated/workouts")({
   head: () => ({ meta: [{ title: "Treinos - Lajes Fit" }] }),
   component: WorkoutsPage,
 });
-
-function startOfLocalDay(date: Date) {
-  const nextDate = new Date(date);
-  nextDate.setHours(0, 0, 0, 0);
-  return nextDate;
-}
-
-function addDays(date: Date, days: number) {
-  const nextDate = new Date(date);
-  nextDate.setDate(nextDate.getDate() + days);
-  return startOfLocalDay(nextDate);
-}
-
-function isSameLocalDate(isoDate: string, day: Date) {
-  const date = new Date(isoDate);
-  return (
-    date.getFullYear() === day.getFullYear() &&
-    date.getMonth() === day.getMonth() &&
-    date.getDate() === day.getDate()
-  );
-}
-
-function formatSelectedDate(date: Date) {
-  return date.toLocaleDateString("pt-BR", {
-    weekday: "short",
-    day: "2-digit",
-    month: "short",
-  });
-}
 
 function buildStartedAtForSelectedDay(day: Date) {
   const now = new Date();
@@ -211,7 +183,13 @@ function WorkoutsPage() {
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <p className="text-xs uppercase tracking-widest opacity-80">Resumo dos exercicios</p>
-            <p className="font-display text-5xl mt-1">{formatDistance(totals.distance)}</p>
+            <div className="mt-2 flex items-center gap-2 text-sm font-medium opacity-90">
+              <Flame className="size-4" />
+              <span>Calorias</span>
+            </div>
+            <p className="font-display text-5xl mt-1">
+              {Math.round(totals.calories)} <span className="text-base font-sans">kcal</span>
+            </p>
           </div>
           <ManualWorkoutDialog
             onSaved={handleCreate}
@@ -263,10 +241,8 @@ function WorkoutsPage() {
             <p className="font-display text-xl">{formatDuration(totals.duration)}</p>
           </div>
           <div>
-            <p className="opacity-70 text-xs">Calorias queimadas</p>
-            <p className="font-display text-xl">
-              {Math.round(totals.calories)} <span className="text-xs font-sans">kcal</span>
-            </p>
+            <p className="opacity-70 text-xs">Distancia</p>
+            <p className="font-display text-xl">{formatDistance(totals.distance)}</p>
           </div>
         </div>
       </div>

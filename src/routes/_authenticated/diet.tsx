@@ -25,6 +25,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { addDays, formatSelectedDate, isSameLocalDate, startOfLocalDay } from "@/lib/date";
 import {
   Select,
   SelectContent,
@@ -36,9 +37,12 @@ import {
   addMealWithItems,
   caloriesFromGrams,
   cacheFoodInCatalog,
+  foodMatchesQuery,
   getFoodCatalog,
+  normalizeFoodSearch,
   removeMeal,
-  searchOpenFoodFactsFoods,
+  requestFoodSuggestion,
+  updateDietMealPhoto,
   useLocalFitness,
   type MealFoodInput,
   type LocalMeal,
@@ -83,6 +87,7 @@ function foodSourceLabel(food: TacoFood) {
     taco: "TACO",
     open_food_facts: "Open Food Facts",
     manual: "Manual",
+    estimated: "Estimado",
   };
   return labels[food.source];
 }
@@ -124,6 +129,7 @@ function mealToHistoryFood(meal: LocalMeal, matchingFood?: TacoFood): TacoFood {
     carbs: (meal.carbs * 100) / grams,
     fat: (meal.fat * 100) / grams,
     fiber: 0,
+    aliases: [],
     measures: [{ id: "g", label: "gramas", unit: "g", grams: 1, isDefault: true }],
   };
 }
@@ -165,6 +171,38 @@ function getHistoryFoods(meals: LocalMeal[], foods: TacoFood[], mode: "popular" 
     )
     .slice(0, 12)
     .map((item) => mealToHistoryFood(item.meal, item.food));
+}
+
+type MealGroup = {
+  id: string;
+  dietMealId: string | null;
+  meal: Meal;
+  photoUrl: string | null;
+  items: LocalMeal[];
+};
+
+function groupMealEntries(entries: LocalMeal[]) {
+  const groups = new Map<string, MealGroup>();
+
+  entries.forEach((entry) => {
+    const key = entry.dietMealId ?? `legacy:${entry.id}`;
+    const current = groups.get(key);
+    if (current) {
+      current.items.push(entry);
+      current.photoUrl = current.photoUrl ?? entry.mealPhotoUrl ?? entry.photoUrl;
+      return;
+    }
+
+    groups.set(key, {
+      id: key,
+      dietMealId: entry.dietMealId,
+      meal: entry.meal,
+      photoUrl: entry.mealPhotoUrl ?? entry.photoUrl,
+      items: [entry],
+    });
+  });
+
+  return Array.from(groups.values());
 }
 
 function readFileAsDataUrl(file: File) {
@@ -224,40 +262,11 @@ function isOlderAndroidBrowser() {
 
   return Boolean(
     androidMajor !== null &&
-      androidMajor <= 8 &&
-      ((chromeMajor !== null && chromeMajor < 90) ||
-        (samsungMajor !== null && samsungMajor < 14) ||
-        chromeMajor === null),
+    androidMajor <= 8 &&
+    ((chromeMajor !== null && chromeMajor < 90) ||
+      (samsungMajor !== null && samsungMajor < 14) ||
+      chromeMajor === null),
   );
-}
-
-function startOfLocalDay(date: Date) {
-  const nextDate = new Date(date);
-  nextDate.setHours(0, 0, 0, 0);
-  return nextDate;
-}
-
-function addDays(date: Date, days: number) {
-  const nextDate = new Date(date);
-  nextDate.setDate(nextDate.getDate() + days);
-  return startOfLocalDay(nextDate);
-}
-
-function isSameLocalDate(isoDate: string, day: Date) {
-  const date = new Date(isoDate);
-  return (
-    date.getFullYear() === day.getFullYear() &&
-    date.getMonth() === day.getMonth() &&
-    date.getDate() === day.getDate()
-  );
-}
-
-function formatSelectedDate(date: Date) {
-  return date.toLocaleDateString("pt-BR", {
-    weekday: "short",
-    day: "2-digit",
-    month: "short",
-  });
 }
 
 function buildConsumedAtForSelectedDay(day: Date) {
@@ -398,6 +407,7 @@ function DietPage() {
 
       {MEALS.map((meal) => {
         const items = dayMeals.filter((entry) => entry.meal === meal.key);
+        const groups = groupMealEntries(items);
         const kcal = items.reduce((sum, entry) => sum + entry.calories, 0);
         return (
           <section key={meal.key} className="bg-card rounded-lg border shadow-card overflow-hidden">
@@ -405,7 +415,7 @@ function DietPage() {
               <div>
                 <h3 className="font-display text-2xl">{meal.label.toUpperCase()}</h3>
                 <p className="text-xs text-muted-foreground">
-                  {Math.round(kcal)} kcal - {items.length} item(ns)
+                  {Math.round(kcal)} kcal - {groups.length} refeicao(oes) - {items.length} item(ns)
                 </p>
               </div>
               <Button
@@ -421,74 +431,70 @@ function DietPage() {
                 Adicionar
               </Button>
             </header>
-            <ul className="divide-y">
+            <div className="divide-y">
               {loading ? (
-                <li className="px-4 py-6 text-sm text-muted-foreground text-center">
+                <div className="px-4 py-6 text-sm text-muted-foreground text-center">
                   Carregando refeicoes...
-                </li>
+                </div>
               ) : items.length === 0 ? (
-                <li className="px-4 py-6 text-sm text-muted-foreground text-center">
+                <div className="px-4 py-6 text-sm text-muted-foreground text-center">
                   Nenhuma refeicao registrada
-                </li>
+                </div>
               ) : (
-                items.map((entry) => (
-                  <li
-                    key={entry.id}
-                    className="relative overflow-hidden bg-card"
-                    onTouchStart={(event) => {
-                      touchStartXRef.current = event.touches[0]?.clientX ?? null;
-                    }}
-                    onTouchEnd={(event) => {
-                      const startX = touchStartXRef.current;
-                      const endX = event.changedTouches[0]?.clientX ?? null;
-                      touchStartXRef.current = null;
-                      if (startX === null || endX === null) return;
-                      const deltaX = endX - startX;
-                      if (deltaX < -45) setSwipedEntryId(entry.id);
-                      if (deltaX > 45 && swipedEntryId === entry.id) setSwipedEntryId(null);
-                    }}
-                  >
-                    <div className="absolute inset-y-0 right-0 flex w-20 items-center justify-center bg-destructive">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive-foreground hover:bg-destructive-foreground/15 hover:text-destructive-foreground"
-                        onClick={() => handleRemove(entry.id)}
-                        aria-label="Excluir alimento da refeicao"
-                      >
-                        <Trash2 className="size-5" />
-                      </Button>
-                    </div>
-                    <div
-                      className={`relative z-10 flex items-center gap-3 bg-card px-4 py-3 transition-transform duration-200 hover:bg-muted/40 ${
-                        swipedEntryId === entry.id ? "-translate-x-20" : "translate-x-0"
-                      }`}
-                    >
-                      {entry.photoUrl ? (
-                        <img
-                          src={entry.photoUrl}
-                          alt=""
-                          className="h-14 w-14 shrink-0 rounded-md object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
-                          <ImageIcon className="size-5" />
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{entry.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {entry.grams}g - {entry.protein.toFixed(1)}P / {entry.carbs.toFixed(1)}C /{" "}
-                          {entry.fat.toFixed(1)}G
-                        </p>
-                      </div>
-                      <p className="font-display text-xl">{Math.round(entry.calories)}</p>
-                    </div>
-                  </li>
+                groups.map((group) => (
+                  <div key={group.id} className="bg-card">
+                    <MealGroupPhoto group={group} />
+                    <ul className="divide-y border-t">
+                      {group.items.map((entry) => (
+                        <li
+                          key={entry.id}
+                          className="relative overflow-hidden bg-card"
+                          onTouchStart={(event) => {
+                            touchStartXRef.current = event.touches[0]?.clientX ?? null;
+                          }}
+                          onTouchEnd={(event) => {
+                            const startX = touchStartXRef.current;
+                            const endX = event.changedTouches[0]?.clientX ?? null;
+                            touchStartXRef.current = null;
+                            if (startX === null || endX === null) return;
+                            const deltaX = endX - startX;
+                            if (deltaX < -45) setSwipedEntryId(entry.id);
+                            if (deltaX > 45 && swipedEntryId === entry.id) setSwipedEntryId(null);
+                          }}
+                        >
+                          <div className="absolute inset-y-0 right-0 flex w-20 items-center justify-center bg-destructive">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive-foreground hover:bg-destructive-foreground/15 hover:text-destructive-foreground"
+                              onClick={() => handleRemove(entry.id)}
+                              aria-label="Excluir alimento da refeicao"
+                            >
+                              <Trash2 className="size-5" />
+                            </Button>
+                          </div>
+                          <div
+                            className={`relative z-10 flex items-center gap-3 bg-card px-4 py-3 transition-transform duration-200 hover:bg-muted/40 ${
+                              swipedEntryId === entry.id ? "-translate-x-20" : "translate-x-0"
+                            }`}
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{entry.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {entry.grams}g - {entry.protein.toFixed(1)}P /{" "}
+                                {entry.carbs.toFixed(1)}C / {entry.fat.toFixed(1)}G
+                              </p>
+                            </div>
+                            <p className="font-display text-xl">{Math.round(entry.calories)}</p>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 ))
               )}
-            </ul>
+            </div>
           </section>
         );
       })}
@@ -504,6 +510,100 @@ function Macro({ label, value, unit }: { label: string; value: number; unit: str
         {value.toFixed(1)}
         <span className="text-sm font-sans ml-1">{unit}</span>
       </p>
+    </div>
+  );
+}
+
+function MealGroupPhoto({ group }: { group: MealGroup }) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [photoUrl, setPhotoUrl] = useState(group.photoUrl);
+  const [saving, setSaving] = useState(false);
+  const canEditPhoto = Boolean(group.dietMealId);
+  const totalCalories = group.items.reduce((sum, item) => sum + item.calories, 0);
+
+  useEffect(() => {
+    setPhotoUrl(group.photoUrl);
+  }, [group.photoUrl]);
+
+  async function pickPhoto(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !group.dietMealId) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Selecione uma imagem valida");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const rawDataUrl = await readFileAsDataUrl(file);
+      const dataUrl = await compressImageDataUrl(rawDataUrl);
+      const photoBlob = await dataUrlToBlob(dataUrl);
+      const nextPhotoUrl = await updateDietMealPhoto(group.dietMealId, photoBlob);
+      setPhotoUrl(nextPhotoUrl);
+      toast.success("Foto da refeicao atualizada");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel atualizar a foto");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function removePhoto() {
+    if (!group.dietMealId) return;
+
+    setSaving(true);
+    try {
+      await updateDietMealPhoto(group.dietMealId, null);
+      setPhotoUrl(null);
+      toast.success("Foto da refeicao removida");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel remover a foto");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="space-y-3 px-4 py-3">
+      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={pickPhoto} />
+      {photoUrl ? (
+        <img src={photoUrl} alt="" className="h-44 w-full rounded-md object-cover" />
+      ) : (
+        <div className="flex h-28 w-full items-center justify-center rounded-md bg-muted text-muted-foreground">
+          <ImageIcon className="size-6" />
+        </div>
+      )}
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs text-muted-foreground">
+          {group.items.length} item(ns) - {Math.round(totalCalories)} kcal
+        </p>
+        {canEditPhoto && (
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => inputRef.current?.click()}
+              disabled={saving}
+            >
+              {photoUrl ? "Trocar foto" : "Adicionar foto"}
+            </Button>
+            {photoUrl && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={removePhoto}
+                disabled={saving}
+              >
+                Remover
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -527,8 +627,8 @@ function AddFoodDialog({
   const [saving, setSaving] = useState(false);
   const [foods, setFoods] = useState<TacoFood[]>([]);
   const [foodsLoading, setFoodsLoading] = useState(false);
-  const [externalFoods, setExternalFoods] = useState<TacoFood[]>([]);
-  const [externalFoodsLoading, setExternalFoodsLoading] = useState(false);
+  const [foodRequestSending, setFoodRequestSending] = useState(false);
+  const [submittedFoodRequests, setSubmittedFoodRequests] = useState<Set<string>>(() => new Set());
   const [foodQuery, setFoodQuery] = useState("");
   const [foodListOpen, setFoodListOpen] = useState(false);
   const [historyMode, setHistoryMode] = useState<"popular" | "recent">("popular");
@@ -637,47 +737,10 @@ function AddFoodDialog({
     };
   }, [foods.length, open]);
 
-  useEffect(() => {
-    if (!open) return;
-
-    const query = foodQuery.trim();
-    if (query.length < 3) {
-      setExternalFoods([]);
-      setExternalFoodsLoading(false);
-      return;
-    }
-
-    let mounted = true;
-    const timeout = window.setTimeout(() => {
-      setExternalFoodsLoading(true);
-      searchOpenFoodFactsFoods(query)
-        .then((nextFoods) => {
-          if (mounted) setExternalFoods(nextFoods);
-        })
-        .catch(() => {
-          if (mounted) setExternalFoods([]);
-        })
-        .finally(() => {
-          if (mounted) setExternalFoodsLoading(false);
-        });
-    }, 450);
-
-    return () => {
-      mounted = false;
-      window.clearTimeout(timeout);
-    };
-  }, [foodQuery, open]);
-
   const filteredFoods = useMemo(() => {
-    const query = foodQuery.trim().toLowerCase();
-    const localMatches = query
-      ? foods.filter((food) => food.name.toLowerCase().includes(query))
-      : foods;
-    const localResults = localMatches.slice(0, 12);
-    const localIds = new Set(localResults.map((food) => food.id));
-    const externalResults = externalFoods.filter((food) => !localIds.has(food.id)).slice(0, 8);
-    return [...localResults, ...externalResults];
-  }, [externalFoods, foodQuery, foods]);
+    const query = normalizeFoodSearch(foodQuery);
+    return query ? foods.filter((food) => foodMatchesQuery(food, query)).slice(0, 16) : foods;
+  }, [foodQuery, foods]);
 
   const historyFoods = useMemo(
     () => getHistoryFoods(meals, foods, historyMode),
@@ -685,6 +748,11 @@ function AddFoodDialog({
   );
 
   const visibleFoods = foodQuery.trim() ? filteredFoods : historyFoods;
+  const normalizedFoodRequest = normalizeFoodSearch(foodQuery);
+  const canSuggestFood =
+    normalizedFoodRequest.length >= 2 &&
+    visibleFoods.length === 0 &&
+    !submittedFoodRequests.has(normalizedFoodRequest);
 
   function applyDefaultMeasure(food: TacoFood | null) {
     const nextMeasure = defaultMeasureForFood(food);
@@ -709,7 +777,8 @@ function AddFoodDialog({
 
   const selected = selectedFood;
   const selectedMeasure =
-    selected?.measures.find((measure) => measure.id === measureId) ?? defaultMeasureForFood(selected);
+    selected?.measures.find((measure) => measure.id === measureId) ??
+    defaultMeasureForFood(selected);
   const parsedQuantity = Number(quantity);
   const hasValidQuantity = Number.isFinite(parsedQuantity) && parsedQuantity > 0;
   const effectiveGrams = hasValidQuantity
@@ -820,6 +889,25 @@ function AddFoodDialog({
     setMealItems((current) => current.filter((_, itemIndex) => itemIndex !== index));
   }
 
+  async function submitFoodRequest() {
+    if (!canSuggestFood) return;
+
+    setFoodRequestSending(true);
+    try {
+      const result = await requestFoodSuggestion(foodQuery);
+      setSubmittedFoodRequests((current) => new Set(current).add(normalizedFoodRequest));
+      toast.success(
+        result.alreadyExists
+          ? "Essa sugestao ja foi enviada."
+          : "Sugestao enviada. Vamos analisar esse alimento para incluir na base.",
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel enviar a sugestao");
+    } finally {
+      setFoodRequestSending(false);
+    }
+  }
+
   async function pickPhoto(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -877,300 +965,318 @@ function AddFoodDialog({
         onChange={pickPhoto}
       />
       <Dialog open={open} onOpenChange={handleOpenChange}>
-      {showTrigger && (
-        <DialogTrigger asChild>
-          <Button size="sm" variant="secondary">
-            <Plus className="size-4 mr-1" /> Adicionar refeicao
-          </Button>
-        </DialogTrigger>
-      )}
-      <DialogContent
-        className="max-h-[92vh] overflow-y-auto sm:max-w-lg"
-        onInteractOutside={(event) => {
-          if (hasDraft || protectDraftRef.current) event.preventDefault();
-        }}
-      >
-        <DialogHeader>
-          <DialogTitle>Adicionar refeicao</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={submit} className="space-y-4">
-          <div className="space-y-2">
-            <Label>Refeicao</Label>
-            <Select value={meal} onValueChange={(value) => setMeal(value as Meal)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {MEALS.map((item) => (
-                  <SelectItem key={item.key} value={item.key}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Alimento</Label>
-            <Input
-              value={foodQuery}
-              onFocus={() => setFoodListOpen(true)}
-              onClick={() => setFoodListOpen(true)}
-              onChange={(event) => {
-                setFoodQuery(event.target.value);
-                setFoodListOpen(true);
-              }}
-              placeholder="Buscar alimento: arroz, frango, banana, iogurte..."
-            />
-            {foodListOpen && (
-              <div className="overflow-hidden rounded-lg border bg-background">
-                {!foodQuery.trim() && (
-                  <div className="flex items-center justify-between gap-2 border-b px-3 py-2">
-                    <p className="text-xs font-medium text-muted-foreground">
-                      {historyMode === "popular" ? "Mais adicionados" : "Adicionados recentemente"}
-                    </p>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-xs"
-                      onClick={() =>
-                        setHistoryMode((current) => (current === "popular" ? "recent" : "popular"))
-                      }
-                    >
-                      {historyMode === "popular" ? "Ver recentes" : "Ver mais usados"}
-                    </Button>
-                  </div>
-                )}
-                <div className="max-h-52 overflow-y-auto">
-                  {foodsLoading ? (
-                    <p className="px-3 py-4 text-center text-sm text-muted-foreground">
-                      Carregando base de alimentos...
-                    </p>
-                  ) : visibleFoods.length === 0 ? (
-                    <p className="px-3 py-4 text-center text-sm text-muted-foreground">
-                      {foodQuery.trim() && externalFoodsLoading
-                        ? "Buscando produtos industrializados..."
-                        : foodQuery.trim()
-                          ? "Nenhum alimento encontrado"
-                          : "Nenhum alimento usado ainda"}
-                    </p>
-                  ) : (
-                    <>
-                      {visibleFoods.map((food) => {
-                        const active = selected?.id === food.id;
-                        return (
-                          <button
-                            key={food.id}
-                            type="button"
-                            className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-muted ${
-                              active ? "bg-muted font-medium text-primary" : ""
-                            }`}
-                            onClick={() => {
-                              selectFood(food);
-                            }}
-                          >
-                            <span className="min-w-0">
-                              <span className="block truncate">{food.name}</span>
-                              {food.category && (
-                                <span className="block truncate text-xs font-normal text-muted-foreground">
-                                  {food.category}
-                                  {food.brand ? ` - ${food.brand}` : ""}
-                                </span>
-                              )}
-                              <span className="mt-1 inline-flex rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                                {foodSourceLabel(food)}
-                              </span>
-                            </span>
-                            <span className="shrink-0 text-xs text-muted-foreground">
-                              {Math.round(food.calories)} kcal
-                            </span>
-                          </button>
-                        );
-                      })}
-                      {foodQuery.trim() && externalFoodsLoading && (
-                        <p className="px-3 py-2 text-center text-xs text-muted-foreground">
-                          Buscando produtos industrializados...
-                        </p>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label>Quantidade</Label>
-            <div className="grid grid-cols-[minmax(0,1fr)_minmax(9rem,auto)] gap-2">
-              <Input
-                id="meal-quantity"
-                type="number"
-                min="0.1"
-                step="0.1"
-                value={quantity}
-                onChange={(event) => {
-                  const nextValue = event.target.value;
-                  const nextQuantity = Number(nextValue);
-                  setQuantity(nextValue);
-                  if (Number.isFinite(nextQuantity) && nextQuantity > 0) {
-                    setGrams(Math.max(1, Math.round(nextQuantity * (selectedMeasure?.grams ?? 1))));
-                  }
-                }}
-              />
-              <Select
-                value={selectedMeasure?.id ?? measureId}
-                onValueChange={(value) => {
-                  const nextMeasure = selected?.measures.find((measure) => measure.id === value);
-                  const nextQuantity = defaultQuantityForMeasure(nextMeasure ?? null);
-                  setMeasureId(value);
-                  setQuantity(String(nextQuantity));
-                  setGrams(
-                    Math.max(
-                      1,
-                      Math.round(nextQuantity * (nextMeasure?.grams ?? 1)),
-                    ),
-                  );
-                }}
-                disabled={!selected}
-              >
+        {showTrigger && (
+          <DialogTrigger asChild>
+            <Button size="sm" variant="secondary">
+              <Plus className="size-4 mr-1" /> Adicionar refeicao
+            </Button>
+          </DialogTrigger>
+        )}
+        <DialogContent
+          className="max-h-[92vh] overflow-y-auto sm:max-w-lg"
+          onInteractOutside={(event) => {
+            if (hasDraft || protectDraftRef.current) event.preventDefault();
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle>Adicionar refeicao</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={submit} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Refeicao</Label>
+              <Select value={meal} onValueChange={(value) => setMeal(value as Meal)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {(selected?.measures ?? [{ id: "g", label: "gramas", unit: "g", grams: 1 }]).map(
-                    (measure) => (
-                      <SelectItem key={measure.id} value={measure.id}>
-                        {measure.label}
-                      </SelectItem>
-                    ),
-                  )}
+                  {MEALS.map((item) => (
+                    <SelectItem key={item.key} value={item.key}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Equivale a {Math.round(effectiveGrams)}g para o calculo nutricional.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-            <div className="grid grid-cols-4 gap-2 text-center bg-muted rounded-lg p-3">
-              <Preview label="kcal" value={Math.round(preview.calories)} />
-              <Preview label="P" value={preview.protein.toFixed(1)} />
-              <Preview label="C" value={preview.carbs.toFixed(1)} />
-              <Preview label="G" value={preview.fat.toFixed(1)} />
-            </div>
-            <Button type="button" onClick={addSelectedFood} disabled={!selected || !hasValidQuantity}>
-              <ListPlus className="mr-2 size-4" />
-              Adicionar alimento
-            </Button>
-          </div>
-          <div className="space-y-2">
-            <Label>Itens da refeicao</Label>
-            <div className="rounded-lg border bg-background">
-              {mealItems.length === 0 ? (
-                <p className="px-3 py-4 text-center text-sm text-muted-foreground">
-                  Nenhum alimento adicionado
-                </p>
-              ) : (
-                <ul className="divide-y">
-                  {mealItems.map((item, index) => (
-                    <li key={`${item.foodId}-${index}`} className="flex items-center gap-3 px-3 py-2">
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">{item.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {item.grams}g - {Math.round(item.calories)} kcal
-                        </p>
-                      </div>
+            <div className="space-y-2">
+              <Label>Alimento</Label>
+              <Input
+                value={foodQuery}
+                onFocus={() => setFoodListOpen(true)}
+                onClick={() => setFoodListOpen(true)}
+                onChange={(event) => {
+                  setFoodQuery(event.target.value);
+                  setFoodListOpen(true);
+                }}
+                placeholder="Buscar alimento: arroz, frango, banana, iogurte..."
+              />
+              {foodListOpen && (
+                <div className="overflow-hidden rounded-lg border bg-background">
+                  {!foodQuery.trim() && (
+                    <div className="flex items-center justify-between gap-2 border-b px-3 py-2">
+                      <p className="text-xs font-medium text-muted-foreground">
+                        {historyMode === "popular"
+                          ? "Mais adicionados"
+                          : "Adicionados recentemente"}
+                      </p>
                       <Button
                         type="button"
                         variant="ghost"
-                        size="icon"
-                        onClick={() => removeMealItem(index)}
-                        aria-label="Remover alimento"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        onClick={() =>
+                          setHistoryMode((current) =>
+                            current === "popular" ? "recent" : "popular",
+                          )
+                        }
                       >
-                        <Trash2 className="size-4" />
+                        {historyMode === "popular" ? "Ver recentes" : "Ver mais usados"}
                       </Button>
-                    </li>
-                  ))}
-                </ul>
+                    </div>
+                  )}
+                  <div className="max-h-52 overflow-y-auto">
+                    {foodsLoading ? (
+                      <p className="px-3 py-4 text-center text-sm text-muted-foreground">
+                        Carregando base de alimentos...
+                      </p>
+                    ) : visibleFoods.length === 0 ? (
+                      <div className="space-y-3 px-3 py-4 text-center">
+                        <p className="text-sm text-muted-foreground">
+                          {foodQuery.trim()
+                            ? "Nao encontramos esse alimento na nossa base."
+                            : "Nenhum alimento usado ainda"}
+                        </p>
+                        {foodQuery.trim() && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={submitFoodRequest}
+                            disabled={!canSuggestFood || foodRequestSending}
+                          >
+                            {foodRequestSending
+                              ? "Enviando..."
+                              : submittedFoodRequests.has(normalizedFoodRequest)
+                                ? "Sugestao enviada"
+                                : "Sugerir alimento"}
+                          </Button>
+                        )}
+                      </div>
+                    ) : (
+                      <>
+                        {visibleFoods.map((food) => {
+                          const active = selected?.id === food.id;
+                          return (
+                            <button
+                              key={food.id}
+                              type="button"
+                              className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-muted ${
+                                active ? "bg-muted font-medium text-primary" : ""
+                              }`}
+                              onClick={() => {
+                                selectFood(food);
+                              }}
+                            >
+                              <span className="min-w-0">
+                                <span className="block truncate">{food.name}</span>
+                                {food.category && (
+                                  <span className="block truncate text-xs font-normal text-muted-foreground">
+                                    {food.category}
+                                    {food.brand ? ` - ${food.brand}` : ""}
+                                  </span>
+                                )}
+                                <span className="mt-1 inline-flex rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                                  {foodSourceLabel(food)}
+                                </span>
+                              </span>
+                              <span className="shrink-0 text-xs text-muted-foreground">
+                                {Math.round(food.calories)} kcal
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
-          </div>
-          <div className="space-y-2">
-            <Label>Foto da refeicao</Label>
-            {preferGallery && !photoDataUrl && (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                Neste aparelho, tire a foto pela camera do celular e depois escolha em Galeria.
-              </div>
-            )}
-            {photoDataUrl ? (
-              <div className="relative overflow-hidden rounded-lg border">
-                <img src={photoDataUrl} alt="" className="h-48 w-full object-cover" />
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="secondary"
-                  className="absolute right-2 top-2"
-                  onClick={clearPhoto}
-                  aria-label="Remover foto"
+            <div className="space-y-2">
+              <Label>Quantidade</Label>
+              <div className="grid grid-cols-[minmax(0,1fr)_minmax(9rem,auto)] gap-2">
+                <Input
+                  id="meal-quantity"
+                  type="number"
+                  min="0.1"
+                  step="0.1"
+                  value={quantity}
+                  onChange={(event) => {
+                    const nextValue = event.target.value;
+                    const nextQuantity = Number(nextValue);
+                    setQuantity(nextValue);
+                    if (Number.isFinite(nextQuantity) && nextQuantity > 0) {
+                      setGrams(
+                        Math.max(1, Math.round(nextQuantity * (selectedMeasure?.grams ?? 1))),
+                      );
+                    }
+                  }}
+                />
+                <Select
+                  value={selectedMeasure?.id ?? measureId}
+                  onValueChange={(value) => {
+                    const nextMeasure = selected?.measures.find((measure) => measure.id === value);
+                    const nextQuantity = defaultQuantityForMeasure(nextMeasure ?? null);
+                    setMeasureId(value);
+                    setQuantity(String(nextQuantity));
+                    setGrams(Math.max(1, Math.round(nextQuantity * (nextMeasure?.grams ?? 1))));
+                  }}
+                  disabled={!selected}
                 >
-                  <X className="size-4" />
-                </Button>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(
+                      selected?.measures ?? [{ id: "g", label: "gramas", unit: "g", grams: 1 }]
+                    ).map((measure) => (
+                      <SelectItem key={measure.id} value={measure.id}>
+                        {measure.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            ) : photoLoading || pickingPhoto ? (
-              <div className="flex h-32 items-center justify-center rounded-lg border border-dashed bg-muted/40 text-sm text-muted-foreground">
-                Processando foto...
+              <p className="text-xs text-muted-foreground">
+                Equivale a {Math.round(effectiveGrams)}g para o calculo nutricional.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+              <div className="grid grid-cols-4 gap-2 text-center bg-muted rounded-lg p-3">
+                <Preview label="kcal" value={Math.round(preview.calories)} />
+                <Preview label="P" value={preview.protein.toFixed(1)} />
+                <Preview label="C" value={preview.carbs.toFixed(1)} />
+                <Preview label="G" value={preview.fat.toFixed(1)} />
               </div>
-            ) : (
-              <div className="flex h-32 items-center justify-center rounded-lg border border-dashed bg-muted/40 text-muted-foreground">
-                <ImageIcon className="size-8" />
-              </div>
-            )}
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <Button
                 type="button"
-                variant={preferGallery ? "default" : "outline"}
-                className="w-full"
-                onClick={() => {
-                  protectDraftRef.current = true;
-                  setPickingPhoto(true);
-                  galleryInputRef.current?.click();
-                }}
+                onClick={addSelectedFood}
+                disabled={!selected || !hasValidQuantity}
               >
-                <ImageIcon className="mr-2 size-4" />
-                Galeria
+                <ListPlus className="mr-2 size-4" />
+                Adicionar alimento
               </Button>
-              {!preferGallery && (
+            </div>
+            <div className="space-y-2">
+              <Label>Itens da refeicao</Label>
+              <div className="rounded-lg border bg-background">
+                {mealItems.length === 0 ? (
+                  <p className="px-3 py-4 text-center text-sm text-muted-foreground">
+                    Nenhum alimento adicionado
+                  </p>
+                ) : (
+                  <ul className="divide-y">
+                    {mealItems.map((item, index) => (
+                      <li
+                        key={`${item.foodId}-${index}`}
+                        className="flex items-center gap-3 px-3 py-2"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">{item.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {item.grams}g - {Math.round(item.calories)} kcal
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeMealItem(index)}
+                          aria-label="Remover alimento"
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Foto da refeicao</Label>
+              {preferGallery && !photoDataUrl && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                  Neste aparelho, tire a foto pela camera do celular e depois escolha em Galeria.
+                </div>
+              )}
+              {photoDataUrl ? (
+                <div className="relative overflow-hidden rounded-lg border">
+                  <img src={photoDataUrl} alt="" className="h-48 w-full object-cover" />
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="secondary"
+                    className="absolute right-2 top-2"
+                    onClick={clearPhoto}
+                    aria-label="Remover foto"
+                  >
+                    <X className="size-4" />
+                  </Button>
+                </div>
+              ) : photoLoading || pickingPhoto ? (
+                <div className="flex h-32 items-center justify-center rounded-lg border border-dashed bg-muted/40 text-sm text-muted-foreground">
+                  Processando foto...
+                </div>
+              ) : (
+                <div className="flex h-32 items-center justify-center rounded-lg border border-dashed bg-muted/40 text-muted-foreground">
+                  <ImageIcon className="size-8" />
+                </div>
+              )}
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <Button
                   type="button"
-                  variant="outline"
+                  variant={preferGallery ? "default" : "outline"}
                   className="w-full"
                   onClick={() => {
                     protectDraftRef.current = true;
                     setPickingPhoto(true);
-                    cameraInputRef.current?.click();
+                    galleryInputRef.current?.click();
                   }}
                 >
-                  <Camera className="mr-2 size-4" />
-                  Camera
+                  <ImageIcon className="mr-2 size-4" />
+                  Galeria
                 </Button>
-              )}
+                {!preferGallery && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      protectDraftRef.current = true;
+                      setPickingPhoto(true);
+                      cameraInputRef.current?.click();
+                    }}
+                  >
+                    <Camera className="mr-2 size-4" />
+                    Camera
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
-          <div className="grid grid-cols-4 gap-2 text-center bg-muted rounded-lg p-3">
-            <Preview label="kcal" value={Math.round(mealTotals.calories)} />
-            <Preview label="P" value={mealTotals.protein.toFixed(1)} />
-            <Preview label="C" value={mealTotals.carbs.toFixed(1)} />
-            <Preview label="G" value={mealTotals.fat.toFixed(1)} />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <Button type="button" variant="outline" onClick={cancelMealDraft} disabled={saving}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={saving || mealItems.length === 0}>
-              {saving ? "Salvando..." : "Salvar refeicao"}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
+            <div className="grid grid-cols-4 gap-2 text-center bg-muted rounded-lg p-3">
+              <Preview label="kcal" value={Math.round(mealTotals.calories)} />
+              <Preview label="P" value={mealTotals.protein.toFixed(1)} />
+              <Preview label="C" value={mealTotals.carbs.toFixed(1)} />
+              <Preview label="G" value={mealTotals.fat.toFixed(1)} />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Button type="button" variant="outline" onClick={cancelMealDraft} disabled={saving}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={saving || mealItems.length === 0}>
+                {saving ? "Salvando..." : "Salvar refeicao"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
       </Dialog>
     </>
   );

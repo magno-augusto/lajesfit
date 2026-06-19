@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Activity, Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,38 @@ import { type LocalWorkout } from "@/lib/local-fitness";
 
 const ACTIVITIES = ["Corrida", "Caminhada", "Ciclismo", "Musculacao", "Trilha", "Natacao", "Outro"];
 
+function formatDateTimeLocal(value?: string) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return offsetDate.toISOString().slice(0, 16);
+}
+
+function parseOptionalNumber(
+  value: string,
+  label: string,
+  options: { min?: number; max?: number } = {},
+) {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const parsed = Number(trimmed.replace(",", "."));
+  if (!Number.isFinite(parsed)) {
+    throw new Error(`${label} precisa ser um numero valido`);
+  }
+
+  if (options.min !== undefined && parsed < options.min) {
+    throw new Error(`${label} precisa ser maior ou igual a ${options.min}`);
+  }
+
+  if (options.max !== undefined && parsed > options.max) {
+    throw new Error(`${label} precisa ser no maximo ${options.max}`);
+  }
+
+  return parsed;
+}
+
 export function ManualWorkoutDialog({
   initialWorkout,
   onSaved,
@@ -41,47 +73,69 @@ export function ManualWorkoutDialog({
 }) {
   const [internalOpen, setInternalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [activityType, setActivityType] = useState(initialWorkout?.activityType ?? "Corrida");
+  const [name, setName] = useState(initialWorkout?.name ?? "");
+  const [startedAt, setStartedAt] = useState(
+    formatDateTimeLocal(initialWorkout?.startedAt ?? defaultStartedAt),
+  );
+  const [distanceKm, setDistanceKm] = useState(
+    initialWorkout?.distanceMeters ? String(initialWorkout.distanceMeters / 1000) : "",
+  );
+  const [calories, setCalories] = useState(
+    initialWorkout?.calories ? String(initialWorkout.calories) : "",
+  );
   const editing = Boolean(initialWorkout);
   const open = controlledOpen ?? internalOpen;
   const durationSeconds = initialWorkout?.durationSeconds ?? 0;
   const defaultHours = Math.floor(durationSeconds / 3600);
   const defaultMinutes = Math.floor((durationSeconds % 3600) / 60);
+  const [hours, setHours] = useState(defaultHours ? String(defaultHours) : "");
+  const [minutes, setMinutes] = useState(defaultMinutes ? String(defaultMinutes) : "");
+
+  useEffect(() => {
+    if (!open) return;
+
+    const nextDurationSeconds = initialWorkout?.durationSeconds ?? 0;
+    const nextHours = Math.floor(nextDurationSeconds / 3600);
+    const nextMinutes = Math.floor((nextDurationSeconds % 3600) / 60);
+
+    setActivityType(initialWorkout?.activityType ?? "Corrida");
+    setName(initialWorkout?.name ?? "");
+    setStartedAt(formatDateTimeLocal(initialWorkout?.startedAt ?? defaultStartedAt));
+    setDistanceKm(
+      initialWorkout?.distanceMeters ? String(initialWorkout.distanceMeters / 1000) : "",
+    );
+    setCalories(initialWorkout?.calories ? String(initialWorkout.calories) : "");
+    setHours(nextHours ? String(nextHours) : "");
+    setMinutes(nextMinutes ? String(nextMinutes) : "");
+  }, [defaultStartedAt, initialWorkout, open]);
 
   function setOpen(nextOpen: boolean) {
     if (onOpenChange) onOpenChange(nextOpen);
     else setInternalOpen(nextOpen);
   }
 
-  function formatDateTimeLocal(value?: string) {
-    if (!value) return "";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "";
-    const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-    return offsetDate.toISOString().slice(0, 16);
-  }
-
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const form = e.currentTarget;
-    const fd = new FormData(form);
-    const hours = Number(fd.get("hours") || 0);
-    const minutes = Number(fd.get("minutes") || 0);
-    const duration = hours * 3600 + minutes * 60;
-    const startedAt = String(fd.get("started_at") || "");
 
     setLoading(true);
     try {
+      const parsedHours = parseOptionalNumber(hours, "Horas", { min: 0 }) ?? 0;
+      const parsedMinutes = parseOptionalNumber(minutes, "Minutos", { min: 0, max: 59 }) ?? 0;
+      const parsedDistanceKm = parseOptionalNumber(distanceKm, "Distancia", { min: 0 });
+      const parsedCalories = parseOptionalNumber(calories, "Calorias", { min: 0 });
+      const duration = parsedHours * 3600 + parsedMinutes * 60;
+
       await onSaved({
-        activityType: String(fd.get("activity_type") || "Corrida"),
-        name: String(fd.get("name") || "") || null,
-        distanceMeters: fd.get("distance_km") ? Number(fd.get("distance_km")) * 1000 : null,
+        activityType,
+        name: name.trim() || null,
+        distanceMeters: parsedDistanceKm === null ? null : parsedDistanceKm * 1000,
         durationSeconds: duration || null,
-        calories: fd.get("calories") ? Number(fd.get("calories")) : null,
+        calories: parsedCalories,
         startedAt: startedAt ? new Date(startedAt).toISOString() : new Date().toISOString(),
       });
 
       toast.success(editing ? "Treino atualizado!" : "Treino registrado!");
-      form.reset();
       setOpen(false);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Erro ao registrar treino");
@@ -115,7 +169,7 @@ export function ManualWorkoutDialog({
           <div className="grid sm:grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>Modalidade</Label>
-              <Select name="activity_type" defaultValue={initialWorkout?.activityType ?? "Corrida"}>
+              <Select name="activity_type" value={activityType} onValueChange={setActivityType}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -135,7 +189,8 @@ export function ManualWorkoutDialog({
                 name="name"
                 placeholder="Treino matinal"
                 maxLength={120}
-                defaultValue={initialWorkout?.name ?? ""}
+                value={name}
+                onChange={(event) => setName(event.target.value)}
               />
             </div>
           </div>
@@ -146,7 +201,8 @@ export function ManualWorkoutDialog({
               id="started-at"
               name="started_at"
               type="datetime-local"
-              defaultValue={formatDateTimeLocal(initialWorkout?.startedAt ?? defaultStartedAt)}
+              value={startedAt}
+              onChange={(event) => setStartedAt(event.target.value)}
             />
           </div>
 
@@ -160,9 +216,8 @@ export function ManualWorkoutDialog({
                 min="0"
                 step="0.01"
                 placeholder="5.2"
-                defaultValue={
-                  initialWorkout?.distanceMeters ? initialWorkout.distanceMeters / 1000 : ""
-                }
+                value={distanceKm}
+                onChange={(event) => setDistanceKm(event.target.value)}
               />
             </div>
             <div className="space-y-2">
@@ -174,7 +229,8 @@ export function ManualWorkoutDialog({
                 min="0"
                 step="1"
                 placeholder="320"
-                defaultValue={initialWorkout?.calories ?? ""}
+                value={calories}
+                onChange={(event) => setCalories(event.target.value)}
               />
             </div>
             <div className="space-y-2">
@@ -186,7 +242,8 @@ export function ManualWorkoutDialog({
                 min="0"
                 step="1"
                 placeholder="0"
-                defaultValue={defaultHours || ""}
+                value={hours}
+                onChange={(event) => setHours(event.target.value)}
               />
             </div>
             <div className="space-y-2">
@@ -199,7 +256,8 @@ export function ManualWorkoutDialog({
                 max="59"
                 step="1"
                 placeholder="45"
-                defaultValue={defaultMinutes || ""}
+                value={minutes}
+                onChange={(event) => setMinutes(event.target.value)}
               />
             </div>
           </div>

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Calculator, Flame } from "lucide-react";
 import { toast } from "sonner";
@@ -201,6 +201,38 @@ function NumberField({
   onChange: (value: number) => void;
 }) {
   const id = label.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  const [inputValue, setInputValue] = useState(String(value));
+
+  useEffect(() => {
+    setInputValue(String(value));
+  }, [value]);
+
+  function handleChange(nextValue: string) {
+    setInputValue(nextValue);
+
+    const trimmed = nextValue.trim();
+    if (!trimmed) return;
+
+    const parsed = Number(trimmed.replace(",", "."));
+    if (!Number.isFinite(parsed) || parsed < min || parsed > max) return;
+
+    onChange(parsed);
+  }
+
+  function handleBlur() {
+    const trimmed = inputValue.trim();
+    const parsed = Number(trimmed.replace(",", "."));
+
+    if (!trimmed || !Number.isFinite(parsed)) {
+      setInputValue(String(value));
+      return;
+    }
+
+    const clamped = Math.min(max, Math.max(min, parsed));
+    setInputValue(String(clamped));
+    onChange(clamped);
+  }
+
   return (
     <div className="space-y-2">
       <Label htmlFor={id}>{label}</Label>
@@ -210,8 +242,9 @@ function NumberField({
         min={min}
         max={max}
         step={step}
-        value={value}
-        onChange={(event) => onChange(Number(event.target.value) || min)}
+        value={inputValue}
+        onChange={(event) => handleChange(event.target.value)}
+        onBlur={handleBlur}
         required
       />
     </div>

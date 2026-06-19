@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type LocalMeal = {
   id: string;
+  dietMealId: string | null;
   name: string;
   meal: "breakfast" | "lunch" | "snack" | "dinner";
   grams: number;
@@ -11,10 +12,11 @@ export type LocalMeal = {
   carbs: number;
   fat: number;
   photoUrl: string | null;
+  mealPhotoUrl: string | null;
   createdAt: string;
 };
 
-export type FoodSource = "tbca" | "taco" | "open_food_facts" | "manual";
+export type FoodSource = "tbca" | "taco" | "open_food_facts" | "manual" | "estimated";
 
 export type FoodMeasureUnit = "g" | "ml" | "unit" | "tsp" | "tbsp" | "cup" | "serving";
 
@@ -39,6 +41,7 @@ export type TacoFood = {
   carbs: number;
   fat: number;
   fiber: number;
+  aliases: string[];
   measures: FoodMeasure[];
 };
 
@@ -84,6 +87,51 @@ export type IdrProfile = {
   createdAt: string;
 };
 
+type ProfileRow = {
+  display_name: string | null;
+  created_at: string;
+  updated_at: string | null;
+  calorie_goal: number | null;
+  goal_sex: string | null;
+  goal_age: number | null;
+  goal_weight_kg: number | null;
+  goal_height_cm: number | null;
+  goal_activity_level: string | null;
+};
+
+type FoodMeasureRow = {
+  id?: number | string | null;
+  label?: string | null;
+  unit?: string | null;
+  grams?: number | string | null;
+  is_default?: boolean | null;
+};
+
+type FoodCatalogRow = {
+  id: number | string;
+  source: string;
+  source_id: string | null;
+  brand: string | null;
+  name: string;
+  category: string | null;
+  kcal: number | string | null;
+  protein_g: number | string | null;
+  carbs_g: number | string | null;
+  fat_g: number | string | null;
+  fiber_g: number | string | null;
+  aliases?: string[] | null;
+  food_measures?: FoodMeasureRow[] | null;
+};
+
+type OpenFoodFactsProduct = {
+  brands?: unknown;
+  categories?: unknown;
+  code?: unknown;
+  nutriments?: Record<string, unknown>;
+  product_name?: unknown;
+  serving_size?: unknown;
+};
+
 const CHANGE_EVENT = "lajes-fit-backend-change";
 
 export const ACTIVITY_FACTORS: Record<
@@ -118,6 +166,7 @@ async function getUserId() {
 
 function mapMeal(row: {
   id: string;
+  diet_meal_id: string | null;
   food_name: string;
   meal: string;
   grams: number;
@@ -126,10 +175,12 @@ function mapMeal(row: {
   carbs_g: number;
   fat_g: number;
   photo_url: string | null;
+  diet_meals?: { photo_url: string | null } | null;
   consumed_at: string;
 }): LocalMeal {
   return {
     id: row.id,
+    dietMealId: row.diet_meal_id,
     name: row.food_name,
     meal: row.meal as LocalMeal["meal"],
     grams: row.grams,
@@ -138,6 +189,7 @@ function mapMeal(row: {
     carbs: row.carbs_g,
     fat: row.fat_g,
     photoUrl: row.photo_url,
+    mealPhotoUrl: row.diet_meals?.photo_url ?? null,
     createdAt: row.consumed_at,
   };
 }
@@ -176,7 +228,7 @@ function mapWorkout(row: {
   };
 }
 
-function mapProfile(row: any): IdrProfile | null {
+function mapProfile(row: ProfileRow | null): IdrProfile | null {
   if (!row?.calorie_goal) return null;
 
   return {
@@ -195,7 +247,9 @@ export async function getMeals() {
   const userId = await getUserId();
   const { data, error } = await supabase
     .from("diet_entries")
-    .select("id, food_name, meal, grams, kcal, protein_g, carbs_g, fat_g, photo_url, consumed_at")
+    .select(
+      "id, diet_meal_id, food_name, meal, grams, kcal, protein_g, carbs_g, fat_g, photo_url, consumed_at, diet_meals(photo_url)",
+    )
     .eq("user_id", userId)
     .order("consumed_at", { ascending: false });
 
@@ -203,35 +257,67 @@ export async function getMeals() {
   return (data ?? []).map(mapMeal);
 }
 
-function normalizeText(value: string | null | undefined) {
+export function normalizeFoodSearch(value: string | null | undefined) {
   return (value ?? "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+const FOOD_SEARCH_STOP_WORDS = new Set([
+  "a",
+  "as",
+  "ao",
+  "aos",
+  "com",
+  "da",
+  "das",
+  "de",
+  "do",
+  "dos",
+  "e",
+  "o",
+  "os",
+]);
+
+function foodSearchTokens(value: string) {
+  return normalizeFoodSearch(value)
+    .split(" ")
+    .filter((token) => token && !FOOD_SEARCH_STOP_WORDS.has(token));
 }
 
 function isLiquidFood(food: Pick<TacoFood, "name" | "category">) {
-  const text = `${normalizeText(food.name)} ${normalizeText(food.category)}`;
+  const text = `${normalizeFoodSearch(food.name)} ${normalizeFoodSearch(food.category)}`;
   return /\b(bebida|suco|refresco|refrigerante|agua|cafe|cha|leite|iogurte|caldo|sopa|vitamina)\b/.test(
     text,
   );
 }
 
 function isFruitFood(food: Pick<TacoFood, "name" | "category">) {
-  const text = `${normalizeText(food.name)} ${normalizeText(food.category)}`;
-  return text.includes("frutas") || /\b(maca|banana|laranja|pera|mamao|manga|uva|abacate|abacaxi|acerola|morango|melancia|melao|kiwi)\b/.test(text);
+  const text = `${normalizeFoodSearch(food.name)} ${normalizeFoodSearch(food.category)}`;
+  return (
+    text.includes("frutas") ||
+    /\b(maca|banana|laranja|pera|mamao|manga|uva|abacate|abacaxi|acerola|morango|melancia|melao|kiwi)\b/.test(
+      text,
+    )
+  );
 }
 
 function isSpoonFriendlyFood(food: Pick<TacoFood, "name" | "category">) {
-  const text = `${normalizeText(food.name)} ${normalizeText(food.category)}`;
+  const text = `${normalizeFoodSearch(food.name)} ${normalizeFoodSearch(food.category)}`;
   return /\b(acucar|achocolatado|farinha|aveia|mel|manteiga|margarina|maionese|azeite|oleo|pasta|creme|requeijao|molho)\b/.test(
     text,
   );
 }
 
 function isCupFriendlyFood(food: Pick<TacoFood, "name" | "category">) {
-  const text = `${normalizeText(food.name)} ${normalizeText(food.category)}`;
-  return /\b(arroz|feijao|lentilha|grao|cereal|granola|aveia|leite|suco|bebida|iogurte)\b/.test(text);
+  const text = `${normalizeFoodSearch(food.name)} ${normalizeFoodSearch(food.category)}`;
+  return /\b(arroz|feijao|lentilha|grao|cereal|granola|aveia|leite|suco|bebida|iogurte)\b/.test(
+    text,
+  );
 }
 
 function uniqueMeasures(measures: FoodMeasure[]) {
@@ -258,12 +344,23 @@ function defaultMeasuresForFood(food: Pick<TacoFood, "name" | "category">) {
   if (isSpoonFriendlyFood(food)) {
     measures.push(
       { id: "tsp", label: "colher de cha", unit: "tsp", grams: 5 },
-      { id: "tbsp", label: "colher de sopa", unit: "tbsp", grams: 15, isDefault: !isLiquidFood(food) },
+      {
+        id: "tbsp",
+        label: "colher de sopa",
+        unit: "tbsp",
+        grams: 15,
+        isDefault: !isLiquidFood(food),
+      },
     );
   }
 
   if (isCupFriendlyFood(food)) {
-    measures.push({ id: "cup", label: "xicara", unit: "cup", grams: isLiquidFood(food) ? 240 : 160 });
+    measures.push({
+      id: "cup",
+      label: "xicara",
+      unit: "cup",
+      grams: isLiquidFood(food) ? 240 : 160,
+    });
   }
 
   if (!measures.some((measure) => measure.isDefault)) {
@@ -273,7 +370,7 @@ function defaultMeasuresForFood(food: Pick<TacoFood, "name" | "category">) {
   return uniqueMeasures(measures);
 }
 
-function mapFood(row: any): TacoFood {
+function mapFood(row: FoodCatalogRow): TacoFood {
   const food = {
     id: `${row.source}:${row.source_id ?? row.id}`,
     foodId: row.source === "taco" && row.source_id ? Number(row.source_id) : null,
@@ -287,9 +384,10 @@ function mapFood(row: any): TacoFood {
     carbs: Number(row.carbs_g) || 0,
     fat: Number(row.fat_g) || 0,
     fiber: Number(row.fiber_g) || 0,
+    aliases: Array.isArray(row.aliases) ? row.aliases.filter(Boolean).map(String) : [],
   };
   const importedMeasures = Array.isArray(row.food_measures)
-    ? row.food_measures.map((measure: any) => ({
+    ? row.food_measures.map((measure) => ({
         id: String(measure.id ?? `${measure.unit}:${measure.label}`),
         label: String(measure.label ?? measure.unit),
         unit: measure.unit as FoodMeasureUnit,
@@ -297,17 +395,16 @@ function mapFood(row: any): TacoFood {
         isDefault: Boolean(measure.is_default),
       }))
     : [];
-  const measures = uniqueMeasures([
-    ...importedMeasures,
-    ...defaultMeasuresForFood(food),
-  ]);
+  const measures = uniqueMeasures([...importedMeasures, ...defaultMeasuresForFood(food)]);
   return { ...food, measures };
 }
 
 export async function getFoodCatalog() {
-  const { data: foodsData, error: foodsError } = await (supabase as any)
+  const { data: foodsData, error: foodsError } = await supabase
     .from("foods")
-    .select("id, source, source_id, name, category, brand, kcal, protein_g, carbs_g, fat_g, fiber_g, food_measures(id, label, unit, grams, is_default)")
+    .select(
+      "id, source, source_id, name, category, brand, kcal, protein_g, carbs_g, fat_g, fiber_g, aliases, food_measures(id, label, unit, grams, is_default)",
+    )
     .order("source", { ascending: true })
     .order("name", { ascending: true })
     .limit(2500);
@@ -335,18 +432,51 @@ export async function getFoodCatalog() {
       carbs_g: food.carbs_g,
       fat_g: food.fat_g,
       fiber_g: food.fiber_g,
+      aliases: [],
     }),
   );
 }
 
 export const getTacoFoods = getFoodCatalog;
 
+export function foodMatchesQuery(food: TacoFood, rawQuery: string) {
+  const query = normalizeFoodSearch(rawQuery);
+  if (!query) return true;
+
+  const searchText = [food.name, food.category, food.brand, ...food.aliases]
+    .filter(Boolean)
+    .map((value) => normalizeFoodSearch(value))
+    .join(" ");
+  const tokens = foodSearchTokens(query);
+
+  return searchText.includes(query) || tokens.every((token) => searchText.includes(token));
+}
+
+export async function requestFoodSuggestion(query: string) {
+  const normalizedQuery = normalizeFoodSearch(query);
+  if (normalizedQuery.length < 2) {
+    throw new Error("Digite um nome de alimento para sugerir.");
+  }
+
+  const userId = await getUserId();
+  const { error } = await supabase.from("food_requests").insert({
+    user_id: userId,
+    query: query.trim(),
+    normalized_query: normalizedQuery,
+    status: "pending",
+  });
+
+  if (error?.code === "23505") return { alreadyExists: true };
+  if (error) throw new Error(error.message);
+  return { alreadyExists: false };
+}
+
 function numberFromOpenFoodFacts(value: unknown) {
   const numberValue = typeof value === "string" ? Number(value.replace(",", ".")) : Number(value);
   return Number.isFinite(numberValue) ? numberValue : 0;
 }
 
-function openFoodFactsCategory(product: any) {
+function openFoodFactsCategory(product: OpenFoodFactsProduct) {
   if (typeof product.categories === "string" && product.categories.trim()) {
     return product.categories.split(",")[0]?.trim() || "Produto industrializado";
   }
@@ -355,7 +485,10 @@ function openFoodFactsCategory(product: any) {
 
 function parseServingGrams(servingSize: unknown) {
   if (typeof servingSize !== "string") return null;
-  const match = servingSize.toLowerCase().replace(",", ".").match(/(\d+(?:\.\d+)?)\s*(g|ml)/);
+  const match = servingSize
+    .toLowerCase()
+    .replace(",", ".")
+    .match(/(\d+(?:\.\d+)?)\s*(g|ml)/);
   if (!match) return null;
   return Number(match[1]);
 }
@@ -380,7 +513,7 @@ export async function searchOpenFoodFactsFoods(query: string) {
   const products = Array.isArray(payload.products) ? payload.products : [];
 
   return products
-    .map<TacoFood | null>((product: any) => {
+    .map<TacoFood | null>((product: OpenFoodFactsProduct) => {
       const nutriments = product.nutriments ?? {};
       const calories =
         numberFromOpenFoodFacts(nutriments["energy-kcal_100g"]) ||
@@ -404,6 +537,7 @@ export async function searchOpenFoodFactsFoods(query: string) {
         carbs: numberFromOpenFoodFacts(nutriments.carbohydrates_100g),
         fat: numberFromOpenFoodFacts(nutriments.fat_100g),
         fiber: numberFromOpenFoodFacts(nutriments.fiber_100g),
+        aliases: [],
       };
       const measures = defaultMeasuresForFood(food);
       if (servingGrams) {
@@ -424,7 +558,7 @@ export async function searchOpenFoodFactsFoods(query: string) {
 export async function cacheFoodInCatalog(food: TacoFood) {
   if (!["open_food_facts", "manual"].includes(food.source)) return;
 
-  const { error } = await (supabase as any).rpc("upsert_catalog_food", {
+  const { error } = await supabase.rpc("upsert_catalog_food", {
     p_source: food.source,
     p_source_id: food.sourceId ?? food.id,
     p_name: food.name,
@@ -450,7 +584,7 @@ export async function cacheFoodInCatalog(food: TacoFood) {
 }
 
 export async function addMeal(
-  meal: Omit<LocalMeal, "id" | "createdAt" | "photoUrl"> & {
+  meal: Omit<LocalMeal, "id" | "dietMealId" | "createdAt" | "photoUrl" | "mealPhotoUrl"> & {
     foodId?: number | null;
     photoFile?: MealPhotoInput | null;
     consumedAt?: string;
@@ -458,10 +592,25 @@ export async function addMeal(
 ) {
   const userId = await getUserId();
   const photoUrl = meal.photoFile ? await uploadMealPhoto(userId, meal.photoFile) : null;
+  const consumedAt = meal.consumedAt ?? new Date().toISOString();
+  const { data: mealData, error: mealError } = await supabase
+    .from("diet_meals")
+    .insert({
+      user_id: userId,
+      meal: meal.meal,
+      photo_url: photoUrl,
+      consumed_at: consumedAt,
+    })
+    .select("id")
+    .single();
+
+  if (mealError) throw new Error(mealError.message);
+
   const { data, error } = await supabase
     .from("diet_entries")
     .insert({
       user_id: userId,
+      diet_meal_id: mealData.id,
       food_id: meal.foodId ?? null,
       food_name: meal.name,
       meal: meal.meal,
@@ -470,10 +619,12 @@ export async function addMeal(
       protein_g: meal.protein,
       carbs_g: meal.carbs,
       fat_g: meal.fat,
-      photo_url: photoUrl,
-      consumed_at: meal.consumedAt ?? new Date().toISOString(),
+      photo_url: null,
+      consumed_at: consumedAt,
     })
-    .select("id, food_name, meal, grams, kcal, protein_g, carbs_g, fat_g, photo_url, consumed_at")
+    .select(
+      "id, diet_meal_id, food_name, meal, grams, kcal, protein_g, carbs_g, fat_g, photo_url, consumed_at, diet_meals(photo_url)",
+    )
     .single();
 
   if (error) throw new Error(error.message);
@@ -526,12 +677,25 @@ export async function addMealWithItems({
   const userId = await getUserId();
   const photoUrl = photoFile ? await uploadMealPhoto(userId, photoFile) : null;
   const consumedAt = inputConsumedAt ?? new Date().toISOString();
+  const { data: mealData, error: mealError } = await supabase
+    .from("diet_meals")
+    .insert({
+      user_id: userId,
+      meal,
+      photo_url: photoUrl,
+      consumed_at: consumedAt,
+    })
+    .select("id")
+    .single();
+
+  if (mealError) throw new Error(mealError.message);
 
   const { data, error } = await supabase
     .from("diet_entries")
     .insert(
       items.map((item) => ({
         user_id: userId,
+        diet_meal_id: mealData.id,
         food_id: item.foodId ?? null,
         food_name: item.name,
         meal,
@@ -540,11 +704,13 @@ export async function addMealWithItems({
         protein_g: item.protein,
         carbs_g: item.carbs,
         fat_g: item.fat,
-        photo_url: photoUrl,
+        photo_url: null,
         consumed_at: consumedAt,
       })),
     )
-    .select("id, food_name, meal, grams, kcal, protein_g, carbs_g, fat_g, photo_url, consumed_at");
+    .select(
+      "id, diet_meal_id, food_name, meal, grams, kcal, protein_g, carbs_g, fat_g, photo_url, consumed_at, diet_meals(photo_url)",
+    );
 
   if (error) throw new Error(error.message);
 
@@ -557,6 +723,20 @@ export async function addMealWithItems({
 
   notifyChange();
   return (data ?? []).map(mapMeal);
+}
+
+export async function updateDietMealPhoto(dietMealId: string, photoFile: MealPhotoInput | null) {
+  const userId = await getUserId();
+  const photoUrl = photoFile ? await uploadMealPhoto(userId, photoFile) : null;
+  const { error } = await supabase
+    .from("diet_meals")
+    .update({ photo_url: photoUrl })
+    .eq("id", dietMealId)
+    .eq("user_id", userId);
+
+  if (error) throw new Error(error.message);
+  notifyChange();
+  return photoUrl;
 }
 
 export async function removeMeal(id: string) {
@@ -664,7 +844,7 @@ export async function saveIdrProfile(profile: Omit<IdrProfile, "idrCalories" | "
       goal_weight_kg: profile.weightKg,
       goal_height_cm: profile.heightCm,
       goal_activity_level: profile.activityLevel,
-    } as any)
+    })
     .eq("id", userId)
     .select(
       "display_name, created_at, updated_at, calorie_goal, goal_sex, goal_age, goal_weight_kg, goal_height_cm, goal_activity_level",

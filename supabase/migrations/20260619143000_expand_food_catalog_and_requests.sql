@@ -66,12 +66,12 @@ VALUES
   ('estimated', 'lajesfit:macarrao-alho-e-oleo', 'Macarrao ao alho e oleo', 'Preparacoes simples', 210, 5.2, 31.0, 7.2, 1.5, ARRAY['macarrao alho oleo']),
   ('estimated', 'lajesfit:frango-com-arroz', 'Frango com arroz', 'Preparacoes simples', 155, 13.0, 18.0, 3.2, 1.0, ARRAY['arroz com frango']),
   ('estimated', 'lajesfit:carne-moida-com-arroz', 'Carne moida com arroz', 'Preparacoes simples', 178, 12.0, 18.0, 6.0, 1.2, ARRAY['arroz com carne moida']),
-  ('estimated', 'lajesfit:salada-simples', 'Saladas', 35, 1.2, 6.0, 0.8, 2.2, ARRAY['salada verde', 'salada de alface e tomate']),
-  ('estimated', 'lajesfit:omelete-simples', 'Preparacoes simples', 180, 12.0, 1.5, 13.0, 0, ARRAY['omelete', 'omeleta']),
-  ('estimated', 'lajesfit:sopa-de-legumes', 'Sopas e caldos', 55, 2.0, 9.5, 1.2, 2.0, ARRAY['sopa legumes']),
-  ('estimated', 'lajesfit:pure-de-batata', 'Preparacoes simples', 105, 1.8, 16.5, 3.8, 1.2, ARRAY['pure batata']),
-  ('estimated', 'lajesfit:vitamina-de-banana', 'Bebidas', 95, 3.0, 18.0, 1.7, 1.2, ARRAY['vitamina banana', 'banana com leite']),
-  ('estimated', 'lajesfit:mingau-de-aveia', 'Preparacoes simples', 110, 4.0, 18.0, 2.8, 2.0, ARRAY['mingau aveia']),
+  ('estimated', 'lajesfit:salada-simples', 'Salada simples', 'Saladas', 35, 1.2, 6.0, 0.8, 2.2, ARRAY['salada verde', 'salada de alface e tomate']),
+  ('estimated', 'lajesfit:omelete-simples', 'Omelete simples', 'Preparacoes simples', 180, 12.0, 1.5, 13.0, 0, ARRAY['omelete', 'omeleta']),
+  ('estimated', 'lajesfit:sopa-de-legumes', 'Sopa de legumes', 'Sopas e caldos', 55, 2.0, 9.5, 1.2, 2.0, ARRAY['sopa legumes']),
+  ('estimated', 'lajesfit:pure-de-batata', 'Pure de batata', 'Preparacoes simples', 105, 1.8, 16.5, 3.8, 1.2, ARRAY['pure batata']),
+  ('estimated', 'lajesfit:vitamina-de-banana', 'Vitamina de banana', 'Bebidas', 95, 3.0, 18.0, 1.7, 1.2, ARRAY['vitamina banana', 'banana com leite']),
+  ('estimated', 'lajesfit:mingau-de-aveia', 'Mingau de aveia', 'Preparacoes simples', 110, 4.0, 18.0, 2.8, 2.0, ARRAY['mingau aveia']),
   ('estimated', 'lajesfit:lentilha-cozida', 'Lentilha cozida', 'Leguminosas e derivados', 93, 6.3, 16.3, 0.5, 7.9, ARRAY['lentilha'])
 ON CONFLICT (source, source_id) DO UPDATE SET
   name = EXCLUDED.name,

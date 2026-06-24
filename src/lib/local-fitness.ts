@@ -247,31 +247,19 @@ function mapProfile(row: ProfileRow | null): IdrProfile | null {
 
 export async function getMeals() {
   const userId = await getUserId();
-  const selectWithMealPhoto =
-    "id, diet_meal_id, food_name, meal, grams, kcal, protein_g, carbs_g, fat_g, photo_url, consumed_at, diet_meals(photo_url)";
-  const selectWithoutMealPhoto =
-    "id, diet_meal_id, food_name, meal, grams, kcal, protein_g, carbs_g, fat_g, photo_url, consumed_at";
-
   const { data, error } = await supabase
     .from("diet_entries")
-    .select(selectWithMealPhoto)
+    .select(
+      "id, diet_meal_id, food_name, meal, grams, kcal, protein_g, carbs_g, fat_g, photo_url, consumed_at, diet_meals(photo_url)",
+    )
     .eq("user_id", userId)
     .order("consumed_at", { ascending: false });
 
-  if (!error) return (data ?? []).map(mapMeal);
-
-  const { data: fallbackData, error: fallbackError } = await supabase
-    .from("diet_entries")
-    .select(selectWithoutMealPhoto)
-    .eq("user_id", userId)
-    .order("consumed_at", { ascending: false });
-
-  if (fallbackError) {
+  if (error) {
     console.error("Erro ao buscar registros de calorias:", error);
-    throw new Error(fallbackError.message);
+    throw new Error(error.message);
   }
-  console.warn("Busca de refeicoes sem diet_meals(photo_url):", error.message);
-  return (fallbackData ?? []).map(mapMeal);
+  return (data ?? []).map(mapMeal);
 }
 
 export function normalizeFoodSearch(value: string | null | undefined) {
@@ -946,21 +934,16 @@ export function useLocalFitness() {
           return;
         }
 
-        const [mealsResult, workoutsResult, profileResult] = await Promise.allSettled([
+        const [nextMeals, nextWorkouts, nextProfile] = await Promise.all([
           getMeals(),
           getWorkouts(),
           getIdrProfile(),
         ]);
-        if (profileResult.status === "rejected") throw profileResult.reason;
         if (!mounted) return;
-        setMeals(mealsResult.status === "fulfilled" ? mealsResult.value : []);
-        setWorkouts(workoutsResult.status === "fulfilled" ? workoutsResult.value : []);
-        setIdrProfile(profileResult.value);
-        setError(
-          mealsResult.status === "rejected" || workoutsResult.status === "rejected"
-            ? "Alguns dados de dieta ou treino nao foram carregados agora."
-            : null,
-        );
+        setMeals(nextMeals);
+        setWorkouts(nextWorkouts);
+        setIdrProfile(nextProfile);
+        setError(null);
       } catch (syncError) {
         console.error("Erro ao sincronizar dados de fitness:", syncError);
         if (!mounted) return;

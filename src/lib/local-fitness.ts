@@ -198,7 +198,9 @@ async function uploadMealPhoto(userId: string, file: MealPhotoInput) {
   const sourceName = file instanceof File ? file.name : "meal-photo.jpg";
   const safeName = sourceName.replace(/[^a-zA-Z0-9._-]/g, "_");
   const path = `${userId}/meals/${Date.now()}-${safeName}`;
-  const { error: uploadError } = await supabase.storage.from("media").upload(path, file);
+  const { error: uploadError } = await supabase.storage.from("media").upload(path, file, {
+    contentType: file.type || "image/jpeg",
+  });
   if (uploadError) throw uploadError;
 
   const { data, error } = await supabase.storage
@@ -746,7 +748,12 @@ export async function addMealWithItems({
   }
 
   notifyChange();
-  return (data ?? []).map(mapMeal);
+  return (data ?? []).map((row) =>
+    mapMeal({
+      ...row,
+      diet_meals: row.diet_meals ?? { photo_url: photoUrl },
+    }),
+  );
 }
 
 export async function updateDietMealPhoto(dietMealId: string, photoFile: MealPhotoInput | null) {

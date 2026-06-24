@@ -5,7 +5,12 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { loginWithPassword, signUpWithPassword, useLocalAuth } from "@/lib/local-auth";
+import {
+  loginWithGoogle,
+  loginWithPassword,
+  signUpWithPassword,
+  useLocalAuth,
+} from "@/lib/local-auth";
 import { getIdrProfile, useLocalFitness } from "@/lib/local-fitness";
 import logo from "@/assets/logo.png";
 
@@ -22,6 +27,7 @@ function AuthPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [googleSubmitting, setGoogleSubmitting] = useState(false);
 
   useEffect(() => {
     if (!session || authLoading || fitnessLoading) return;
@@ -48,6 +54,16 @@ function AuthPage() {
       toast.error(error instanceof Error ? error.message : "Nao foi possivel entrar");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleGoogleLogin() {
+    setGoogleSubmitting(true);
+    try {
+      await loginWithGoogle();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel entrar com Google");
+      setGoogleSubmitting(false);
     }
   }
 
@@ -83,6 +99,26 @@ function AuthPage() {
           >
             Cadastro
           </button>
+        </div>
+
+        <div className="mb-5 space-y-4">
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={handleGoogleLogin}
+            disabled={googleSubmitting || submitting}
+          >
+            <span className="grid size-5 place-items-center rounded-full border bg-background text-xs font-semibold text-foreground">
+              G
+            </span>
+            {googleSubmitting ? "Abrindo Google..." : "Continuar com Google"}
+          </Button>
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-xs text-muted-foreground">ou</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
         </div>
 
         <form onSubmit={submit} className="space-y-4">

@@ -88,34 +88,42 @@ function AppShell() {
 
   return (
     <div className="min-h-screen bg-muted/40">
-      <header className="sticky top-0 z-30 border-b bg-background/85 backdrop-blur">
-        <div className="container mx-auto flex min-h-20 items-center justify-between px-4 py-2">
-          <div className="flex flex-col items-start gap-1">
+      <header className="sticky top-0 z-30 border-b bg-background/90 backdrop-blur">
+        <div className="container mx-auto grid min-h-16 grid-cols-[auto_1fr_auto] items-center gap-3 px-4 py-2">
+          <div className="flex min-w-0 items-center">
             <Link to="/feed" className="flex items-center gap-2">
               <img src={logo} alt="Lajes Fit" className="h-9 w-9 rounded-lg object-cover" />
               <span className="font-display text-2xl hidden sm:block">LAJES FIT</span>
             </Link>
           </div>
 
-          <nav className="hidden md:flex items-center gap-1">
-            {navItems.map((item) => {
-              const active = location.pathname.startsWith(item.to);
-              return (
-                <Button key={item.to} asChild variant={active ? "secondary" : "ghost"} size="sm">
-                  <Link to={item.to}>
-                    <item.icon className="size-4 mr-2" />
-                    {item.label}
-                  </Link>
-                </Button>
-              );
-            })}
+          <nav className="hidden justify-center md:flex">
+            <div className="flex items-center gap-1 rounded-full border bg-muted/40 p-1">
+              {navItems.map((item) => {
+                const active = location.pathname.startsWith(item.to);
+                return (
+                  <Button
+                    key={item.to}
+                    asChild
+                    variant={active ? "secondary" : "ghost"}
+                    size="sm"
+                    className="rounded-full"
+                  >
+                    <Link to={item.to}>
+                      <item.icon className="size-4 mr-2" />
+                      {item.label}
+                    </Link>
+                  </Button>
+                );
+              })}
+            </div>
           </nav>
 
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center justify-end gap-2 sm:gap-3">
             <div className="hidden md:block">
               <NewActionMenu />
             </div>
-            <div className="fixed left-1/2 top-0 z-40 min-w-[178px] -translate-x-1/2 rounded-b-lg rounded-t-none bg-gradient-hero px-4 py-3 text-center text-primary-foreground shadow-glow sm:min-w-[230px] sm:px-5 md:static md:z-auto md:min-w-[210px] md:translate-x-0 md:rounded-lg md:px-4 md:py-2 md:shadow-card lg:min-w-[230px]">
+            <div className="fixed left-1/2 top-0 z-40 min-w-[178px] -translate-x-1/2 rounded-b-lg rounded-t-none bg-gradient-hero px-4 py-3 text-center text-primary-foreground shadow-glow sm:min-w-[230px] sm:px-5 md:static md:z-auto md:min-w-[190px] md:translate-x-0 md:rounded-lg md:px-4 md:py-2 md:shadow-card lg:min-w-[220px]">
               <Popover>
                 <PopoverTrigger asChild>
                   <button
@@ -160,6 +168,29 @@ function AppShell() {
                 <span className="text-xs font-sans text-primary-foreground/75">kcal</span>
               </p>
             </div>
+            {user && (
+              <Button
+                asChild
+                variant={location.pathname.startsWith("/profile") ? "secondary" : "ghost"}
+                size="sm"
+                className="hidden rounded-full pl-2 pr-3 md:inline-flex"
+              >
+                <Link
+                  to="/profile/$username"
+                  params={{ username: profile?.username ?? user.user_metadata?.username ?? "user" }}
+                >
+                  <Avatar className="mr-2 size-7 border border-primary/30">
+                    <AvatarImage src={profile?.avatar_url ?? undefined} />
+                    <AvatarFallback className="bg-gradient-primary text-[11px] font-semibold text-primary-foreground">
+                      {(profile?.display_name ?? user.user_metadata?.username ?? "U")
+                        .slice(0, 1)
+                        .toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  Perfil
+                </Link>
+              </Button>
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" aria-label="Abrir menu">

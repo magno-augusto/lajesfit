@@ -60,6 +60,22 @@ export async function loginWithPassword(username: string, password: string) {
   return data;
 }
 
+export async function loginWithGoogle() {
+  if (typeof window === "undefined") {
+    throw new Error("Login com Google indisponivel neste ambiente");
+  }
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${window.location.origin}/auth`,
+    },
+  });
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
 export async function logout() {
   await supabase.auth.signOut();
 }

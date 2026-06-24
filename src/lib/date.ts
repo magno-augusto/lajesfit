@@ -23,12 +23,19 @@ export function isSameLocalDay(date: Date, day: Date) {
   );
 }
 
+function formatShortDate(date: Date) {
+  return date.toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+  });
+}
+
 export function formatSelectedDate(date: Date) {
   const today = startOfLocalDay(new Date());
   const yesterday = addDays(today, -1);
 
-  if (isSameLocalDay(date, today)) return "Hoje";
-  if (isSameLocalDay(date, yesterday)) return "Ontem";
+  if (isSameLocalDay(date, today)) return `Hoje, ${formatShortDate(date)}`;
+  if (isSameLocalDay(date, yesterday)) return `Ontem, ${formatShortDate(date)}`;
 
   return date.toLocaleDateString("pt-BR", {
     weekday: "short",

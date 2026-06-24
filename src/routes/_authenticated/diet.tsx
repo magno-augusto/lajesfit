@@ -77,11 +77,6 @@ type MealDraft = {
   photoDataUrl: string | null;
 };
 
-type PreparedMealPhoto = {
-  blob: Blob;
-  dataUrl: string;
-};
-
 function scale(value: number, grams: number) {
   return (value * grams) / 100;
 }
@@ -237,7 +232,7 @@ function loadImage(src: string) {
   });
 }
 
-async function prepareMealPhoto(dataUrl: string): Promise<PreparedMealPhoto> {
+async function compressImageDataUrl(dataUrl: string) {
   const image = await loadImage(dataUrl);
   const maxSize = 1400;
   const ratio = Math.min(1, maxSize / Math.max(image.width, image.height));
@@ -245,21 +240,13 @@ async function prepareMealPhoto(dataUrl: string): Promise<PreparedMealPhoto> {
   canvas.width = Math.max(1, Math.round(image.width * ratio));
   canvas.height = Math.max(1, Math.round(image.height * ratio));
   const context = canvas.getContext("2d");
-  if (!context) {
-    const blob = await dataUrlToBlob(dataUrl);
-    return { blob, dataUrl };
-  }
+  if (!context) return dataUrl;
 
   context.drawImage(image, 0, 0, canvas.width, canvas.height);
   const blob = await new Promise<Blob | null>((resolve) =>
     canvas.toBlob(resolve, "image/jpeg", 0.82),
   );
-  if (!blob) {
-    const fallbackBlob = await dataUrlToBlob(dataUrl);
-    return { blob: fallbackBlob, dataUrl };
-  }
-
-  return { blob, dataUrl: await blobToDataUrl(blob) };
+  return blob ? blobToDataUrl(blob) : dataUrl;
 }
 
 function isOlderAndroidBrowser() {
@@ -652,7 +639,6 @@ function AddFoodDialog({
   const [measureId, setMeasureId] = useState("g");
   const [mealItems, setMealItems] = useState<MealFoodInput[]>([]);
   const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
-  const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
   const [pickingPhoto, setPickingPhoto] = useState(false);
   const [photoLoading, setPhotoLoading] = useState(false);
   const [preferGallery, setPreferGallery] = useState(false);
@@ -689,12 +675,7 @@ function AddFoodDialog({
       if (typeof draft.measureId === "string") setMeasureId(draft.measureId);
       if (typeof draft.foodQuery === "string") setFoodQuery(draft.foodQuery);
       if (Array.isArray(draft.mealItems)) setMealItems(draft.mealItems);
-      if (typeof draft.photoDataUrl === "string") {
-        setPhotoDataUrl(draft.photoDataUrl);
-        void dataUrlToBlob(draft.photoDataUrl)
-          .then(setPhotoBlob)
-          .catch(() => setPhotoBlob(null));
-      }
+      if (typeof draft.photoDataUrl === "string") setPhotoDataUrl(draft.photoDataUrl);
       if ((draft.mealItems?.length ?? 0) > 0 || draft.photoDataUrl) {
         protectDraftRef.current = true;
         setOpen(true);
@@ -859,12 +840,11 @@ function AddFoodDialog({
 
     setSaving(true);
     try {
-      const preparedPhotoBlob =
-        photoBlob ?? (photoDataUrl ? await dataUrlToBlob(photoDataUrl) : null);
+      const photoBlob = photoDataUrl ? await dataUrlToBlob(photoDataUrl) : null;
       await addMealWithItems({
         meal,
         items: mealItems,
-        photoFile: preparedPhotoBlob,
+        photoFile: photoBlob,
         consumedAt: buildConsumedAtForSelectedDay(selectedDate),
       });
       toast.success("Refeicao adicionada");
@@ -949,10 +929,9 @@ function AddFoodDialog({
     setPhotoLoading(true);
     try {
       const rawDataUrl = await readFileAsDataUrl(file);
-      const preparedPhoto = await prepareMealPhoto(rawDataUrl);
+      const dataUrl = await compressImageDataUrl(rawDataUrl);
       setOpen(true);
-      setPhotoBlob(preparedPhoto.blob);
-      setPhotoDataUrl(preparedPhoto.dataUrl);
+      setPhotoDataUrl(dataUrl);
       toast.success("Foto adicionada a refeicao");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Nao foi possivel carregar a foto");
@@ -965,7 +944,6 @@ function AddFoodDialog({
   function clearPhoto() {
     setPickingPhoto(false);
     setPhotoLoading(false);
-    setPhotoBlob(null);
     setPhotoDataUrl(null);
   }
 

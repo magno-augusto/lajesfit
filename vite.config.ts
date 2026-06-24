@@ -9,10 +9,6 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 export default defineConfig({
   vite: {
     base: process.env.GITHUB_PAGES ? "/lajesfit/" : "/",
-    build: {
-      target: ["chrome64", "safari13"],
-      cssTarget: ["chrome64", "safari13"],
-    },
   },
   nitro: {
     preset: "vercel",

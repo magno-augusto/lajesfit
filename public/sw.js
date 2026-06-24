@@ -1,4 +1,4 @@
-const CACHE_NAME = "lajesfit-pwa-v4";
+const CACHE_NAME = "lajesfit-pwa-v3";
 const PRECACHE_URLS = [
   "/manifest.webmanifest",
   "/offline.html",
@@ -8,17 +8,7 @@ const PRECACHE_URLS = [
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) =>
-      Promise.all(
-        PRECACHE_URLS.map((url) =>
-          cache.add(url).catch((error) => {
-            console.warn("Nao foi possivel armazenar em cache", url, error);
-          }),
-        ),
-      ),
-    ),
-  );
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS)));
   self.skipWaiting();
 });
 

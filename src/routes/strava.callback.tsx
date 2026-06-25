@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { exchangeStravaCode } from "@/lib/api/strava.functions";
+import { exchangeStravaCode } from "@/features/workouts/strava-api";
 
 export const Route = createFileRoute("/strava/callback")({
   component: StravaCallbackPage,

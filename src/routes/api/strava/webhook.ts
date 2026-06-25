@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { importStravaActivityForAthlete } from "@/lib/strava.server";
+import { importStravaActivityForAthlete } from "@/features/workouts/strava.server";
 
 type StravaWebhookEvent = {
   aspect_type?: string;

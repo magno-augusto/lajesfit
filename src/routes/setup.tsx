@@ -1,8 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { IdrSetup } from "@/components/idr-setup";
-import { useLocalAuth } from "@/lib/local-auth";
-import { useLocalFitness } from "@/lib/local-fitness";
+import { IdrSetup } from "@/features/goals/IdrSetup";
+import { useLocalAuth } from "@/features/auth/auth";
+import { useFitness } from "@/features/fitness/useFitness";
 
 export const Route = createFileRoute("/setup")({
   head: () => ({ meta: [{ title: "Objetivo calorico - Lajes Fit" }] }),
@@ -12,7 +12,7 @@ export const Route = createFileRoute("/setup")({
 function SetupPage() {
   const navigate = useNavigate();
   const { session, loading: authLoading } = useLocalAuth();
-  const { idrProfile, loading: fitnessLoading, error } = useLocalFitness();
+  const { idrProfile, loading: fitnessLoading, error } = useFitness();
 
   useEffect(() => {
     if (authLoading || fitnessLoading) return;

@@ -12,8 +12,8 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { InstallAppButton } from "@/components/install-app-button";
 import { NewActionMenu } from "@/components/new-action-menu";
-import { logout, useLocalAuth } from "@/lib/local-auth";
-import { useLocalFitness } from "@/lib/local-fitness";
+import { logout, useLocalAuth } from "@/features/auth/auth";
+import { useFitness } from "@/features/fitness/useFitness";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/logo.png";
 
@@ -26,7 +26,7 @@ function AppShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, session, loading: authLoading } = useLocalAuth();
-  const { idrProfile, summary, loading: fitnessLoading } = useLocalFitness();
+  const { idrProfile, summary, loading: fitnessLoading } = useFitness();
   const [profile, setProfile] = useState<{
     username: string;
     display_name: string;

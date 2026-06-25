@@ -4,7 +4,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
-import { type FeedPost, formatDistance, formatDuration, timeAgo } from "@/lib/feed";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -22,6 +21,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { type FeedPost } from "./feed-api";
+import { formatDistance, formatDuration, timeAgo } from "./format";
 
 export function PostCard({
   post,

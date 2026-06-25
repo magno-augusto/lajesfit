@@ -18,7 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { type LocalWorkout } from "@/lib/local-fitness";
+import { parseOptionalNumber } from "@/lib/validation";
+import { type LocalWorkout } from "./workouts-api";
 
 const ACTIVITIES = ["Corrida", "Caminhada", "Ciclismo", "Musculacao", "Trilha", "Natacao", "Outro"];
 
@@ -28,30 +29,6 @@ function formatDateTimeLocal(value?: string) {
   if (Number.isNaN(date.getTime())) return "";
   const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
   return offsetDate.toISOString().slice(0, 16);
-}
-
-function parseOptionalNumber(
-  value: string,
-  label: string,
-  options: { min?: number; max?: number } = {},
-) {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-
-  const parsed = Number(trimmed.replace(",", "."));
-  if (!Number.isFinite(parsed)) {
-    throw new Error(`${label} precisa ser um numero valido`);
-  }
-
-  if (options.min !== undefined && parsed < options.min) {
-    throw new Error(`${label} precisa ser maior ou igual a ${options.min}`);
-  }
-
-  if (options.max !== undefined && parsed > options.max) {
-    throw new Error(`${label} precisa ser no maximo ${options.max}`);
-  }
-
-  return parsed;
 }
 
 export function ManualWorkoutDialog({

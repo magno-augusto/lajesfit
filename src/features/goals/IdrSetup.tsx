@@ -12,12 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  ACTIVITY_FACTORS,
-  calculateIdr,
-  saveIdrProfile,
-  type IdrProfile,
-} from "@/lib/local-fitness";
+import { ACTIVITY_FACTORS, calculateIdr, saveIdrProfile, type IdrProfile } from "./goals-api";
 import logo from "@/assets/logo.png";
 
 type SetupState = Omit<IdrProfile, "idrCalories" | "createdAt">;

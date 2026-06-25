@@ -7,7 +7,7 @@ import {
   getStravaConfig,
   getValidStravaAccessToken,
   upsertStravaActivities,
-} from "@/lib/strava.server";
+} from "@/features/workouts/strava.server";
 
 const STRAVA_AUTHORIZE_URL = "https://www.strava.com/oauth/authorize";
 

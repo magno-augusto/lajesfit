@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { useLocalAuth } from "@/lib/local-auth";
-import { useLocalFitness } from "@/lib/local-fitness";
+import { useLocalAuth } from "@/features/auth/auth";
+import { useFitness } from "@/features/fitness/useFitness";
 
 export const Route = createFileRoute("/")({
   head: () => ({ meta: [{ title: "Lajes Fit" }] }),
@@ -11,7 +11,7 @@ export const Route = createFileRoute("/")({
 function HomeGate() {
   const navigate = useNavigate();
   const { session, loading: authLoading } = useLocalAuth();
-  const { idrProfile, loading: fitnessLoading } = useLocalFitness();
+  const { idrProfile, loading: fitnessLoading } = useFitness();
 
   useEffect(() => {
     if (authLoading || fitnessLoading) return;

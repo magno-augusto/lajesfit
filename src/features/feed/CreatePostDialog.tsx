@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { ImageIcon, Plus, Video, X } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,6 +10,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { getVideoDuration } from "@/lib/validation";
+import { createPost, uploadPostMedia } from "./posts-api";
 
 export function CreatePostDialog({
   userId,
@@ -42,19 +43,6 @@ export function CreatePostDialog({
     setFile(null);
     if (preview) URL.revokeObjectURL(preview);
     setPreview(null);
-  }
-
-  function getVideoDuration(url: string) {
-    return new Promise<number>((resolve, reject) => {
-      const video = document.createElement("video");
-      video.preload = "metadata";
-      video.onloadedmetadata = () => {
-        URL.revokeObjectURL(video.src);
-        resolve(video.duration);
-      };
-      video.onerror = () => reject(new Error("Nao foi possivel ler o video"));
-      video.src = url;
-    });
   }
 
   async function pickFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -91,21 +79,8 @@ export function CreatePostDialog({
 
     setLoading(true);
     try {
-      let media_url: string | null = null;
-      if (file) {
-        const path = `${userId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-        const { error: upErr } = await supabase.storage.from("media").upload(path, file);
-        if (upErr) throw upErr;
-        const { data: signed } = await supabase.storage
-          .from("media")
-          .createSignedUrl(path, 60 * 60 * 24 * 365 * 5);
-        media_url = signed?.signedUrl ?? null;
-      }
-
-      const { error } = await supabase
-        .from("posts")
-        .insert({ user_id: userId, content: text, media_url });
-      if (error) throw error;
+      const mediaUrl = file ? await uploadPostMedia(userId, file) : null;
+      await createPost({ userId, content: text, mediaUrl });
 
       toast.success("Post publicado");
       setContent("");

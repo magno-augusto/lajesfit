@@ -31,6 +31,7 @@ function AppShell() {
     username: string;
     display_name: string;
     avatar_url: string | null;
+    is_admin: boolean;
   } | null>(null);
 
   useEffect(() => {
@@ -56,7 +57,7 @@ function AppShell() {
     let mounted = true;
     supabase
       .from("profiles")
-      .select("username, display_name, avatar_url")
+      .select("username, display_name, avatar_url, is_admin")
       .eq("id", user.id)
       .maybeSingle()
       .then(({ data }) => {

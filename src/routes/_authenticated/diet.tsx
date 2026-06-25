@@ -949,21 +949,6 @@ function AddFoodDialog({
 
   return (
     <>
-      <input
-        ref={galleryInputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={pickPhoto}
-      />
-      <input
-        ref={cameraInputRef}
-        type="file"
-        accept="image/*"
-        capture={preferGallery ? undefined : "environment"}
-        className="hidden"
-        onChange={pickPhoto}
-      />
       <Dialog open={open} onOpenChange={handleOpenChange}>
         {showTrigger && (
           <DialogTrigger asChild>
@@ -978,6 +963,21 @@ function AddFoodDialog({
             if (hasDraft || protectDraftRef.current) event.preventDefault();
           }}
         >
+          <input
+            ref={galleryInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={pickPhoto}
+          />
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture={preferGallery ? undefined : "environment"}
+            className="hidden"
+            onChange={pickPhoto}
+          />
           <DialogHeader>
             <DialogTitle>Adicionar refeicao</DialogTitle>
           </DialogHeader>
@@ -1208,8 +1208,8 @@ function AddFoodDialog({
                 </div>
               )}
               {photoDataUrl ? (
-                <div className="relative overflow-hidden rounded-lg border">
-                  <img src={photoDataUrl} alt="" className="h-48 w-full object-cover" />
+                <div className="relative flex h-32 items-center justify-center overflow-hidden rounded-lg border border-dashed bg-muted/40 text-muted-foreground">
+                  <img src={photoDataUrl} alt="" className="h-full w-full object-cover" />
                   <Button
                     type="button"
                     size="icon"

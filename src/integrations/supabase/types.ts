@@ -438,6 +438,7 @@ export type Database = {
           goal_sex: string | null;
           goal_weight_kg: number | null;
           id: string;
+          is_admin: boolean;
           is_private: boolean;
           updated_at: string;
           username: string;
@@ -454,6 +455,7 @@ export type Database = {
           goal_sex?: string | null;
           goal_weight_kg?: number | null;
           id: string;
+          is_admin?: boolean;
           is_private?: boolean;
           updated_at?: string;
           username: string;
@@ -470,6 +472,7 @@ export type Database = {
           goal_sex?: string | null;
           goal_weight_kg?: number | null;
           id?: string;
+          is_admin?: boolean;
           is_private?: boolean;
           updated_at?: string;
           username?: string;

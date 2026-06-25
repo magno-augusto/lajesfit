@@ -143,14 +143,14 @@ export function PostCard({
                 key={i}
                 src={url}
                 controls
-                className="w-full max-h-[520px] object-cover bg-black"
+                className="aspect-square w-full bg-black object-cover"
               />
             ) : (
               <img
                 key={i}
                 src={url}
                 alt=""
-                className="w-full max-h-[520px] object-cover"
+                className="aspect-square w-full object-cover"
                 loading="lazy"
               />
             );

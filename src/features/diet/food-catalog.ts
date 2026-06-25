@@ -102,16 +102,6 @@ function isLiquidFood(food: Pick<TacoFood, "name" | "category">) {
   );
 }
 
-function isFruitFood(food: Pick<TacoFood, "name" | "category">) {
-  const text = `${normalizeFoodSearch(food.name)} ${normalizeFoodSearch(food.category)}`;
-  return (
-    text.includes("frutas") ||
-    /\b(maca|banana|laranja|pera|mamao|manga|uva|abacate|abacaxi|acerola|morango|melancia|melao|kiwi)\b/.test(
-      text,
-    )
-  );
-}
-
 function isSpoonFriendlyFood(food: Pick<TacoFood, "name" | "category">) {
   const text = `${normalizeFoodSearch(food.name)} ${normalizeFoodSearch(food.category)}`;
   return /\b(acucar|achocolatado|farinha|aveia|mel|manteiga|margarina|maionese|azeite|oleo|pasta|creme|requeijao|molho)\b/.test(
@@ -141,10 +131,6 @@ function defaultMeasuresForFood(food: Pick<TacoFood, "name" | "category">) {
 
   if (isLiquidFood(food)) {
     measures.push({ id: "ml", label: "ml", unit: "ml", grams: 1, isDefault: true });
-  }
-
-  if (isFruitFood(food)) {
-    measures.push({ id: "unit", label: "unidade", unit: "unit", grams: 130, isDefault: true });
   }
 
   if (isSpoonFriendlyFood(food)) {

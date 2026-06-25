@@ -5,16 +5,25 @@ export type ProfileSettings = {
   display_name: string;
   bio: string | null;
   avatar_url: string | null;
+  recovery_email: string | null;
 };
 
 export async function getProfileSettings(userId: string): Promise<ProfileSettings | null> {
   const { data, error } = await supabase
     .from("profiles")
-    .select("username, display_name, bio, avatar_url")
+    .select("username, display_name, bio, avatar_url, recovery_email")
     .eq("id", userId)
     .maybeSingle();
   if (error) throw error;
   return data ?? null;
+}
+
+export async function updateRecoveryEmail(userId: string, recoveryEmail: string | null) {
+  const { error } = await supabase
+    .from("profiles")
+    .update({ recovery_email: recoveryEmail })
+    .eq("id", userId);
+  if (error) throw error;
 }
 
 export async function updateProfileSettings(

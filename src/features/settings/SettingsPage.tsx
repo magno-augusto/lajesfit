@@ -7,9 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
+import { changePassword, useLocalAuth } from "@/features/auth/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { useLocalAuth } from "@/features/auth/auth";
-import { getProfileSettings, updateProfileSettings, uploadAvatar } from "./settings-api";
+import {
+  getProfileSettings,
+  updateProfileSettings,
+  updateRecoveryEmail,
+  uploadAvatar,
+} from "./settings-api";
 
 export function SettingsPage() {
   const { user } = useLocalAuth();
@@ -21,6 +26,13 @@ export function SettingsPage() {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
 
+  const [recoveryEmail, setRecoveryEmail] = useState("");
+  const [savingRecoveryEmail, setSavingRecoveryEmail] = useState(false);
+
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
+
   useEffect(() => {
     if (!user) return;
     getProfileSettings(user.id).then((data) => {
@@ -29,6 +41,7 @@ export function SettingsPage() {
       setDisplayName(data.display_name);
       setBio(data.bio ?? "");
       setAvatarUrl(data.avatar_url);
+      setRecoveryEmail(data.recovery_email ?? "");
     });
   }, [user]);
 
@@ -63,6 +76,35 @@ export function SettingsPage() {
       toast.error(error instanceof Error ? error.message : "Erro no upload");
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function saveRecoveryEmail(e: React.FormEvent) {
+    e.preventDefault();
+    if (!user) return;
+    setSavingRecoveryEmail(true);
+    try {
+      await updateRecoveryEmail(user.id, recoveryEmail.trim() || null);
+      toast.success("E-mail de contato atualizado!");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel salvar o e-mail");
+    } finally {
+      setSavingRecoveryEmail(false);
+    }
+  }
+
+  async function submitChangePassword(e: React.FormEvent) {
+    e.preventDefault();
+    setChangingPassword(true);
+    try {
+      await changePassword(currentPassword, newPassword);
+      setCurrentPassword("");
+      setNewPassword("");
+      toast.success("Senha alterada com sucesso!");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel trocar a senha");
+    } finally {
+      setChangingPassword(false);
     }
   }
 
@@ -120,6 +162,64 @@ export function SettingsPage() {
 
           <Button type="submit" disabled={loading} className="w-full">
             {loading ? "Salvando..." : "Salvar"}
+          </Button>
+        </form>
+      </Card>
+
+      <Card className="p-6 space-y-4">
+        <div>
+          <p className="text-sm font-semibold">Segurança</p>
+          <p className="text-sm text-muted-foreground">
+            Troque sua senha ou cadastre um e-mail de contato para recuperar sua conta caso esqueça
+            a senha.
+          </p>
+        </div>
+
+        <form onSubmit={submitChangePassword} className="space-y-3 border-b pb-4">
+          <div className="space-y-2">
+            <Label htmlFor="current-password">Senha atual</Label>
+            <Input
+              id="current-password"
+              type="password"
+              autoComplete="current-password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="new-password">Nova senha</Label>
+            <Input
+              id="new-password"
+              type="password"
+              autoComplete="new-password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              minLength={6}
+              required
+            />
+          </div>
+          <Button type="submit" variant="outline" className="w-full" disabled={changingPassword}>
+            {changingPassword ? "Trocando..." : "Trocar senha"}
+          </Button>
+        </form>
+
+        <form onSubmit={saveRecoveryEmail} className="space-y-3">
+          <div className="space-y-2">
+            <Label htmlFor="recovery-email">E-mail de contato (opcional)</Label>
+            <Input
+              id="recovery-email"
+              type="email"
+              placeholder="seu@email.com"
+              value={recoveryEmail}
+              onChange={(e) => setRecoveryEmail(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Usado para identificar sua conta caso voce precise de ajuda para recuperar o acesso.
+            </p>
+          </div>
+          <Button type="submit" variant="outline" className="w-full" disabled={savingRecoveryEmail}>
+            {savingRecoveryEmail ? "Salvando..." : "Salvar e-mail de contato"}
           </Button>
         </form>
       </Card>

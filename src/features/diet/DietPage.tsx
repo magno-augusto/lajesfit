@@ -4,6 +4,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Flame,
+  Pencil,
   Plus,
   Trash2,
 } from "lucide-react";
@@ -17,15 +18,18 @@ import { useFitness } from "@/features/fitness/useFitness";
 import { AddFoodDialog } from "./AddFoodDialog";
 import { MealGroupPhoto } from "./MealGroupPhoto";
 import { MEALS, type Meal } from "./constants";
-import { groupMealEntries } from "./meal-grouping";
+import { groupMealEntries, type MealGroup } from "./meal-grouping";
 import { removeMeal } from "./meals-api";
+import { WeeklyCalorieChart } from "./WeeklyCalorieChart";
 
 export function DietPage() {
-  const { meals, loading } = useFitness();
+  const { meals, idrProfile, loading } = useFitness();
   const [addMealOpen, setAddMealOpen] = useState(false);
   const [targetMeal, setTargetMeal] = useState<Meal>("lunch");
   const [selectedDate, setSelectedDate] = useState(() => startOfLocalDay(new Date()));
   const [swipedEntryId, setSwipedEntryId] = useState<string | null>(null);
+  const [editingGroup, setEditingGroup] = useState<MealGroup | null>(null);
+  const [editMealOpen, setEditMealOpen] = useState(false);
   const touchStartXRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -144,6 +148,8 @@ export function DietPage() {
         </div>
       </div>
 
+      <WeeklyCalorieChart meals={meals} dailyTarget={idrProfile?.idrCalories ?? 0} />
+
       {MEALS.map((meal) => {
         const items = dayMeals.filter((entry) => entry.meal === meal.key);
         const groups = groupMealEntries(items);
@@ -182,6 +188,22 @@ export function DietPage() {
               ) : (
                 groups.map((group) => (
                   <div key={group.id} className="bg-card">
+                    {group.dietMealId && (
+                      <div className="flex justify-end px-4 pt-3">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setEditingGroup(group);
+                            setEditMealOpen(true);
+                          }}
+                        >
+                          <Pencil className="mr-1 size-3.5" />
+                          Editar
+                        </Button>
+                      </div>
+                    )}
                     <MealGroupPhoto group={group} />
                     <ul className="divide-y border-t">
                       {group.items.map((entry) => (
@@ -237,6 +259,19 @@ export function DietPage() {
           </section>
         );
       })}
+
+      <AddFoodDialog
+        open={editMealOpen}
+        onOpenChange={(nextOpen) => {
+          setEditMealOpen(nextOpen);
+          if (!nextOpen) setEditingGroup(null);
+        }}
+        selectedDate={selectedDate}
+        meals={meals}
+        editingGroup={editingGroup}
+        showTrigger={false}
+        disableDraft
+      />
     </div>
   );
 }

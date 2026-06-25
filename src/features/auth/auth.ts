@@ -80,6 +80,25 @@ export async function logout() {
   await supabase.auth.signOut();
 }
 
+export async function changePassword(currentPassword: string, newPassword: string) {
+  const cleanNewPassword = newPassword.trim();
+  if (cleanNewPassword.length < 6) {
+    throw new Error("A nova senha precisa ter pelo menos 6 caracteres");
+  }
+
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData.user?.email) throw new Error("Sessao expirada. Entre novamente.");
+
+  const { error: verifyError } = await supabase.auth.signInWithPassword({
+    email: userData.user.email,
+    password: currentPassword,
+  });
+  if (verifyError) throw new Error("Senha atual incorreta");
+
+  const { error } = await supabase.auth.updateUser({ password: cleanNewPassword });
+  if (error) throw new Error(error.message);
+}
+
 export function useLocalAuth() {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);

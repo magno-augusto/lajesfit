@@ -17,6 +17,7 @@ import { formatDistance, formatDuration, timeAgo } from "@/features/feed/format"
 import { consumePendingNewAction, NEW_ACTION_EVENT } from "@/components/new-action-menu";
 import { useFitness } from "@/features/fitness/useFitness";
 import { ManualWorkoutDialog } from "./ManualWorkoutDialog";
+import { WeeklyWorkoutChart } from "./WeeklyWorkoutChart";
 import { addWorkout, removeWorkout, updateWorkout, type LocalWorkout } from "./workouts-api";
 import { getStravaAuthorizationUrl, getStravaConnection, syncStravaActivities } from "./strava-api";
 
@@ -231,6 +232,8 @@ export function WorkoutsPage() {
           </div>
         </div>
       </div>
+
+      <WeeklyWorkoutChart workouts={workouts} />
 
       <div className="bg-card rounded-lg border shadow-card">
         <div className="p-4 border-b">

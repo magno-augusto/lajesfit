@@ -5,6 +5,7 @@ import { notifyChange } from "@/features/fitness/change-event";
 export type LocalMeal = {
   id: string;
   dietMealId: string | null;
+  foodId: number | null;
   name: string;
   meal: "breakfast" | "lunch" | "snack" | "dinner";
   grams: number;
@@ -32,6 +33,7 @@ export type MealPhotoInput = File | Blob;
 function mapMeal(row: {
   id: string;
   diet_meal_id: string | null;
+  food_id?: number | null;
   food_name: string;
   meal: string;
   grams: number;
@@ -46,6 +48,7 @@ function mapMeal(row: {
   return {
     id: row.id,
     dietMealId: row.diet_meal_id,
+    foodId: row.food_id ?? null,
     name: row.food_name,
     meal: row.meal as LocalMeal["meal"],
     grams: row.grams,
@@ -76,9 +79,9 @@ async function uploadMealPhoto(userId: string, file: MealPhotoInput) {
 export async function getMeals() {
   const userId = await getUserId();
   const selectWithMealPhoto =
-    "id, diet_meal_id, food_name, meal, grams, kcal, protein_g, carbs_g, fat_g, photo_url, consumed_at, diet_meals(photo_url)";
+    "id, diet_meal_id, food_id, food_name, meal, grams, kcal, protein_g, carbs_g, fat_g, photo_url, consumed_at, diet_meals(photo_url)";
   const selectWithoutMealPhoto =
-    "id, diet_meal_id, food_name, meal, grams, kcal, protein_g, carbs_g, fat_g, photo_url, consumed_at";
+    "id, diet_meal_id, food_id, food_name, meal, grams, kcal, protein_g, carbs_g, fat_g, photo_url, consumed_at";
 
   const { data, error } = await supabase
     .from("diet_entries")
@@ -174,7 +177,7 @@ export async function addMeal(
       consumed_at: consumedAt,
     })
     .select(
-      "id, diet_meal_id, food_name, meal, grams, kcal, protein_g, carbs_g, fat_g, photo_url, consumed_at, diet_meals(photo_url)",
+      "id, diet_meal_id, food_id, food_name, meal, grams, kcal, protein_g, carbs_g, fat_g, photo_url, consumed_at, diet_meals(photo_url)",
     )
     .single();
 
@@ -237,7 +240,7 @@ export async function addMealWithItems({
       })),
     )
     .select(
-      "id, diet_meal_id, food_name, meal, grams, kcal, protein_g, carbs_g, fat_g, photo_url, consumed_at, diet_meals(photo_url)",
+      "id, diet_meal_id, food_id, food_name, meal, grams, kcal, protein_g, carbs_g, fat_g, photo_url, consumed_at, diet_meals(photo_url)",
     );
 
   if (error) {
@@ -284,4 +287,61 @@ export async function removeMeal(id: string) {
     throw new Error(error.message);
   }
   notifyChange();
+}
+
+export async function updateMealItems(dietMealId: string, items: MealFoodInput[]) {
+  if (items.length === 0) throw new Error("Adicione pelo menos um alimento");
+
+  const userId = await getUserId();
+  const { data: mealRow, error: mealError } = await supabase
+    .from("diet_meals")
+    .select("meal, consumed_at")
+    .eq("id", dietMealId)
+    .eq("user_id", userId)
+    .single();
+
+  if (mealError) {
+    console.error("Erro ao buscar refeicao:", mealError);
+    throw new Error(mealError.message);
+  }
+
+  const { error: deleteError } = await supabase
+    .from("diet_entries")
+    .delete()
+    .eq("diet_meal_id", dietMealId)
+    .eq("user_id", userId);
+
+  if (deleteError) {
+    console.error("Erro ao atualizar itens da refeicao:", deleteError);
+    throw new Error(deleteError.message);
+  }
+
+  const { data, error } = await supabase
+    .from("diet_entries")
+    .insert(
+      items.map((item) => ({
+        user_id: userId,
+        diet_meal_id: dietMealId,
+        food_id: item.foodId ?? null,
+        food_name: item.name,
+        meal: mealRow.meal,
+        grams: item.grams,
+        kcal: item.calories,
+        protein_g: item.protein,
+        carbs_g: item.carbs,
+        fat_g: item.fat,
+        photo_url: null,
+        consumed_at: mealRow.consumed_at,
+      })),
+    )
+    .select(
+      "id, diet_meal_id, food_id, food_name, meal, grams, kcal, protein_g, carbs_g, fat_g, photo_url, consumed_at, diet_meals(photo_url)",
+    );
+
+  if (error) {
+    console.error("Erro ao salvar itens da refeicao:", error);
+    throw new Error(error.message);
+  }
+  notifyChange();
+  return (data ?? []).map(mapMeal);
 }

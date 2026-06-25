@@ -16,6 +16,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as StravaCallbackRouteImport } from './routes/strava.callback'
 import { Route as AuthenticatedWorkoutsRouteImport } from './routes/_authenticated/workouts'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedSearchRouteImport } from './routes/_authenticated/search'
 import { Route as AuthenticatedFeedRouteImport } from './routes/_authenticated/feed'
 import { Route as AuthenticatedDietRouteImport } from './routes/_authenticated/diet'
 import { Route as ApiStravaWebhookRouteImport } from './routes/api/strava/webhook'
@@ -55,6 +56,11 @@ const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedSearchRoute = AuthenticatedSearchRouteImport.update({
+  id: '/search',
+  path: '/search',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedFeedRoute = AuthenticatedFeedRouteImport.update({
   id: '/feed',
   path: '/feed',
@@ -83,6 +89,7 @@ export interface FileRoutesByFullPath {
   '/setup': typeof SetupRoute
   '/diet': typeof AuthenticatedDietRoute
   '/feed': typeof AuthenticatedFeedRoute
+  '/search': typeof AuthenticatedSearchRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/workouts': typeof AuthenticatedWorkoutsRoute
   '/strava/callback': typeof StravaCallbackRoute
@@ -95,6 +102,7 @@ export interface FileRoutesByTo {
   '/setup': typeof SetupRoute
   '/diet': typeof AuthenticatedDietRoute
   '/feed': typeof AuthenticatedFeedRoute
+  '/search': typeof AuthenticatedSearchRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/workouts': typeof AuthenticatedWorkoutsRoute
   '/strava/callback': typeof StravaCallbackRoute
@@ -109,6 +117,7 @@ export interface FileRoutesById {
   '/setup': typeof SetupRoute
   '/_authenticated/diet': typeof AuthenticatedDietRoute
   '/_authenticated/feed': typeof AuthenticatedFeedRoute
+  '/_authenticated/search': typeof AuthenticatedSearchRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/workouts': typeof AuthenticatedWorkoutsRoute
   '/strava/callback': typeof StravaCallbackRoute
@@ -123,6 +132,7 @@ export interface FileRouteTypes {
     | '/setup'
     | '/diet'
     | '/feed'
+    | '/search'
     | '/settings'
     | '/workouts'
     | '/strava/callback'
@@ -135,6 +145,7 @@ export interface FileRouteTypes {
     | '/setup'
     | '/diet'
     | '/feed'
+    | '/search'
     | '/settings'
     | '/workouts'
     | '/strava/callback'
@@ -148,6 +159,7 @@ export interface FileRouteTypes {
     | '/setup'
     | '/_authenticated/diet'
     | '/_authenticated/feed'
+    | '/_authenticated/search'
     | '/_authenticated/settings'
     | '/_authenticated/workouts'
     | '/strava/callback'
@@ -215,6 +227,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/search': {
+      id: '/_authenticated/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof AuthenticatedSearchRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/feed': {
       id: '/_authenticated/feed'
       path: '/feed'
@@ -249,6 +268,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDietRoute: typeof AuthenticatedDietRoute
   AuthenticatedFeedRoute: typeof AuthenticatedFeedRoute
+  AuthenticatedSearchRoute: typeof AuthenticatedSearchRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedWorkoutsRoute: typeof AuthenticatedWorkoutsRoute
   AuthenticatedProfileUsernameRoute: typeof AuthenticatedProfileUsernameRoute
@@ -257,6 +277,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDietRoute: AuthenticatedDietRoute,
   AuthenticatedFeedRoute: AuthenticatedFeedRoute,
+  AuthenticatedSearchRoute: AuthenticatedSearchRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedWorkoutsRoute: AuthenticatedWorkoutsRoute,
   AuthenticatedProfileUsernameRoute: AuthenticatedProfileUsernameRoute,

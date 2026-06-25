@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Activity, Apple, Flame, Home, Info, LogIn, LogOut, Menu } from "lucide-react";
+import { Activity, Apple, Flame, Home, Info, LogIn, LogOut, Menu, Search } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -121,6 +121,16 @@ function AppShell() {
           </nav>
 
           <div className="flex items-center justify-end gap-2 sm:gap-3">
+            <Button
+              asChild
+              variant={location.pathname.startsWith("/search") ? "secondary" : "ghost"}
+              size="icon"
+              aria-label="Buscar pessoas"
+            >
+              <Link to="/search">
+                <Search className="size-5" />
+              </Link>
+            </Button>
             <div className="hidden md:block">
               <NewActionMenu />
             </div>

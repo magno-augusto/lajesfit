@@ -440,6 +440,7 @@ export type Database = {
           id: string;
           is_admin: boolean;
           is_private: boolean;
+          recovery_email: string | null;
           updated_at: string;
           username: string;
         };
@@ -457,6 +458,7 @@ export type Database = {
           id: string;
           is_admin?: boolean;
           is_private?: boolean;
+          recovery_email?: string | null;
           updated_at?: string;
           username: string;
         };
@@ -474,6 +476,7 @@ export type Database = {
           id?: string;
           is_admin?: boolean;
           is_private?: boolean;
+          recovery_email?: string | null;
           updated_at?: string;
           username?: string;
         };

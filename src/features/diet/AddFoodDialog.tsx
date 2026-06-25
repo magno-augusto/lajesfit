@@ -31,7 +31,8 @@ import {
   type FoodMeasure,
   type TacoFood,
 } from "./food-catalog";
-import { addMealWithItems, type LocalMeal, type MealFoodInput } from "./meals-api";
+import { addMealWithItems, updateMealItems, type LocalMeal, type MealFoodInput } from "./meals-api";
+import type { MealGroup } from "./meal-grouping";
 import {
   compressImageDataUrl,
   dataUrlToBlob,
@@ -149,6 +150,8 @@ export function AddFoodDialog({
   meals,
   initialMeal = "lunch",
   showTrigger = true,
+  editingGroup = null,
+  disableDraft = false,
 }: {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -156,7 +159,10 @@ export function AddFoodDialog({
   meals: LocalMeal[];
   initialMeal?: Meal;
   showTrigger?: boolean;
+  editingGroup?: MealGroup | null;
+  disableDraft?: boolean;
 }) {
+  const isEditing = Boolean(editingGroup);
   const [internalOpen, setInternalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [foods, setFoods] = useState<TacoFood[]>([]);
@@ -188,14 +194,34 @@ export function AddFoodDialog({
   }
 
   useEffect(() => {
-    if (open && mealItems.length === 0) setMeal(initialMeal);
-  }, [initialMeal, mealItems.length, open]);
+    if (open && !editingGroup && mealItems.length === 0) setMeal(initialMeal);
+  }, [editingGroup, initialMeal, mealItems.length, open]);
+
+  useEffect(() => {
+    if (!open || !editingGroup) return;
+    setMeal(editingGroup.meal);
+    setMealItems(
+      editingGroup.items.map((item) => ({
+        name: item.name,
+        foodId: item.foodId,
+        grams: item.grams,
+        calories: item.calories,
+        protein: item.protein,
+        carbs: item.carbs,
+        fat: item.fat,
+      })),
+    );
+  }, [editingGroup, open]);
 
   useEffect(() => {
     setPreferGallery(isOlderAndroidBrowser());
   }, []);
 
   useEffect(() => {
+    if (disableDraft) {
+      setDraftReady(true);
+      return;
+    }
     try {
       const rawDraft = sessionStorage.getItem(MEAL_DRAFT_KEY);
       if (!rawDraft) return;
@@ -222,7 +248,7 @@ export function AddFoodDialog({
   }, []);
 
   useEffect(() => {
-    if (!draftReady) return;
+    if (!draftReady || disableDraft) return;
 
     const hasPersistentDraft = mealItems.length > 0 || Boolean(photoDataUrl);
     if (!hasPersistentDraft) {
@@ -244,7 +270,17 @@ export function AddFoodDialog({
     } catch {
       toast.error("A foto ficou grande demais para manter como rascunho. Tente tirar outra foto.");
     }
-  }, [draftReady, foodQuery, grams, meal, mealItems, measureId, photoDataUrl, quantity]);
+  }, [
+    disableDraft,
+    draftReady,
+    foodQuery,
+    grams,
+    meal,
+    mealItems,
+    measureId,
+    photoDataUrl,
+    quantity,
+  ]);
 
   useEffect(() => {
     if (!open || foods.length > 0) return;
@@ -347,7 +383,7 @@ export function AddFoodDialog({
     setPhotoLoading(false);
     protectDraftRef.current = false;
     clearPhoto();
-    sessionStorage.removeItem(MEAL_DRAFT_KEY);
+    if (!disableDraft) sessionStorage.removeItem(MEAL_DRAFT_KEY);
   }
 
   function handleOpenChange(nextOpen: boolean) {
@@ -374,14 +410,19 @@ export function AddFoodDialog({
 
     setSaving(true);
     try {
-      const photoBlob = photoDataUrl ? await dataUrlToBlob(photoDataUrl) : null;
-      await addMealWithItems({
-        meal,
-        items: mealItems,
-        photoFile: photoBlob,
-        consumedAt: buildConsumedAtForSelectedDay(selectedDate),
-      });
-      toast.success("Refeicao adicionada");
+      if (isEditing && editingGroup?.dietMealId) {
+        await updateMealItems(editingGroup.dietMealId, mealItems);
+        toast.success("Refeicao atualizada");
+      } else {
+        const photoBlob = photoDataUrl ? await dataUrlToBlob(photoDataUrl) : null;
+        await addMealWithItems({
+          meal,
+          items: mealItems,
+          photoFile: photoBlob,
+          consumedAt: buildConsumedAtForSelectedDay(selectedDate),
+        });
+        toast.success("Refeicao adicionada");
+      }
       setOpen(false);
       resetDraft();
     } catch (error) {
@@ -513,12 +554,16 @@ export function AddFoodDialog({
             onChange={pickPhoto}
           />
           <DialogHeader>
-            <DialogTitle>Adicionar refeicao</DialogTitle>
+            <DialogTitle>{isEditing ? "Editar refeicao" : "Adicionar refeicao"}</DialogTitle>
           </DialogHeader>
           <form onSubmit={submit} className="space-y-4">
             <div className="space-y-2">
               <Label>Refeicao</Label>
-              <Select value={meal} onValueChange={(value) => setMeal(value as Meal)}>
+              <Select
+                value={meal}
+                onValueChange={(value) => setMeal(value as Meal)}
+                disabled={isEditing}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -736,7 +781,7 @@ export function AddFoodDialog({
                 )}
               </div>
             </div>
-            <div className="space-y-2">
+            <div className={isEditing ? "hidden" : "space-y-2"}>
               <Label>Foto da refeicao</Label>
               {preferGallery && !photoDataUrl && (
                 <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
@@ -808,7 +853,7 @@ export function AddFoodDialog({
                 Cancelar
               </Button>
               <Button type="submit" disabled={saving || mealItems.length === 0}>
-                {saving ? "Salvando..." : "Salvar refeicao"}
+                {saving ? "Salvando..." : isEditing ? "Salvar alteracoes" : "Salvar refeicao"}
               </Button>
             </div>
           </form>

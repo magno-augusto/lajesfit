@@ -34,12 +34,24 @@ function inferPostType(content: string): FeedPost["type"] {
     : "general";
 }
 
-export async function fetchFeed(currentUserId: string): Promise<FeedPost[]> {
-  const { data: posts, error } = await supabase
+export const FEED_PAGE_SIZE = 20;
+
+export async function fetchFeed(
+  currentUserId: string,
+  options: { before?: string; limit?: number } = {},
+): Promise<FeedPost[]> {
+  const limit = options.limit ?? FEED_PAGE_SIZE;
+  let postsQuery = supabase
     .from("posts")
     .select("id, content, media_url, created_at, user_id")
     .order("created_at", { ascending: false })
-    .limit(50);
+    .limit(limit);
+
+  if (options.before) {
+    postsQuery = postsQuery.lt("created_at", options.before);
+  }
+
+  const { data: posts, error } = await postsQuery;
 
   if (error) throw error;
   if (!posts || posts.length === 0) return [];

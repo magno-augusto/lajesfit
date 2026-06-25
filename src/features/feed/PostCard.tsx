@@ -23,6 +23,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { type FeedPost } from "./feed-api";
 import { formatDistance, formatDuration, timeAgo } from "./format";
+import { likePost, unlikePost } from "./likes-api";
+import { CommentsDialog } from "./CommentsDialog";
 
 export function PostCard({
   post,
@@ -35,6 +37,8 @@ export function PostCard({
 }) {
   const [liked, setLiked] = useState(post.liked_by_me);
   const [count, setCount] = useState(post.likes_count);
+  const [commentsCount, setCommentsCount] = useState(post.comments_count);
+  const [commentsOpen, setCommentsOpen] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const navigate = useNavigate();
@@ -43,12 +47,16 @@ export function PostCard({
 
   async function toggleLike() {
     if (!currentUserId) return;
-    if (liked) {
-      setLiked(false);
-      setCount((c) => c - 1);
-    } else {
-      setLiked(true);
-      setCount((c) => c + 1);
+    const wasLiked = liked;
+    setLiked(!wasLiked);
+    setCount((c) => (wasLiked ? c - 1 : c + 1));
+    try {
+      if (wasLiked) await unlikePost(currentUserId, post.id);
+      else await likePost(currentUserId, post.id);
+    } catch (error) {
+      setLiked(wasLiked);
+      setCount((c) => (wasLiked ? c + 1 : c - 1));
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel curtir a publicacao");
     }
   }
 
@@ -204,10 +212,18 @@ export function PostCard({
         >
           <Heart className={`size-4 mr-2 ${liked ? "fill-current" : ""}`} /> {count}
         </Button>
-        <Button variant="ghost" size="sm">
-          <MessageCircle className="size-4 mr-2" /> {post.comments_count}
+        <Button variant="ghost" size="sm" onClick={() => setCommentsOpen(true)}>
+          <MessageCircle className="size-4 mr-2" /> {commentsCount}
         </Button>
       </footer>
+
+      <CommentsDialog
+        postId={post.id}
+        currentUserId={currentUserId}
+        open={commentsOpen}
+        onOpenChange={setCommentsOpen}
+        onCommentCountChange={(delta) => setCommentsCount((c) => c + delta)}
+      />
 
       <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
         <AlertDialogContent>

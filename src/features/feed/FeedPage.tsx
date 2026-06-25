@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { CreatePostDialog } from "./CreatePostDialog";
 import { PostCard } from "./PostCard";
-import { deletePost, fetchFeed, type FeedPost } from "./feed-api";
+import { deletePost, fetchFeed, FEED_PAGE_SIZE, type FeedPost } from "./feed-api";
 import { useLocalAuth } from "@/features/auth/auth";
 import { consumePendingNewAction, NEW_ACTION_EVENT } from "@/components/new-action-menu";
 
@@ -10,12 +11,15 @@ export function FeedPage() {
   const { user, loading: authLoading } = useLocalAuth();
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
   const [createPostOpen, setCreatePostOpen] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
       setPosts([]);
+      setHasMore(false);
       setLoading(false);
       return;
     }
@@ -29,7 +33,9 @@ export function FeedPage() {
     async function loadFeed(currentUserId: string) {
       return fetchFeed(currentUserId)
         .then((nextPosts) => {
-          if (mounted) setPosts(nextPosts);
+          if (!mounted) return;
+          setPosts(nextPosts);
+          setHasMore(nextPosts.length === FEED_PAGE_SIZE);
         })
         .catch((error) => {
           toast.error(error instanceof Error ? error.message : "Nao foi possivel carregar o feed");
@@ -54,7 +60,24 @@ export function FeedPage() {
 
   async function refreshFeed() {
     if (!user) return;
-    setPosts(await fetchFeed(user.id));
+    const nextPosts = await fetchFeed(user.id);
+    setPosts(nextPosts);
+    setHasMore(nextPosts.length === FEED_PAGE_SIZE);
+  }
+
+  async function loadMore() {
+    if (!user || posts.length === 0) return;
+    const lastPost = posts[posts.length - 1];
+    setLoadingMore(true);
+    try {
+      const nextPosts = await fetchFeed(user.id, { before: lastPost.created_at });
+      setPosts((current) => [...current, ...nextPosts]);
+      setHasMore(nextPosts.length === FEED_PAGE_SIZE);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel carregar mais posts");
+    } finally {
+      setLoadingMore(false);
+    }
   }
 
   async function handleDeletePost(post: FeedPost) {
@@ -85,14 +108,23 @@ export function FeedPage() {
           Nenhum post publicado ainda
         </div>
       ) : (
-        posts.map((post) => (
-          <PostCard
-            key={post.id}
-            post={post}
-            currentUserId={user?.id ?? null}
-            onDelete={handleDeletePost}
-          />
-        ))
+        <>
+          {posts.map((post) => (
+            <PostCard
+              key={post.id}
+              post={post}
+              currentUserId={user?.id ?? null}
+              onDelete={handleDeletePost}
+            />
+          ))}
+          {hasMore && (
+            <div className="flex justify-center pt-2">
+              <Button variant="outline" onClick={loadMore} disabled={loadingMore}>
+                {loadingMore ? "Carregando..." : "Carregar mais"}
+              </Button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

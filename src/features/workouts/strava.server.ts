@@ -4,6 +4,7 @@ import type { Database } from "@/integrations/supabase/types";
 const STRAVA_TOKEN_URL = "https://www.strava.com/oauth/token";
 const STRAVA_ACTIVITIES_URL = "https://www.strava.com/api/v3/athlete/activities";
 const STRAVA_ACTIVITY_URL = "https://www.strava.com/api/v3/activities";
+const STRAVA_PUSH_SUBSCRIPTIONS_URL = "https://www.strava.com/api/v3/push_subscriptions";
 
 export type StravaTokenResponse = {
   access_token: string;
@@ -24,7 +25,44 @@ export type StravaActivity = {
   start_date?: string;
   start_date_local?: string;
   calories?: number;
+  photos?: {
+    primary?: { urls?: Record<string, string> } | null;
+    count?: number;
+  };
 };
+
+const ACTIVITY_TYPE_MAP: Record<string, string> = {
+  Run: "Corrida",
+  VirtualRun: "Corrida",
+  TrailRun: "Trilha",
+  Hike: "Trilha",
+  Walk: "Caminhada",
+  Ride: "Ciclismo",
+  VirtualRide: "Ciclismo",
+  EBikeRide: "Ciclismo",
+  MountainBikeRide: "Ciclismo",
+  GravelRide: "Ciclismo",
+  Handcycle: "Ciclismo",
+  WeightTraining: "Musculacao",
+  Workout: "Musculacao",
+  Crossfit: "Musculacao",
+  HIIT: "Musculacao",
+  Elliptical: "Musculacao",
+  StairStepper: "Musculacao",
+  Swim: "Natacao",
+};
+
+export function mapStravaSportType(activity: Pick<StravaActivity, "sport_type" | "type">) {
+  const stravaType = activity.sport_type ?? activity.type ?? "";
+  return ACTIVITY_TYPE_MAP[stravaType] ?? "Outro";
+}
+
+function extractStravaPhotoUrl(activity: StravaActivity) {
+  const urls = activity.photos?.primary?.urls;
+  if (!urls) return null;
+
+  return urls["600"] ?? urls["1000"] ?? Object.values(urls)[0] ?? null;
+}
 
 type Supabase = SupabaseClient<Database>;
 
@@ -76,7 +114,7 @@ export function mapStravaActivity(activity: StravaActivity, userId: string) {
     user_id: userId,
     source: "strava",
     strava_activity_id: activity.id,
-    activity_type: activity.sport_type ?? activity.type ?? "Activity",
+    activity_type: mapStravaSportType(activity),
     title: activity.name ?? "Atividade Strava",
     distance_meters: Math.round(activity.distance ?? 0) || null,
     duration_seconds: activity.moving_time ?? activity.elapsed_time ?? null,
@@ -85,6 +123,7 @@ export function mapStravaActivity(activity: StravaActivity, userId: string) {
         ? Math.round(activity.calories)
         : null,
     performed_at: activity.start_date_local ?? activity.start_date ?? new Date().toISOString(),
+    media_url: extractStravaPhotoUrl(activity),
   };
 }
 
@@ -188,4 +227,77 @@ export async function importStravaActivityForAthlete(
   const imported = await upsertStravaActivities(supabase, token.user_id, [activity]);
 
   return { imported, skipped: null };
+}
+
+export async function removeStravaActivityForAthlete(
+  supabase: Supabase,
+  athleteId: number,
+  activityId: number,
+) {
+  const { data: token, error } = await supabase
+    .from("strava_tokens")
+    .select("user_id, athlete_id")
+    .eq("athlete_id", athleteId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!token) return { removed: 0, skipped: "athlete_not_connected" };
+
+  const { error: deleteError, count } = await supabase
+    .from("workouts")
+    .delete({ count: "exact" })
+    .eq("user_id", token.user_id)
+    .eq("strava_activity_id", activityId);
+
+  if (deleteError) throw new Error(deleteError.message);
+  return { removed: count ?? 0, skipped: null };
+}
+
+type StravaPushSubscription = {
+  id: number;
+  callback_url: string;
+};
+
+export async function listStravaPushSubscriptions() {
+  const { clientId, clientSecret } = getStravaConfig();
+  const params = new URLSearchParams({ client_id: clientId, client_secret: clientSecret });
+  const response = await fetch(`${STRAVA_PUSH_SUBSCRIPTIONS_URL}?${params}`);
+
+  if (!response.ok) {
+    throw new Error(`Nao foi possivel listar as inscricoes do webhook (${response.status})`);
+  }
+  return (await response.json()) as StravaPushSubscription[];
+}
+
+export async function createStravaPushSubscription(callbackUrl: string, verifyToken: string) {
+  const { clientId, clientSecret } = getStravaConfig();
+  const body = new URLSearchParams({
+    client_id: clientId,
+    client_secret: clientSecret,
+    callback_url: callbackUrl,
+    verify_token: verifyToken,
+  });
+
+  const response = await fetch(STRAVA_PUSH_SUBSCRIPTIONS_URL, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body,
+  });
+
+  if (!response.ok) {
+    const details = await response.text().catch(() => "");
+    throw new Error(
+      `Nao foi possivel criar a inscricao do webhook (${response.status}): ${details.slice(0, 300)}`,
+    );
+  }
+  return (await response.json()) as StravaPushSubscription;
+}
+
+export async function ensureStravaWebhookSubscription(callbackUrl: string, verifyToken: string) {
+  const existing = await listStravaPushSubscriptions();
+  const current = existing.find((subscription) => subscription.callback_url === callbackUrl);
+  if (current) return { created: false, subscription: current };
+
+  const created = await createStravaPushSubscription(callbackUrl, verifyToken);
+  return { created: true, subscription: created };
 }

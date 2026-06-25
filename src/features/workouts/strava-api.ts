@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
+  ensureStravaWebhookSubscription,
   exchangeStravaToken,
   fetchStravaActivities,
   getStravaConfig,
@@ -115,4 +116,28 @@ export const syncStravaActivities = createServerFn({ method: "POST" })
     const activities = await fetchStravaActivities(accessToken, data.afterDays);
     const imported = await upsertStravaActivities(context.supabase, context.userId, activities);
     return { imported };
+  });
+
+export const setupStravaWebhook = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: profile, error: profileError } = await context.supabase
+      .from("profiles")
+      .select("is_admin")
+      .eq("id", context.userId)
+      .maybeSingle();
+
+    if (profileError) throw new Error(profileError.message);
+    if (!profile?.is_admin) throw new Error("Apenas administradores podem configurar o webhook.");
+
+    const verifyToken = process.env.STRAVA_WEBHOOK_VERIFY_TOKEN;
+    const appUrl = process.env.VITE_APP_URL;
+    if (!verifyToken || !appUrl) {
+      throw new Error(
+        "Configure STRAVA_WEBHOOK_VERIFY_TOKEN e VITE_APP_URL no ambiente do servidor.",
+      );
+    }
+
+    const callbackUrl = `${appUrl.replace(/\/$/, "")}/api/strava/webhook`;
+    return ensureStravaWebhookSubscription(callbackUrl, verifyToken);
   });

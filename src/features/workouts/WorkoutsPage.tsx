@@ -254,9 +254,13 @@ export function WorkoutsPage() {
             const distanceLabel = formatDistance(workout.distanceMeters);
             return (
               <li key={workout.id} className="px-4 py-3 flex items-center gap-3 hover:bg-muted/40">
-                <div className="size-10 rounded-lg bg-primary/10 text-primary grid place-items-center">
-                  <Activity className="size-5" />
-                </div>
+                {workout.mediaUrl ? (
+                  <img src={workout.mediaUrl} alt="" className="size-10 rounded-lg object-cover" />
+                ) : (
+                  <div className="size-10 rounded-lg bg-primary/10 text-primary grid place-items-center">
+                    <Activity className="size-5" />
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm truncate">
                     {workout.name ?? workout.activityType}

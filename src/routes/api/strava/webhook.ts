@@ -1,6 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { importStravaActivityForAthlete } from "@/features/workouts/strava.server";
+import {
+  importStravaActivityForAthlete,
+  removeStravaActivityForAthlete,
+} from "@/features/workouts/strava.server";
 
 type StravaWebhookEvent = {
   aspect_type?: string;
@@ -81,7 +84,10 @@ export const Route = createFileRoute("/api/strava/webhook")({
           return json({ ok: true, warning: "event_not_logged" });
         }
 
-        if (event.object_type !== "activity" || event.aspect_type !== "create") {
+        if (
+          event.object_type !== "activity" ||
+          !["create", "update", "delete"].includes(event.aspect_type)
+        ) {
           await supabaseAdmin
             .from("strava_webhook_events")
             .update({ status: "ignored", processed_at: receivedAt })
@@ -91,16 +97,20 @@ export const Route = createFileRoute("/api/strava/webhook")({
         }
 
         try {
-          const result = await importStravaActivityForAthlete(
-            supabaseAdmin,
-            event.owner_id,
-            event.object_id,
-          );
+          const result =
+            event.aspect_type === "delete"
+              ? await removeStravaActivityForAthlete(supabaseAdmin, event.owner_id, event.object_id)
+              : await importStravaActivityForAthlete(
+                  supabaseAdmin,
+                  event.owner_id,
+                  event.object_id,
+                );
 
           await supabaseAdmin
             .from("strava_webhook_events")
             .update({
-              status: result.imported > 0 ? "imported" : "skipped",
+              status:
+                "imported" in result ? (result.imported > 0 ? "imported" : "skipped") : "removed",
               error_message: result.skipped,
               processed_at: new Date().toISOString(),
             })
@@ -109,7 +119,7 @@ export const Route = createFileRoute("/api/strava/webhook")({
           return json({ ok: true, ...result });
         } catch (error) {
           const message = error instanceof Error ? error.message : "Erro desconhecido";
-          console.error("[Strava webhook] Falha ao importar atividade", error);
+          console.error("[Strava webhook] Falha ao processar atividade", error);
 
           await supabaseAdmin
             .from("strava_webhook_events")

@@ -10,6 +10,7 @@ export type LocalWorkout = {
   durationSeconds: number | null;
   calories: number | null;
   startedAt: string;
+  mediaUrl?: string | null;
 };
 
 function mapWorkout(row: {
@@ -20,6 +21,7 @@ function mapWorkout(row: {
   duration_seconds: number | null;
   calories: number | null;
   performed_at: string;
+  media_url?: string | null;
 }): LocalWorkout {
   return {
     id: row.id,
@@ -29,6 +31,7 @@ function mapWorkout(row: {
     durationSeconds: row.duration_seconds,
     calories: row.calories,
     startedAt: row.performed_at,
+    mediaUrl: row.media_url ?? null,
   };
 }
 
@@ -36,7 +39,9 @@ export async function getWorkouts() {
   const userId = await getUserId();
   const { data, error } = await supabase
     .from("workouts")
-    .select("id, activity_type, title, distance_meters, duration_seconds, calories, performed_at")
+    .select(
+      "id, activity_type, title, distance_meters, duration_seconds, calories, performed_at, media_url",
+    )
     .eq("user_id", userId)
     .order("performed_at", { ascending: false });
 

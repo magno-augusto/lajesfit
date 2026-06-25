@@ -523,6 +523,7 @@ export type Database = {
           distance_meters: number | null;
           duration_seconds: number | null;
           id: string;
+          media_url: string | null;
           notes: string | null;
           performed_at: string;
           source: string;
@@ -537,6 +538,7 @@ export type Database = {
           distance_meters?: number | null;
           duration_seconds?: number | null;
           id?: string;
+          media_url?: string | null;
           notes?: string | null;
           performed_at?: string;
           source?: string;
@@ -551,6 +553,7 @@ export type Database = {
           distance_meters?: number | null;
           duration_seconds?: number | null;
           id?: string;
+          media_url?: string | null;
           notes?: string | null;
           performed_at?: string;
           source?: string;

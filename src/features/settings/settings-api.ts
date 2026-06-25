@@ -6,12 +6,13 @@ export type ProfileSettings = {
   bio: string | null;
   avatar_url: string | null;
   recovery_email: string | null;
+  is_admin: boolean;
 };
 
 export async function getProfileSettings(userId: string): Promise<ProfileSettings | null> {
   const { data, error } = await supabase
     .from("profiles")
-    .select("username, display_name, bio, avatar_url, recovery_email")
+    .select("username, display_name, bio, avatar_url, recovery_email, is_admin")
     .eq("id", userId)
     .maybeSingle();
   if (error) throw error;

@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { changePassword, useLocalAuth } from "@/features/auth/auth";
 import { supabase } from "@/integrations/supabase/client";
+import { setupStravaWebhook } from "@/features/workouts/strava-api";
 import {
   getProfileSettings,
   updateProfileSettings,
@@ -33,6 +34,9 @@ export function SettingsPage() {
   const [newPassword, setNewPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
 
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [settingUpWebhook, setSettingUpWebhook] = useState(false);
+
   useEffect(() => {
     if (!user) return;
     getProfileSettings(user.id).then((data) => {
@@ -42,6 +46,7 @@ export function SettingsPage() {
       setBio(data.bio ?? "");
       setAvatarUrl(data.avatar_url);
       setRecoveryEmail(data.recovery_email ?? "");
+      setIsAdmin(data.is_admin);
     });
   }, [user]);
 
@@ -105,6 +110,22 @@ export function SettingsPage() {
       toast.error(error instanceof Error ? error.message : "Nao foi possivel trocar a senha");
     } finally {
       setChangingPassword(false);
+    }
+  }
+
+  async function handleSetupWebhook() {
+    setSettingUpWebhook(true);
+    try {
+      const result = await setupStravaWebhook();
+      toast.success(
+        result.created
+          ? "Inscricao do webhook do Strava criada com sucesso."
+          : "Webhook do Strava ja estava configurado.",
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel configurar o webhook");
+    } finally {
+      setSettingUpWebhook(false);
     }
   }
 
@@ -223,6 +244,27 @@ export function SettingsPage() {
           </Button>
         </form>
       </Card>
+
+      {isAdmin && (
+        <Card className="p-6 space-y-3">
+          <div>
+            <p className="text-sm font-semibold">Integracao Strava (admin)</p>
+            <p className="text-sm text-muted-foreground">
+              Registra a inscricao do webhook do Strava para que atividades novas sejam importadas
+              automaticamente para todos os usuarios conectados.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={handleSetupWebhook}
+            disabled={settingUpWebhook}
+          >
+            {settingUpWebhook ? "Configurando..." : "Configurar webhook do Strava"}
+          </Button>
+        </Card>
+      )}
 
       <Card className="p-6">
         <p className="text-sm font-semibold mb-1">E-mail</p>

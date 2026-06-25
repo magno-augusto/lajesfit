@@ -72,6 +72,18 @@ export async function addWorkout(workout: Omit<LocalWorkout, "id">) {
     console.error("Erro ao salvar treino:", error);
     throw new Error(error.message);
   }
+
+  const { error: postError } = await supabase.from("posts").insert({
+    user_id: userId,
+    content: data.title ?? data.activity_type,
+    media_url: null,
+    workout_id: data.id,
+    created_at: data.performed_at,
+  });
+  if (postError) {
+    console.error("Erro ao publicar treino no feed:", postError);
+  }
+
   notifyChange();
   return mapWorkout(data);
 }

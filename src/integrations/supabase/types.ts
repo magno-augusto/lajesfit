@@ -406,6 +406,7 @@ export type Database = {
           media_url: string | null;
           updated_at: string;
           user_id: string;
+          workout_id: string | null;
         };
         Insert: {
           content: string;
@@ -414,6 +415,7 @@ export type Database = {
           media_url?: string | null;
           updated_at?: string;
           user_id: string;
+          workout_id?: string | null;
         };
         Update: {
           content?: string;
@@ -422,6 +424,7 @@ export type Database = {
           media_url?: string | null;
           updated_at?: string;
           user_id?: string;
+          workout_id?: string | null;
         };
         Relationships: [];
       };

@@ -200,11 +200,41 @@ export async function upsertStravaActivities(
 
   if (rows.length === 0) return 0;
 
-  const { error } = await supabase
+  const stravaActivityIds = rows.map((row) => row.strava_activity_id);
+  const { data: existing, error: existingError } = await supabase
     .from("workouts")
-    .upsert(rows, { onConflict: "user_id,strava_activity_id", ignoreDuplicates: false });
+    .select("strava_activity_id")
+    .eq("user_id", userId)
+    .in("strava_activity_id", stravaActivityIds);
+
+  if (existingError) throw new Error(existingError.message);
+  const existingIds = new Set((existing ?? []).map((row) => row.strava_activity_id));
+
+  const { data: upserted, error } = await supabase
+    .from("workouts")
+    .upsert(rows, { onConflict: "user_id,strava_activity_id", ignoreDuplicates: false })
+    .select("id, title, activity_type, media_url, performed_at, strava_activity_id");
 
   if (error) throw new Error(error.message);
+
+  const newWorkouts = (upserted ?? []).filter(
+    (workout) => !existingIds.has(workout.strava_activity_id),
+  );
+  if (newWorkouts.length > 0) {
+    const { error: postsError } = await supabase.from("posts").insert(
+      newWorkouts.map((workout) => ({
+        user_id: userId,
+        content: workout.title ?? workout.activity_type,
+        media_url: workout.media_url,
+        workout_id: workout.id,
+        created_at: workout.performed_at,
+      })),
+    );
+    if (postsError) {
+      console.error("[Strava] Nao foi possivel publicar treinos novos no feed", postsError);
+    }
+  }
+
   return rows.length;
 }
 

@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.lajesfit.app",
+      "sha256_cert_fingerprints": [
+        "0A:86:47:B1:3B:4C:21:F4:BD:E4:7C:EF:20:6E:C4:E4:83:2D:BC:DE:6A:AD:B3:AE:11:DF:FA:63:9A:97:D0:6C"
+      ]
+    }
+  }
+]

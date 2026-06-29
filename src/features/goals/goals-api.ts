@@ -29,11 +29,17 @@ export const ACTIVITY_FACTORS: Record<
   IdrProfile["activityLevel"],
   { label: string; factor: number }
 > = {
-  sedentary: { label: "Pouco ou nenhum exercicio", factor: 1.2 },
-  light: { label: "Exercicio leve 1-3 dias/semana", factor: 1.375 },
-  moderate: { label: "Exercicio moderado 3-5 dias/semana", factor: 1.55 },
-  active: { label: "Exercicio intenso 6-7 dias/semana", factor: 1.725 },
-  very_active: { label: "Treino muito intenso ou trabalho fisico", factor: 1.9 },
+  sedentary: { label: "Trabalho sentado, pouca movimentacao no dia", factor: 1.2 },
+  light: { label: "Fica em pe boa parte do dia (vendas, professor, recepcao)", factor: 1.3 },
+  moderate: {
+    label: "Caminha bastante no dia a dia (entregador, garcom, cuidador)",
+    factor: 1.4,
+  },
+  active: {
+    label: "Trabalho fisico pesado (construcao, mudancas, carga e descarga)",
+    factor: 1.5,
+  },
+  very_active: { label: "Trabalho fisico muito intenso o dia inteiro", factor: 1.6 },
 };
 
 function mapProfile(row: ProfileRow | null): IdrProfile | null {

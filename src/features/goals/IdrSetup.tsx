@@ -135,7 +135,7 @@ export function IdrSetup() {
               </div>
 
               <div className="space-y-2">
-                <Label>Nivel de atividade</Label>
+                <Label>Nivel de atividade no dia a dia (sem contar treino)</Label>
                 <Select
                   value={state.activityLevel}
                   onValueChange={(value) =>

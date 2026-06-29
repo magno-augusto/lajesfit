@@ -8,6 +8,65 @@ export type Database = {
   };
   public: {
     Tables: {
+      challenges: {
+        Row: {
+          created_at: string;
+          id: string;
+          period_end: string;
+          period_start: string;
+          status: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          period_end: string;
+          period_start: string;
+          status?: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          period_end?: string;
+          period_start?: string;
+          status?: string;
+        };
+        Relationships: [];
+      };
+      challenge_participants: {
+        Row: {
+          challenge_id: string;
+          end_weight_kg: number | null;
+          id: string;
+          joined_at: string;
+          start_weight_kg: number;
+          user_id: string;
+        };
+        Insert: {
+          challenge_id: string;
+          end_weight_kg?: number | null;
+          id?: string;
+          joined_at?: string;
+          start_weight_kg: number;
+          user_id: string;
+        };
+        Update: {
+          challenge_id?: string;
+          end_weight_kg?: number | null;
+          id?: string;
+          joined_at?: string;
+          start_weight_kg?: number;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "challenge_participants_challenge_id_fkey";
+            columns: ["challenge_id"];
+            isOneToOne: false;
+            referencedRelation: "challenges";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       diet_entries: {
         Row: {
           carbs_g: number;
@@ -571,6 +630,23 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      ensure_challenge_lifecycle: {
+        Args: Record<PropertyKey, never>;
+        Returns: string;
+      };
+      get_challenge_leaderboard: {
+        Args: {
+          p_challenge_id: string;
+        };
+        Returns: {
+          avatar_url: string | null;
+          display_name: string;
+          pct_loss: number;
+          rank: number;
+          user_id: string;
+          username: string;
+        }[];
+      };
       upsert_catalog_food: {
         Args: {
           p_brand: string | null;
@@ -589,6 +665,7 @@ export type Database = {
       };
     };
     Enums: {
+      challenge_status: "active" | "closed";
       meal_type: "breakfast" | "lunch" | "snack" | "dinner";
       post_type: "general" | "workout" | "diet";
       workout_source: "manual" | "strava";

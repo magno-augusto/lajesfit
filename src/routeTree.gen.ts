@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SetupRouteImport } from './routes/setup'
+import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
@@ -19,12 +20,18 @@ import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedSearchRouteImport } from './routes/_authenticated/search'
 import { Route as AuthenticatedFeedRouteImport } from './routes/_authenticated/feed'
 import { Route as AuthenticatedDietRouteImport } from './routes/_authenticated/diet'
+import { Route as AuthenticatedDesafioRouteImport } from './routes/_authenticated/desafio'
 import { Route as ApiStravaWebhookRouteImport } from './routes/api/strava/webhook'
 import { Route as AuthenticatedProfileUsernameRouteImport } from './routes/_authenticated/profile.$username'
 
 const SetupRoute = SetupRouteImport.update({
   id: '/setup',
   path: '/setup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacidadeRoute = PrivacidadeRouteImport.update({
+  id: '/privacidade',
+  path: '/privacidade',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -71,6 +78,11 @@ const AuthenticatedDietRoute = AuthenticatedDietRouteImport.update({
   path: '/diet',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedDesafioRoute = AuthenticatedDesafioRouteImport.update({
+  id: '/desafio',
+  path: '/desafio',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const ApiStravaWebhookRoute = ApiStravaWebhookRouteImport.update({
   id: '/api/strava/webhook',
   path: '/api/strava/webhook',
@@ -86,7 +98,9 @@ const AuthenticatedProfileUsernameRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/setup': typeof SetupRoute
+  '/desafio': typeof AuthenticatedDesafioRoute
   '/diet': typeof AuthenticatedDietRoute
   '/feed': typeof AuthenticatedFeedRoute
   '/search': typeof AuthenticatedSearchRoute
@@ -99,7 +113,9 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/setup': typeof SetupRoute
+  '/desafio': typeof AuthenticatedDesafioRoute
   '/diet': typeof AuthenticatedDietRoute
   '/feed': typeof AuthenticatedFeedRoute
   '/search': typeof AuthenticatedSearchRoute
@@ -114,7 +130,9 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/setup': typeof SetupRoute
+  '/_authenticated/desafio': typeof AuthenticatedDesafioRoute
   '/_authenticated/diet': typeof AuthenticatedDietRoute
   '/_authenticated/feed': typeof AuthenticatedFeedRoute
   '/_authenticated/search': typeof AuthenticatedSearchRoute
@@ -129,7 +147,9 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/privacidade'
     | '/setup'
+    | '/desafio'
     | '/diet'
     | '/feed'
     | '/search'
@@ -142,7 +162,9 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/privacidade'
     | '/setup'
+    | '/desafio'
     | '/diet'
     | '/feed'
     | '/search'
@@ -156,7 +178,9 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/privacidade'
     | '/setup'
+    | '/_authenticated/desafio'
     | '/_authenticated/diet'
     | '/_authenticated/feed'
     | '/_authenticated/search'
@@ -171,6 +195,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  PrivacidadeRoute: typeof PrivacidadeRoute
   SetupRoute: typeof SetupRoute
   StravaCallbackRoute: typeof StravaCallbackRoute
   ApiStravaWebhookRoute: typeof ApiStravaWebhookRoute
@@ -183,6 +208,13 @@ declare module '@tanstack/react-router' {
       path: '/setup'
       fullPath: '/setup'
       preLoaderRoute: typeof SetupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacidade': {
+      id: '/privacidade'
+      path: '/privacidade'
+      fullPath: '/privacidade'
+      preLoaderRoute: typeof PrivacidadeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -248,6 +280,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDietRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/desafio': {
+      id: '/_authenticated/desafio'
+      path: '/desafio'
+      fullPath: '/desafio'
+      preLoaderRoute: typeof AuthenticatedDesafioRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/api/strava/webhook': {
       id: '/api/strava/webhook'
       path: '/api/strava/webhook'
@@ -266,6 +305,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedDesafioRoute: typeof AuthenticatedDesafioRoute
   AuthenticatedDietRoute: typeof AuthenticatedDietRoute
   AuthenticatedFeedRoute: typeof AuthenticatedFeedRoute
   AuthenticatedSearchRoute: typeof AuthenticatedSearchRoute
@@ -275,6 +315,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedDesafioRoute: AuthenticatedDesafioRoute,
   AuthenticatedDietRoute: AuthenticatedDietRoute,
   AuthenticatedFeedRoute: AuthenticatedFeedRoute,
   AuthenticatedSearchRoute: AuthenticatedSearchRoute,
@@ -290,6 +331,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  PrivacidadeRoute: PrivacidadeRoute,
   SetupRoute: SetupRoute,
   StravaCallbackRoute: StravaCallbackRoute,
   ApiStravaWebhookRoute: ApiStravaWebhookRoute,

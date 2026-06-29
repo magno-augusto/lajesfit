@@ -1,6 +1,17 @@
 import { createFileRoute, Outlet, Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Activity, Apple, Flame, Home, Info, LogIn, LogOut, Menu, Search } from "lucide-react";
+import {
+  Activity,
+  Apple,
+  Flame,
+  Home,
+  Info,
+  LogIn,
+  LogOut,
+  Menu,
+  Search,
+  Trophy,
+} from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -81,6 +92,7 @@ function AppShell() {
     { to: "/feed", icon: Home, label: "Feed" },
     { to: "/diet", icon: Apple, label: "Dieta" },
     { to: "/workouts", icon: Activity, label: "Treinos" },
+    { to: "/desafio", icon: Trophy, label: "Desafio" },
   ] as const;
 
   if (authLoading || fitnessLoading || !session || !idrProfile) {
@@ -134,12 +146,14 @@ function AppShell() {
             <div className="hidden md:block">
               <NewActionMenu />
             </div>
-            <div className="fixed left-1/2 top-0 z-40 min-w-[178px] -translate-x-1/2 rounded-b-lg rounded-t-none bg-gradient-hero px-4 py-3 text-center text-primary-foreground shadow-glow sm:min-w-[230px] sm:px-5 md:static md:z-auto md:min-w-[190px] md:translate-x-0 md:rounded-lg md:px-4 md:py-2 md:shadow-card lg:min-w-[220px]">
+            <div
+              className="fixed left-[158px] top-0 z-40 min-w-[178px] -translate-x-1/2 rounded-b-lg rounded-t-none bg-gradient-hero px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] text-center text-primary-foreground shadow-glow sm:left-1/2 sm:min-w-[230px] sm:px-5 md:static md:z-auto md:left-auto md:min-w-[190px] md:translate-x-0 md:rounded-lg md:px-4 md:py-2 md:pt-2 md:shadow-card lg:min-w-[220px]"
+            >
               <Popover>
                 <PopoverTrigger asChild>
                   <button
                     type="button"
-                    className="absolute right-1.5 top-1.5 inline-flex size-5 items-center justify-center rounded-full text-primary-foreground/85 transition hover:bg-primary-foreground/15 hover:text-primary-foreground focus:outline-none focus:ring-2 focus:ring-primary-foreground/70"
+                    className="absolute right-1.5 top-[calc(env(safe-area-inset-top)+0.375rem)] inline-flex size-5 items-center justify-center rounded-full text-primary-foreground/85 transition hover:bg-primary-foreground/15 hover:text-primary-foreground focus:outline-none focus:ring-2 focus:ring-primary-foreground/70 md:top-1.5"
                     aria-label="Ver detalhes do limite calorico"
                   >
                     <Info className="size-3" />
@@ -225,7 +239,7 @@ function AppShell() {
       </main>
 
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 border-t bg-background">
-        <div className="grid grid-cols-5 items-end">
+        <div className="grid grid-cols-6 items-end">
           {[navItems[0], navItems[1]].map((item) => {
             const active = location.pathname.startsWith(item.to);
             return (
@@ -257,6 +271,17 @@ function AppShell() {
               <Activity className="size-5" />
             </span>
             <span>Treinos</span>
+          </Link>
+          <Link
+            to="/desafio"
+            className={`flex flex-col items-center gap-1 py-3 text-xs ${
+              location.pathname.startsWith("/desafio") ? "text-primary" : "text-muted-foreground"
+            }`}
+          >
+            <span className="flex size-8 items-center justify-center">
+              <Trophy className="size-5" />
+            </span>
+            <span>Desafio</span>
           </Link>
           {user ? (
             <Link

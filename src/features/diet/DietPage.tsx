@@ -122,15 +122,15 @@ export function DietPage() {
         </Button>
       </div>
 
-      <div className="rounded-lg bg-gradient-hero text-primary-foreground p-6 shadow-glow">
-        <div className="flex items-center justify-between flex-wrap gap-4">
+      <div className="rounded-lg bg-gradient-hero text-primary-foreground p-3.5 shadow-glow">
+        <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-primary-foreground/80 text-xs uppercase tracking-widest">
+            <p className="text-primary-foreground/80 text-[11px] uppercase tracking-widest">
               Resumo das refeicoes
             </p>
-            <p className="font-display text-5xl mt-1 flex items-center gap-2">
-              <Flame className="size-8" /> {Math.round(totals.kcal)}{" "}
-              <span className="text-lg font-sans">kcal</span>
+            <p className="font-display text-3xl mt-1 flex items-center gap-1.5">
+              <Flame className="size-5" /> {Math.round(totals.kcal)}{" "}
+              <span className="text-sm font-sans">kcal</span>
             </p>
           </div>
           <AddFoodDialog
@@ -141,7 +141,7 @@ export function DietPage() {
             initialMeal={targetMeal}
           />
         </div>
-        <div className="grid grid-cols-3 gap-4 mt-4">
+        <div className="grid grid-cols-3 gap-2 mt-2.5">
           <Macro label="Proteina" value={totals.p} unit="g" />
           <Macro label="Carboidrato" value={totals.c} unit="g" />
           <Macro label="Gordura" value={totals.g} unit="g" />
@@ -278,11 +278,11 @@ export function DietPage() {
 
 function Macro({ label, value, unit }: { label: string; value: number; unit: string }) {
   return (
-    <div className="bg-primary-foreground/10 rounded-lg p-3">
-      <p className="text-xs text-primary-foreground/70">{label}</p>
-      <p className="font-display text-2xl">
+    <div className="bg-primary-foreground/10 rounded-lg p-2">
+      <p className="text-[11px] text-primary-foreground/70">{label}</p>
+      <p className="font-display text-lg">
         {value.toFixed(1)}
-        <span className="text-sm font-sans ml-1">{unit}</span>
+        <span className="text-xs font-sans ml-1">{unit}</span>
       </p>
     </div>
   );

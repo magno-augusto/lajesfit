@@ -1,5 +1,5 @@
-import { notFound, useParams } from "@tanstack/react-router";
-import { Check, Clock, Lock, Unlock, UserPlus, X } from "lucide-react";
+import { notFound, useNavigate, useParams } from "@tanstack/react-router";
+import { Check, Clock, Lock, LogOut, Unlock, UserPlus, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { deletePost, fetchProfilePosts, type FeedPost } from "@/features/feed/feed-api";
-import { useLocalAuth } from "@/features/auth/auth";
+import { logout, useLocalAuth } from "@/features/auth/auth";
 import {
   acceptFollowRequest,
   cancelFollowRequest,
@@ -27,6 +27,7 @@ type FollowStatus = "none" | "requested" | "following";
 
 export function ProfilePage() {
   const { username } = useParams({ from: "/_authenticated/profile/$username" });
+  const navigate = useNavigate();
   const { user } = useLocalAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -230,6 +231,11 @@ export function ProfilePage() {
   const isMe = profile.id === user.id;
   const canViewPosts = isMe || followStatus === "following" || !profile.is_private;
 
+  async function handleLogout() {
+    await logout();
+    navigate({ to: "/auth", replace: true });
+  }
+
   async function handleDeletePost(post: FeedPost) {
     if (!user || post.user_id !== user.id) return;
 
@@ -296,6 +302,15 @@ export function ProfilePage() {
               aria-label="Privar perfil"
             />
           </div>
+        </Card>
+      )}
+
+      {isMe && (
+        <Card className="p-6">
+          <Button variant="outline" className="w-full" onClick={() => void handleLogout()}>
+            <LogOut className="mr-2 size-4" />
+            Sair da conta
+          </Button>
         </Card>
       )}
 

@@ -20,12 +20,20 @@ import {
   type LeaderboardEntry,
 } from "./challenges-api";
 
+// period_start/period_end vem do banco como "YYYY-MM-DD" (coluna DATE, sem hora).
+// new Date("YYYY-MM-DD") interpreta como UTC meia-noite, o que desloca um dia para
+// tras em fusos negativos (ex: Brasil) ao formatar/comparar em horario local.
+function parseLocalDate(isoDate: string) {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
 function formatPeriod(challenge: Challenge) {
-  const start = new Date(challenge.periodStart).toLocaleDateString("pt-BR", {
+  const start = parseLocalDate(challenge.periodStart).toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "short",
   });
-  const end = new Date(challenge.periodEnd).toLocaleDateString("pt-BR", {
+  const end = parseLocalDate(challenge.periodEnd).toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "short",
   });
@@ -33,7 +41,7 @@ function formatPeriod(challenge: Challenge) {
 }
 
 function daysRemaining(challenge: Challenge) {
-  const end = new Date(challenge.periodEnd);
+  const end = parseLocalDate(challenge.periodEnd);
   end.setHours(23, 59, 59, 999);
   const diff = end.getTime() - Date.now();
   return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));

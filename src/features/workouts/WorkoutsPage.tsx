@@ -165,16 +165,18 @@ export function WorkoutsPage() {
         </Button>
       </div>
 
-      <div className="rounded-lg bg-gradient-hero text-primary-foreground p-6 shadow-glow">
-        <div className="flex items-center justify-between flex-wrap gap-4">
+      <div className="rounded-lg bg-gradient-hero text-primary-foreground p-3.5 shadow-glow">
+        <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-widest opacity-80">Resumo dos exercicios</p>
-            <div className="mt-2 flex items-center gap-2 text-sm font-medium opacity-90">
-              <Flame className="size-4" />
+            <p className="text-[11px] uppercase tracking-widest opacity-80">
+              Resumo dos exercicios
+            </p>
+            <div className="mt-1.5 flex items-center gap-1.5 text-xs font-medium opacity-90">
+              <Flame className="size-3.5" />
               <span>Calorias</span>
             </div>
-            <p className="font-display text-5xl mt-1">
-              {Math.round(totals.calories)} <span className="text-base font-sans">kcal</span>
+            <p className="font-display text-3xl mt-1">
+              {Math.round(totals.calories)} <span className="text-sm font-sans">kcal</span>
             </p>
           </div>
           <ManualWorkoutDialog
@@ -184,7 +186,7 @@ export function WorkoutsPage() {
             defaultStartedAt={buildStartedAtForSelectedDay(selectedDate)}
           />
         </div>
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-2.5 flex flex-wrap gap-2">
           <Button
             type="button"
             variant="secondary"
@@ -217,18 +219,18 @@ export function WorkoutsPage() {
             </Button>
           )}
         </div>
-        <div className="grid grid-cols-3 gap-2 mt-4 text-sm">
-          <div>
-            <p className="opacity-70 text-xs">Treinos</p>
-            <p className="font-display text-xl">{totals.count}</p>
+        <div className="grid grid-cols-3 gap-2 mt-2.5">
+          <div className="bg-primary-foreground/10 rounded-lg p-2">
+            <p className="text-[11px] text-primary-foreground/70">Treinos</p>
+            <p className="font-display text-lg">{totals.count}</p>
           </div>
-          <div>
-            <p className="opacity-70 text-xs">Tempo</p>
-            <p className="font-display text-xl">{formatDuration(totals.duration)}</p>
+          <div className="bg-primary-foreground/10 rounded-lg p-2">
+            <p className="text-[11px] text-primary-foreground/70">Tempo</p>
+            <p className="font-display text-lg">{formatDuration(totals.duration)}</p>
           </div>
-          <div>
-            <p className="opacity-70 text-xs">Distancia</p>
-            <p className="font-display text-xl">{formatDistance(totals.distance)}</p>
+          <div className="bg-primary-foreground/10 rounded-lg p-2">
+            <p className="text-[11px] text-primary-foreground/70">Distancia</p>
+            <p className="font-display text-lg">{formatDistance(totals.distance)}</p>
           </div>
         </div>
       </div>

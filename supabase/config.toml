@@ -1,1 +1,20 @@
 project_id = "lmqzjmxtlecbwqpoumux"
+
+[auth]
+site_url = "https://lajesfit.vercel.app"
+additional_redirect_urls = [
+  "https://lajesfit.vercel.app/**",
+  "http://localhost:8080/**",
+  "http://192.168.0.155:8080/**",
+]
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
+[auth.email]
+max_frequency = "1m0s"
+otp_length = 8
+
+[auth.sms]
+max_frequency = "5s"

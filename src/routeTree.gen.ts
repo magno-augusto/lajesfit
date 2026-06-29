@@ -10,16 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SetupRouteImport } from './routes/setup'
+import { Route as RequireEmailRouteImport } from './routes/require-email'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StravaCallbackRouteImport } from './routes/strava.callback'
-import { Route as AuthenticatedWorkoutsRouteImport } from './routes/_authenticated/workouts'
+import { Route as AuthResetPasswordRouteImport } from './routes/auth.reset-password'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedSearchRouteImport } from './routes/_authenticated/search'
 import { Route as AuthenticatedFeedRouteImport } from './routes/_authenticated/feed'
-import { Route as AuthenticatedDietRouteImport } from './routes/_authenticated/diet'
+import { Route as AuthenticatedDiarioRouteImport } from './routes/_authenticated/diario'
 import { Route as AuthenticatedDesafioRouteImport } from './routes/_authenticated/desafio'
 import { Route as ApiStravaWebhookRouteImport } from './routes/api/strava/webhook'
 import { Route as AuthenticatedProfileUsernameRouteImport } from './routes/_authenticated/profile.$username'
@@ -27,6 +28,11 @@ import { Route as AuthenticatedProfileUsernameRouteImport } from './routes/_auth
 const SetupRoute = SetupRouteImport.update({
   id: '/setup',
   path: '/setup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RequireEmailRoute = RequireEmailRouteImport.update({
+  id: '/require-email',
+  path: '/require-email',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacidadeRoute = PrivacidadeRouteImport.update({
@@ -53,10 +59,10 @@ const StravaCallbackRoute = StravaCallbackRouteImport.update({
   path: '/strava/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedWorkoutsRoute = AuthenticatedWorkoutsRouteImport.update({
-  id: '/workouts',
-  path: '/workouts',
-  getParentRoute: () => AuthenticatedRouteRoute,
+const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => AuthRoute,
 } as any)
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   id: '/settings',
@@ -73,9 +79,9 @@ const AuthenticatedFeedRoute = AuthenticatedFeedRouteImport.update({
   path: '/feed',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedDietRoute = AuthenticatedDietRouteImport.update({
-  id: '/diet',
-  path: '/diet',
+const AuthenticatedDiarioRoute = AuthenticatedDiarioRouteImport.update({
+  id: '/diario',
+  path: '/diario',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedDesafioRoute = AuthenticatedDesafioRouteImport.update({
@@ -97,30 +103,32 @@ const AuthenticatedProfileUsernameRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/privacidade': typeof PrivacidadeRoute
+  '/require-email': typeof RequireEmailRoute
   '/setup': typeof SetupRoute
   '/desafio': typeof AuthenticatedDesafioRoute
-  '/diet': typeof AuthenticatedDietRoute
+  '/diario': typeof AuthenticatedDiarioRoute
   '/feed': typeof AuthenticatedFeedRoute
   '/search': typeof AuthenticatedSearchRoute
   '/settings': typeof AuthenticatedSettingsRoute
-  '/workouts': typeof AuthenticatedWorkoutsRoute
+  '/auth/reset-password': typeof AuthResetPasswordRoute
   '/strava/callback': typeof StravaCallbackRoute
   '/profile/$username': typeof AuthenticatedProfileUsernameRoute
   '/api/strava/webhook': typeof ApiStravaWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/privacidade': typeof PrivacidadeRoute
+  '/require-email': typeof RequireEmailRoute
   '/setup': typeof SetupRoute
   '/desafio': typeof AuthenticatedDesafioRoute
-  '/diet': typeof AuthenticatedDietRoute
+  '/diario': typeof AuthenticatedDiarioRoute
   '/feed': typeof AuthenticatedFeedRoute
   '/search': typeof AuthenticatedSearchRoute
   '/settings': typeof AuthenticatedSettingsRoute
-  '/workouts': typeof AuthenticatedWorkoutsRoute
+  '/auth/reset-password': typeof AuthResetPasswordRoute
   '/strava/callback': typeof StravaCallbackRoute
   '/profile/$username': typeof AuthenticatedProfileUsernameRoute
   '/api/strava/webhook': typeof ApiStravaWebhookRoute
@@ -129,15 +137,16 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/privacidade': typeof PrivacidadeRoute
+  '/require-email': typeof RequireEmailRoute
   '/setup': typeof SetupRoute
   '/_authenticated/desafio': typeof AuthenticatedDesafioRoute
-  '/_authenticated/diet': typeof AuthenticatedDietRoute
+  '/_authenticated/diario': typeof AuthenticatedDiarioRoute
   '/_authenticated/feed': typeof AuthenticatedFeedRoute
   '/_authenticated/search': typeof AuthenticatedSearchRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
-  '/_authenticated/workouts': typeof AuthenticatedWorkoutsRoute
+  '/auth/reset-password': typeof AuthResetPasswordRoute
   '/strava/callback': typeof StravaCallbackRoute
   '/_authenticated/profile/$username': typeof AuthenticatedProfileUsernameRoute
   '/api/strava/webhook': typeof ApiStravaWebhookRoute
@@ -148,13 +157,14 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/privacidade'
+    | '/require-email'
     | '/setup'
     | '/desafio'
-    | '/diet'
+    | '/diario'
     | '/feed'
     | '/search'
     | '/settings'
-    | '/workouts'
+    | '/auth/reset-password'
     | '/strava/callback'
     | '/profile/$username'
     | '/api/strava/webhook'
@@ -163,13 +173,14 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/privacidade'
+    | '/require-email'
     | '/setup'
     | '/desafio'
-    | '/diet'
+    | '/diario'
     | '/feed'
     | '/search'
     | '/settings'
-    | '/workouts'
+    | '/auth/reset-password'
     | '/strava/callback'
     | '/profile/$username'
     | '/api/strava/webhook'
@@ -179,13 +190,14 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/privacidade'
+    | '/require-email'
     | '/setup'
     | '/_authenticated/desafio'
-    | '/_authenticated/diet'
+    | '/_authenticated/diario'
     | '/_authenticated/feed'
     | '/_authenticated/search'
     | '/_authenticated/settings'
-    | '/_authenticated/workouts'
+    | '/auth/reset-password'
     | '/strava/callback'
     | '/_authenticated/profile/$username'
     | '/api/strava/webhook'
@@ -194,8 +206,9 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
-  AuthRoute: typeof AuthRoute
+  AuthRoute: typeof AuthRouteWithChildren
   PrivacidadeRoute: typeof PrivacidadeRoute
+  RequireEmailRoute: typeof RequireEmailRoute
   SetupRoute: typeof SetupRoute
   StravaCallbackRoute: typeof StravaCallbackRoute
   ApiStravaWebhookRoute: typeof ApiStravaWebhookRoute
@@ -208,6 +221,13 @@ declare module '@tanstack/react-router' {
       path: '/setup'
       fullPath: '/setup'
       preLoaderRoute: typeof SetupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/require-email': {
+      id: '/require-email'
+      path: '/require-email'
+      fullPath: '/require-email'
+      preLoaderRoute: typeof RequireEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacidade': {
@@ -245,12 +265,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StravaCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/workouts': {
-      id: '/_authenticated/workouts'
-      path: '/workouts'
-      fullPath: '/workouts'
-      preLoaderRoute: typeof AuthenticatedWorkoutsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/auth/reset-password': {
+      id: '/auth/reset-password'
+      path: '/reset-password'
+      fullPath: '/auth/reset-password'
+      preLoaderRoute: typeof AuthResetPasswordRouteImport
+      parentRoute: typeof AuthRoute
     }
     '/_authenticated/settings': {
       id: '/_authenticated/settings'
@@ -273,11 +293,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFeedRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/diet': {
-      id: '/_authenticated/diet'
-      path: '/diet'
-      fullPath: '/diet'
-      preLoaderRoute: typeof AuthenticatedDietRouteImport
+    '/_authenticated/diario': {
+      id: '/_authenticated/diario'
+      path: '/diario'
+      fullPath: '/diario'
+      preLoaderRoute: typeof AuthenticatedDiarioRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/desafio': {
@@ -306,32 +326,41 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDesafioRoute: typeof AuthenticatedDesafioRoute
-  AuthenticatedDietRoute: typeof AuthenticatedDietRoute
+  AuthenticatedDiarioRoute: typeof AuthenticatedDiarioRoute
   AuthenticatedFeedRoute: typeof AuthenticatedFeedRoute
   AuthenticatedSearchRoute: typeof AuthenticatedSearchRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
-  AuthenticatedWorkoutsRoute: typeof AuthenticatedWorkoutsRoute
   AuthenticatedProfileUsernameRoute: typeof AuthenticatedProfileUsernameRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDesafioRoute: AuthenticatedDesafioRoute,
-  AuthenticatedDietRoute: AuthenticatedDietRoute,
+  AuthenticatedDiarioRoute: AuthenticatedDiarioRoute,
   AuthenticatedFeedRoute: AuthenticatedFeedRoute,
   AuthenticatedSearchRoute: AuthenticatedSearchRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
-  AuthenticatedWorkoutsRoute: AuthenticatedWorkoutsRoute,
   AuthenticatedProfileUsernameRoute: AuthenticatedProfileUsernameRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface AuthRouteChildren {
+  AuthResetPasswordRoute: typeof AuthResetPasswordRoute
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  AuthResetPasswordRoute: AuthResetPasswordRoute,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
-  AuthRoute: AuthRoute,
+  AuthRoute: AuthRouteWithChildren,
   PrivacidadeRoute: PrivacidadeRoute,
+  RequireEmailRoute: RequireEmailRoute,
   SetupRoute: SetupRoute,
   StravaCallbackRoute: StravaCallbackRoute,
   ApiStravaWebhookRoute: ApiStravaWebhookRoute,

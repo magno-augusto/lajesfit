@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type LocalAuthSession = Session;
 
+export const LEGACY_EMAIL_DOMAIN = "@lajesfit.local";
+
 function normalizeUsername(username: string) {
   return username
     .trim()
@@ -11,16 +13,28 @@ function normalizeUsername(username: string) {
     .replace(/[^a-z0-9_]/g, "");
 }
 
-function usernameToEmail(username: string) {
-  return `${normalizeUsername(username)}@lajesfit.local`;
+function isValidEmail(email: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-export async function signUpWithPassword(username: string, password: string) {
+export function describeEmailUpdateError(error: { code?: string; message: string }) {
+  if (error.code === "email_exists" || /already.*registered|already.*use/i.test(error.message)) {
+    return "Esse e-mail ja esta em uso por outra conta. Se for sua (ex: criada com login do Google), entre com ela em vez de cadastrar o e-mail aqui.";
+  }
+  return error.message;
+}
+
+export async function signUpWithPassword(username: string, password: string, email: string) {
   const normalizedUsername = normalizeUsername(username);
   const cleanPassword = password.trim();
+  const cleanEmail = email.trim().toLowerCase();
 
-  if (!normalizedUsername || !cleanPassword) {
-    throw new Error("Informe usuario e senha para criar sua conta");
+  if (!normalizedUsername || !cleanPassword || !cleanEmail) {
+    throw new Error("Informe usuario, e-mail e senha para criar sua conta");
+  }
+
+  if (!isValidEmail(cleanEmail)) {
+    throw new Error("Informe um e-mail valido");
   }
 
   if (cleanPassword.length < 6) {
@@ -28,7 +42,7 @@ export async function signUpWithPassword(username: string, password: string) {
   }
 
   const { data, error } = await supabase.auth.signUp({
-    email: usernameToEmail(normalizedUsername),
+    email: cleanEmail,
     password: cleanPassword,
     options: {
       data: {
@@ -51,13 +65,49 @@ export async function loginWithPassword(username: string, password: string) {
     throw new Error("Informe usuario e senha para entrar");
   }
 
+  const { data: email, error: lookupError } = await supabase.rpc("get_login_email", {
+    p_username: normalizedUsername,
+  });
+  if (lookupError || !email) throw new Error("Usuario ou senha incorretos");
+
   const { data, error } = await supabase.auth.signInWithPassword({
-    email: usernameToEmail(normalizedUsername),
+    email,
     password: cleanPassword,
   });
 
   if (error) throw new Error("Usuario ou senha incorretos");
   return data;
+}
+
+export async function requestPasswordReset(username: string) {
+  const normalizedUsername = normalizeUsername(username);
+  if (!normalizedUsername) throw new Error("Informe seu usuario");
+
+  const { data: email, error: lookupError } = await supabase.rpc("get_login_email", {
+    p_username: normalizedUsername,
+  });
+  if (lookupError || !email) {
+    throw new Error("Nao encontramos uma conta com esse usuario");
+  }
+
+  if (typeof window === "undefined") {
+    throw new Error("Recuperacao de senha indisponivel neste ambiente");
+  }
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/auth/reset-password`,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function confirmNewPassword(newPassword: string) {
+  const cleanPassword = newPassword.trim();
+  if (cleanPassword.length < 6) {
+    throw new Error("A nova senha precisa ter pelo menos 6 caracteres");
+  }
+
+  const { error } = await supabase.auth.updateUser({ password: cleanPassword });
+  if (error) throw new Error(error.message);
 }
 
 export async function loginWithGoogle() {

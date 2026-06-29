@@ -125,12 +125,13 @@ function buildMealPostContent(meal: LocalMeal["meal"], items: MealFoodInput[]) {
     }),
     { calories: 0, protein: 0, carbs: 0, fat: 0 },
   );
-  const itemList = items.map((item) => `${item.name} (${item.grams}g)`).join(", ");
+  const itemList = items.map((item) => `- ${item.grams}g ${item.name}`).join("\n");
 
   return [
     `${mealLabel(meal)} registrado na dieta.`,
     `Total: ${Math.round(totals.calories)} kcal - ${totals.protein.toFixed(1)}P / ${totals.carbs.toFixed(1)}C / ${totals.fat.toFixed(1)}G.`,
-    `Itens: ${itemList}.`,
+    `Itens:`,
+    itemList,
   ].join("\n");
 }
 

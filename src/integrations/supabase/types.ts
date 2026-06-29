@@ -328,6 +328,7 @@ export type Database = {
         Row: {
           access_token: string;
           athlete_id: number | null;
+          created_at: string;
           expires_at: number;
           refresh_token: string;
           scope: string | null;
@@ -337,6 +338,7 @@ export type Database = {
         Insert: {
           access_token: string;
           athlete_id?: number | null;
+          created_at?: string;
           expires_at: number;
           refresh_token: string;
           scope?: string | null;
@@ -346,6 +348,7 @@ export type Database = {
         Update: {
           access_token?: string;
           athlete_id?: number | null;
+          created_at?: string;
           expires_at?: number;
           refresh_token?: string;
           scope?: string | null;
@@ -398,6 +401,54 @@ export type Database = {
           updates?: Json;
         };
         Relationships: [];
+      };
+      notifications: {
+        Row: {
+          actor_id: string;
+          comment_id: string | null;
+          created_at: string;
+          id: string;
+          post_id: string | null;
+          read_at: string | null;
+          type: string;
+          user_id: string;
+        };
+        Insert: {
+          actor_id: string;
+          comment_id?: string | null;
+          created_at?: string;
+          id?: string;
+          post_id?: string | null;
+          read_at?: string | null;
+          type: string;
+          user_id: string;
+        };
+        Update: {
+          actor_id?: string;
+          comment_id?: string | null;
+          created_at?: string;
+          id?: string;
+          post_id?: string | null;
+          read_at?: string | null;
+          type?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "notifications_post_id_fkey";
+            columns: ["post_id"];
+            isOneToOne: false;
+            referencedRelation: "posts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notifications_comment_id_fkey";
+            columns: ["comment_id"];
+            isOneToOne: false;
+            referencedRelation: "post_comments";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       post_comments: {
         Row: {
@@ -457,6 +508,32 @@ export type Database = {
           },
         ];
       };
+      post_views: {
+        Row: {
+          post_id: string;
+          user_id: string;
+          viewed_at: string;
+        };
+        Insert: {
+          post_id: string;
+          user_id: string;
+          viewed_at?: string;
+        };
+        Update: {
+          post_id?: string;
+          user_id?: string;
+          viewed_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "post_views_post_id_fkey";
+            columns: ["post_id"];
+            isOneToOne: false;
+            referencedRelation: "posts";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       posts: {
         Row: {
           content: string;
@@ -502,6 +579,7 @@ export type Database = {
           id: string;
           is_admin: boolean;
           is_private: boolean;
+          notifications_enabled: boolean;
           recovery_email: string | null;
           updated_at: string;
           username: string;
@@ -520,6 +598,7 @@ export type Database = {
           id: string;
           is_admin?: boolean;
           is_private?: boolean;
+          notifications_enabled?: boolean;
           recovery_email?: string | null;
           updated_at?: string;
           username: string;
@@ -538,6 +617,7 @@ export type Database = {
           id?: string;
           is_admin?: boolean;
           is_private?: boolean;
+          notifications_enabled?: boolean;
           recovery_email?: string | null;
           updated_at?: string;
           username?: string;
@@ -634,6 +714,22 @@ export type Database = {
         Args: Record<PropertyKey, never>;
         Returns: string;
       };
+      get_login_email: {
+        Args: {
+          p_username: string;
+        };
+        Returns: string;
+      };
+      get_feed_post_ids: {
+        Args: {
+          p_user_id: string;
+          p_limit: number;
+          p_offset: number;
+        };
+        Returns: {
+          post_id: string;
+        }[];
+      };
       get_challenge_leaderboard: {
         Args: {
           p_challenge_id: string;
@@ -646,6 +742,39 @@ export type Database = {
           user_id: string;
           username: string;
         }[];
+      };
+      get_workout_days_leaderboard: {
+        Args: {
+          p_limit?: number;
+        };
+        Returns: {
+          avatar_url: string | null;
+          display_name: string;
+          active_days: number;
+          user_id: string;
+          username: string;
+        }[];
+      };
+      get_diet_days_leaderboard: {
+        Args: {
+          p_limit?: number;
+        };
+        Returns: {
+          avatar_url: string | null;
+          display_name: string;
+          active_days: number;
+          user_id: string;
+          username: string;
+        }[];
+      };
+      admin_set_participant_weight: {
+        Args: {
+          p_challenge_id: string;
+          p_user_id: string;
+          p_start_weight_kg: number;
+          p_end_weight_kg?: number | null;
+        };
+        Returns: undefined;
       };
       upsert_catalog_food: {
         Args: {
@@ -666,6 +795,7 @@ export type Database = {
     };
     Enums: {
       challenge_status: "active" | "closed";
+      notification_type: "like" | "comment";
       meal_type: "breakfast" | "lunch" | "snack" | "dinner";
       post_type: "general" | "workout" | "diet";
       workout_source: "manual" | "strava";

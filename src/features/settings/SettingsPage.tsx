@@ -1,19 +1,27 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { Bell, BellOff, Lock, Unlock } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { changePassword, useLocalAuth } from "@/features/auth/auth";
+import {
+  changePassword,
+  describeEmailUpdateError,
+  LEGACY_EMAIL_DOMAIN,
+  useLocalAuth,
+} from "@/features/auth/auth";
 import { supabase } from "@/integrations/supabase/client";
+import { updateProfilePrivacy } from "@/features/profile/follows-api";
 import { setupStravaWebhook } from "@/features/workouts/strava-api";
 import {
   getProfileSettings,
+  updateNotificationsEnabled,
   updateProfileSettings,
-  updateRecoveryEmail,
   uploadAvatar,
 } from "./settings-api";
 
@@ -27,6 +35,7 @@ export function SettingsPage() {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
 
+  const hasRealEmail = Boolean(user?.email && !user.email.endsWith(LEGACY_EMAIL_DOMAIN));
   const [recoveryEmail, setRecoveryEmail] = useState("");
   const [savingRecoveryEmail, setSavingRecoveryEmail] = useState(false);
 
@@ -37,6 +46,12 @@ export function SettingsPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [settingUpWebhook, setSettingUpWebhook] = useState(false);
 
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [savingPrivacy, setSavingPrivacy] = useState(false);
+
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [savingNotifications, setSavingNotifications] = useState(false);
+
   useEffect(() => {
     if (!user) return;
     getProfileSettings(user.id).then((data) => {
@@ -45,10 +60,40 @@ export function SettingsPage() {
       setDisplayName(data.display_name);
       setBio(data.bio ?? "");
       setAvatarUrl(data.avatar_url);
-      setRecoveryEmail(data.recovery_email ?? "");
       setIsAdmin(data.is_admin);
+      setIsPrivate(data.is_private);
+      setNotificationsEnabled(data.notifications_enabled);
     });
-  }, [user]);
+    setRecoveryEmail(hasRealEmail ? (user.email ?? "") : "");
+  }, [hasRealEmail, user]);
+
+  async function updatePrivacy(nextPrivate: boolean) {
+    if (!user) return;
+    setSavingPrivacy(true);
+    try {
+      await updateProfilePrivacy(user.id, nextPrivate);
+      setIsPrivate(nextPrivate);
+      toast.success(nextPrivate ? "Perfil privado ativado" : "Perfil publico ativado");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel alterar privacidade");
+    } finally {
+      setSavingPrivacy(false);
+    }
+  }
+
+  async function updateNotifications(nextEnabled: boolean) {
+    if (!user) return;
+    setSavingNotifications(true);
+    try {
+      await updateNotificationsEnabled(user.id, nextEnabled);
+      setNotificationsEnabled(nextEnabled);
+      toast.success(nextEnabled ? "Notificacoes ativadas" : "Notificacoes silenciadas");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel alterar notificacoes");
+    } finally {
+      setSavingNotifications(false);
+    }
+  }
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -87,10 +132,16 @@ export function SettingsPage() {
   async function saveRecoveryEmail(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
+    const cleanEmail = recoveryEmail.trim().toLowerCase();
+    if (!cleanEmail) return;
     setSavingRecoveryEmail(true);
     try {
-      await updateRecoveryEmail(user.id, recoveryEmail.trim() || null);
-      toast.success("E-mail de contato atualizado!");
+      const { error } = await supabase.auth.updateUser(
+        { email: cleanEmail },
+        { emailRedirectTo: `${window.location.origin}/feed` },
+      );
+      if (error) throw new Error(describeEmailUpdateError(error));
+      toast.success("Enviamos um link de confirmacao para o novo e-mail");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Nao foi possivel salvar o e-mail");
     } finally {
@@ -187,6 +238,58 @@ export function SettingsPage() {
         </form>
       </Card>
 
+      <Card className="p-6">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 rounded-full bg-primary/10 p-2 text-primary">
+              {isPrivate ? <Lock className="size-4" /> : <Unlock className="size-4" />}
+            </div>
+            <div>
+              <h2 className="font-display text-2xl">PRIVACIDADE</h2>
+              <p className="text-sm text-muted-foreground">
+                {isPrivate
+                  ? "Suas publicacoes aparecem apenas para seguidores aprovados."
+                  : "Suas publicacoes vao para o feed e aparecem para todos os usuarios da plataforma."}
+              </p>
+            </div>
+          </div>
+          <Switch
+            checked={!isPrivate}
+            onCheckedChange={(checked) => updatePrivacy(!checked)}
+            disabled={savingPrivacy}
+            aria-label="Publicar no feed"
+          />
+        </div>
+      </Card>
+
+      <Card className="p-6">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 rounded-full bg-primary/10 p-2 text-primary">
+              {notificationsEnabled ? (
+                <Bell className="size-4" />
+              ) : (
+                <BellOff className="size-4" />
+              )}
+            </div>
+            <div>
+              <h2 className="font-display text-2xl">NOTIFICAÇÕES</h2>
+              <p className="text-sm text-muted-foreground">
+                {notificationsEnabled
+                  ? "Voce recebe notificacoes de curtidas e comentarios nas suas publicacoes."
+                  : "Notificacoes silenciadas: voce nao recebera avisos de curtidas e comentarios."}
+              </p>
+            </div>
+          </div>
+          <Switch
+            checked={notificationsEnabled}
+            onCheckedChange={updateNotifications}
+            disabled={savingNotifications}
+            aria-label="Receber notificacoes"
+          />
+        </div>
+      </Card>
+
       <Card className="p-6 space-y-4">
         <div>
           <p className="text-sm font-semibold">Segurança</p>
@@ -227,20 +330,22 @@ export function SettingsPage() {
 
         <form onSubmit={saveRecoveryEmail} className="space-y-3">
           <div className="space-y-2">
-            <Label htmlFor="recovery-email">E-mail de contato (opcional)</Label>
+            <Label htmlFor="recovery-email">E-mail da conta</Label>
             <Input
               id="recovery-email"
               type="email"
               placeholder="seu@email.com"
               value={recoveryEmail}
               onChange={(e) => setRecoveryEmail(e.target.value)}
+              required
             />
             <p className="text-xs text-muted-foreground">
-              Usado para identificar sua conta caso voce precise de ajuda para recuperar o acesso.
+              Usado para recuperar sua senha caso voce a esqueca. Ao trocar, enviamos um link de
+              confirmacao para o novo e-mail.
             </p>
           </div>
           <Button type="submit" variant="outline" className="w-full" disabled={savingRecoveryEmail}>
-            {savingRecoveryEmail ? "Salvando..." : "Salvar e-mail de contato"}
+            {savingRecoveryEmail ? "Salvando..." : "Salvar e-mail"}
           </Button>
         </form>
       </Card>
@@ -268,8 +373,15 @@ export function SettingsPage() {
 
       <Card className="p-6">
         <p className="text-sm font-semibold mb-1">E-mail</p>
-        <p className="text-sm text-muted-foreground mb-4">{user?.email}</p>
-        <Button variant="destructive" onClick={signOut} className="w-full">
+        <p className="text-sm text-muted-foreground">
+          {hasRealEmail ? user?.email : "Nenhum e-mail real cadastrado ainda"}
+        </p>
+        {user?.new_email && (
+          <p className="text-xs text-muted-foreground mb-4">
+            Confirmacao pendente para {user.new_email}.
+          </p>
+        )}
+        <Button variant="destructive" onClick={signOut} className="mt-4 w-full">
           Sair da conta
         </Button>
       </Card>

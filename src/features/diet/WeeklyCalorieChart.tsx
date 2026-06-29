@@ -1,10 +1,5 @@
 import { Bar, BarChart, CartesianGrid, LabelList, ReferenceLine, XAxis } from "recharts";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from "@/components/ui/chart";
+import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 import { isSameLocalDate } from "@/lib/date";
 import type { LocalMeal } from "./meals-api";
 
@@ -39,8 +34,8 @@ export function WeeklyCalorieChart({
   });
 
   return (
-    <div className="rounded-lg border bg-card p-3 shadow-card">
-      <p className="mb-2 text-sm font-medium text-muted-foreground">Calorias nos ultimos 7 dias</p>
+    <div className="p-3">
+      <p className="mb-2 text-sm font-medium text-muted-foreground">Calorias na semana</p>
       <ChartContainer config={chartConfig} className="h-28 w-full">
         <BarChart data={data} margin={{ top: 16 }}>
           <CartesianGrid vertical={false} strokeDasharray="3 3" />
@@ -48,7 +43,6 @@ export function WeeklyCalorieChart({
           {dailyTarget > 0 && (
             <ReferenceLine y={dailyTarget} stroke="var(--color-calories)" strokeDasharray="4 4" />
           )}
-          <ChartTooltip content={<ChartTooltipContent />} />
           <Bar dataKey="calories" fill="var(--color-calories)" radius={4}>
             <LabelList dataKey="calories" position="top" fontSize={11} />
           </Bar>

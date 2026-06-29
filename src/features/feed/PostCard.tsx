@@ -1,4 +1,4 @@
-import { Activity, Heart, MessageCircle, MoreHorizontal, Trash2 } from "lucide-react";
+import { Activity, Heart, MessageCircle, MoreHorizontal, Share2, Trash2 } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -41,9 +41,16 @@ export function PostCard({
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const navigate = useNavigate();
   const canDelete = currentUserId === post.user_id && Boolean(onDelete);
+  const canShare = currentUserId === post.user_id;
   const profileUsername = post.profile?.username ?? "user";
+  const hasMedia = post.media_urls.length > 0;
+  const contentLines = post.content?.split("\n") ?? [];
+  const shouldTruncate = hasMedia && !descriptionExpanded && contentLines.length > 1;
+  const visibleContent = shouldTruncate ? contentLines[0] : post.content;
 
   async function toggleLike() {
     if (!currentUserId) return;
@@ -57,6 +64,51 @@ export function PostCard({
       setLiked(wasLiked);
       setCount((c) => (wasLiked ? c + 1 : c - 1));
       toast.error(error instanceof Error ? error.message : "Nao foi possivel curtir a publicacao");
+    }
+  }
+
+  async function handleShare() {
+    const authorName = post.profile?.display_name ?? "Atleta";
+    const text = post.content ? `${authorName} no Lajes Fit: ${post.content}` : `${authorName} no Lajes Fit`;
+    const url = "https://lajesfit.vercel.app";
+    const mediaUrl = post.media_urls[0];
+
+    setSharing(true);
+    try {
+      let file: File | null = null;
+      if (mediaUrl) {
+        try {
+          const response = await fetch(mediaUrl);
+          const blob = await response.blob();
+          const extension = blob.type.split("/")[1] ?? "jpg";
+          file = new File([blob], `lajesfit-post.${extension}`, { type: blob.type });
+        } catch {
+          file = null;
+        }
+      }
+
+      const canShareFiles =
+        file && typeof navigator.canShare === "function" && navigator.canShare({ files: [file] });
+
+      if (navigator.share) {
+        await navigator.share(
+          canShareFiles && file ? { text, url, files: [file] } : { text, url },
+        );
+        return;
+      }
+
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(`${text}\n${url}`);
+        toast.success("Copiado! Cole no app que quiser compartilhar.");
+        return;
+      }
+
+      toast.error("Compartilhamento nao suportado neste navegador");
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") return;
+      toast.error("Nao foi possivel compartilhar a publicacao");
+    } finally {
+      setSharing(false);
     }
   }
 
@@ -168,9 +220,18 @@ export function PostCard({
       )}
 
       {post.content && (
-        <p className="px-4 pb-3 pt-3 text-[15px] leading-relaxed whitespace-pre-wrap">
-          {post.content}
-        </p>
+        <div className="px-4 pb-3 pt-3 text-[15px] leading-relaxed">
+          <p className="whitespace-pre-wrap">{visibleContent}</p>
+          {shouldTruncate && (
+            <button
+              type="button"
+              onClick={() => setDescriptionExpanded(true)}
+              className="mt-1 text-sm font-medium text-muted-foreground hover:underline"
+            >
+              ver mais
+            </button>
+          )}
+        </div>
       )}
 
       {post.workout && (
@@ -215,6 +276,11 @@ export function PostCard({
         <Button variant="ghost" size="sm" onClick={() => setCommentsOpen(true)}>
           <MessageCircle className="size-4 mr-2" /> {commentsCount}
         </Button>
+        {canShare && (
+          <Button variant="ghost" size="sm" onClick={() => void handleShare()} disabled={sharing}>
+            <Share2 className="size-4 mr-2" /> Compartilhar
+          </Button>
+        )}
       </footer>
 
       <CommentsDialog

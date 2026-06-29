@@ -3,9 +3,22 @@ import { LogIn, UserPlus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { loginWithGoogle, loginWithPassword, signUpWithPassword, useLocalAuth } from "./auth";
+import {
+  loginWithGoogle,
+  loginWithPassword,
+  requestPasswordReset,
+  signUpWithPassword,
+  useLocalAuth,
+} from "./auth";
 import { getIdrProfile } from "@/features/goals/goals-api";
 import { useFitness } from "@/features/fitness/useFitness";
 import logo from "@/assets/logo.png";
@@ -16,9 +29,14 @@ export function AuthPage() {
   const { idrProfile, loading: fitnessLoading } = useFitness();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [googleSubmitting, setGoogleSubmitting] = useState(false);
+
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetUsername, setResetUsername] = useState("");
+  const [resetSubmitting, setResetSubmitting] = useState(false);
 
   useEffect(() => {
     if (!session || authLoading || fitnessLoading) return;
@@ -30,7 +48,7 @@ export function AuthPage() {
     setSubmitting(true);
     try {
       if (mode === "signup") {
-        await signUpWithPassword(username, password);
+        await signUpWithPassword(username, password, email);
         toast.success("Cadastro criado. Agora faca login.");
         setMode("login");
         setPassword("");
@@ -45,6 +63,21 @@ export function AuthPage() {
       toast.error(error instanceof Error ? error.message : "Nao foi possivel entrar");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function submitPasswordReset(e: React.FormEvent) {
+    e.preventDefault();
+    setResetSubmitting(true);
+    try {
+      await requestPasswordReset(resetUsername);
+      toast.success("Enviamos um link de redefinicao de senha para o e-mail cadastrado.");
+      setResetOpen(false);
+      setResetUsername("");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel enviar o link");
+    } finally {
+      setResetSubmitting(false);
     }
   }
 
@@ -125,6 +158,24 @@ export function AuthPage() {
             />
           </div>
 
+          {mode === "signup" && (
+            <div className="space-y-2">
+              <Label htmlFor="signup-email">E-mail</Label>
+              <Input
+                id="signup-email"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="seu@email.com"
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                Usado para recuperar sua senha caso voce a esqueca.
+              </p>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="password">Senha</Label>
             <Input
@@ -137,6 +188,44 @@ export function AuthPage() {
               required
             />
           </div>
+
+          {mode === "login" && (
+            <Dialog open={resetOpen} onOpenChange={setResetOpen}>
+              <DialogTrigger asChild>
+                <button
+                  type="button"
+                  className="-mt-1 block text-xs text-muted-foreground underline-offset-2 hover:underline"
+                >
+                  Esqueci minha senha
+                </button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Recuperar senha</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={submitPasswordReset} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="reset-username">Usuario</Label>
+                    <Input
+                      id="reset-username"
+                      autoComplete="username"
+                      value={resetUsername}
+                      onChange={(event) => setResetUsername(event.target.value)}
+                      placeholder="seu usuario"
+                      required
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Enviaremos um link de redefinicao de senha para o e-mail cadastrado nessa
+                    conta.
+                  </p>
+                  <Button type="submit" className="w-full" disabled={resetSubmitting}>
+                    {resetSubmitting ? "Enviando..." : "Enviar link"}
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          )}
 
           <Button type="submit" className="w-full" disabled={submitting}>
             {mode === "login" ? (

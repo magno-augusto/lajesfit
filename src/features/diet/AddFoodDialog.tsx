@@ -181,6 +181,7 @@ export function AddFoodDialog({
   const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
   const [pickingPhoto, setPickingPhoto] = useState(false);
   const [photoLoading, setPhotoLoading] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [preferGallery, setPreferGallery] = useState(false);
   const [draftReady, setDraftReady] = useState(false);
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
@@ -507,6 +508,7 @@ export function AddFoodDialog({
       const dataUrl = await compressImageDataUrl(rawDataUrl);
       setOpen(true);
       setPhotoDataUrl(dataUrl);
+      setPickerOpen(false);
       toast.success("Foto adicionada a refeicao");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Nao foi possivel carregar a foto");
@@ -520,6 +522,7 @@ export function AddFoodDialog({
     setPickingPhoto(false);
     setPhotoLoading(false);
     setPhotoDataUrl(null);
+    setPickerOpen(false);
   }
 
   return (
@@ -557,6 +560,79 @@ export function AddFoodDialog({
             <DialogTitle>{isEditing ? "Editar refeicao" : "Adicionar refeicao"}</DialogTitle>
           </DialogHeader>
           <form onSubmit={submit} className="space-y-4">
+            <div className={isEditing ? "hidden" : "space-y-2"}>
+              <Label>Foto da refeicao</Label>
+              {preferGallery && !photoDataUrl && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                  Neste aparelho, tire a foto pela camera do celular e depois escolha em Galeria.
+                </div>
+              )}
+              {photoDataUrl ? (
+                <div className="relative flex h-32 items-center justify-center overflow-hidden rounded-lg border border-dashed bg-muted/40 text-muted-foreground">
+                  <img src={photoDataUrl} alt="" className="h-full w-full object-cover" />
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="secondary"
+                    className="absolute right-2 top-2"
+                    onClick={clearPhoto}
+                    aria-label="Remover foto"
+                  >
+                    <X className="size-4" />
+                  </Button>
+                </div>
+              ) : photoLoading || pickingPhoto ? (
+                <div className="flex h-32 items-center justify-center rounded-lg border border-dashed bg-muted/40 text-sm text-muted-foreground">
+                  Processando foto...
+                </div>
+              ) : (
+                <div className="flex h-32 items-center justify-center rounded-lg border border-dashed bg-muted/40 text-muted-foreground">
+                  <ImageIcon className="size-8" />
+                </div>
+              )}
+              {pickerOpen || photoDataUrl ? (
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <Button
+                    type="button"
+                    variant={preferGallery ? "default" : "outline"}
+                    className="w-full"
+                    onClick={() => {
+                      protectDraftRef.current = true;
+                      setPickingPhoto(true);
+                      galleryInputRef.current?.click();
+                    }}
+                  >
+                    <ImageIcon className="mr-2 size-4" />
+                    Galeria
+                  </Button>
+                  {!preferGallery && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        protectDraftRef.current = true;
+                        setPickingPhoto(true);
+                        cameraInputRef.current?.click();
+                      }}
+                    >
+                      <Camera className="mr-2 size-4" />
+                      Camera
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setPickerOpen(true)}
+                >
+                  <ImageIcon className="mr-2 size-4" />
+                  Adicionar foto
+                </Button>
+              )}
+            </div>
             <div className="space-y-2">
               <Label>Refeicao</Label>
               <Select
@@ -778,67 +854,6 @@ export function AddFoodDialog({
                       </li>
                     ))}
                   </ul>
-                )}
-              </div>
-            </div>
-            <div className={isEditing ? "hidden" : "space-y-2"}>
-              <Label>Foto da refeicao</Label>
-              {preferGallery && !photoDataUrl && (
-                <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                  Neste aparelho, tire a foto pela camera do celular e depois escolha em Galeria.
-                </div>
-              )}
-              {photoDataUrl ? (
-                <div className="relative flex h-32 items-center justify-center overflow-hidden rounded-lg border border-dashed bg-muted/40 text-muted-foreground">
-                  <img src={photoDataUrl} alt="" className="h-full w-full object-cover" />
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="secondary"
-                    className="absolute right-2 top-2"
-                    onClick={clearPhoto}
-                    aria-label="Remover foto"
-                  >
-                    <X className="size-4" />
-                  </Button>
-                </div>
-              ) : photoLoading || pickingPhoto ? (
-                <div className="flex h-32 items-center justify-center rounded-lg border border-dashed bg-muted/40 text-sm text-muted-foreground">
-                  Processando foto...
-                </div>
-              ) : (
-                <div className="flex h-32 items-center justify-center rounded-lg border border-dashed bg-muted/40 text-muted-foreground">
-                  <ImageIcon className="size-8" />
-                </div>
-              )}
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <Button
-                  type="button"
-                  variant={preferGallery ? "default" : "outline"}
-                  className="w-full"
-                  onClick={() => {
-                    protectDraftRef.current = true;
-                    setPickingPhoto(true);
-                    galleryInputRef.current?.click();
-                  }}
-                >
-                  <ImageIcon className="mr-2 size-4" />
-                  Galeria
-                </Button>
-                {!preferGallery && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => {
-                      protectDraftRef.current = true;
-                      setPickingPhoto(true);
-                      cameraInputRef.current?.click();
-                    }}
-                  >
-                    <Camera className="mr-2 size-4" />
-                    Camera
-                  </Button>
                 )}
               </div>
             </div>

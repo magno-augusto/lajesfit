@@ -1,5 +1,4 @@
 import { supabase } from "@/integrations/supabase/client";
-import { getUserId } from "@/lib/supabase-user";
 
 export type Challenge = {
   id: string;
@@ -8,20 +7,21 @@ export type Challenge = {
   status: "active" | "closed";
 };
 
-export type ChallengeParticipant = {
-  id: string;
-  challengeId: string;
-  userId: string;
-  startWeightKg: number;
-  endWeightKg: number | null;
-};
-
 export type LeaderboardEntry = {
   userId: string;
   username: string;
   displayName: string;
   avatarUrl: string | null;
   pctLoss: number;
+  rank: number;
+};
+
+export type ActivityDaysEntry = {
+  userId: string;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+  activeDays: number;
   rank: number;
 };
 
@@ -69,38 +69,18 @@ export async function getLastClosedChallenge(): Promise<Challenge | null> {
   return data ? mapChallenge(data) : null;
 }
 
-export async function getMyParticipation(challengeId: string): Promise<ChallengeParticipant | null> {
-  const userId = await getUserId();
-  const { data, error } = await supabase
-    .from("challenge_participants")
-    .select("id, challenge_id, user_id, start_weight_kg, end_weight_kg")
-    .eq("challenge_id", challengeId)
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (error) throw error;
-  if (!data) return null;
-  return {
-    id: data.id,
-    challengeId: data.challenge_id,
-    userId: data.user_id,
-    startWeightKg: data.start_weight_kg,
-    endWeightKg: data.end_weight_kg,
-  };
-}
-
-export async function joinChallenge(challengeId: string, startWeightKg: number): Promise<void> {
-  const userId = await getUserId();
-  const { error } = await supabase
-    .from("challenge_participants")
-    .insert({ challenge_id: challengeId, user_id: userId, start_weight_kg: startWeightKg });
-  if (error) throw error;
-}
-
-export async function logFinalWeight(participantId: string, endWeightKg: number): Promise<void> {
-  const { error } = await supabase
-    .from("challenge_participants")
-    .update({ end_weight_kg: endWeightKg })
-    .eq("id", participantId);
+export async function adminSetParticipantWeight(
+  challengeId: string,
+  userId: string,
+  startWeightKg: number,
+  endWeightKg: number | null,
+): Promise<void> {
+  const { error } = await supabase.rpc("admin_set_participant_weight", {
+    p_challenge_id: challengeId,
+    p_user_id: userId,
+    p_start_weight_kg: startWeightKg,
+    p_end_weight_kg: endWeightKg,
+  });
   if (error) throw error;
 }
 
@@ -122,4 +102,30 @@ export async function getLeaderboard(challengeId: string): Promise<LeaderboardEn
 export async function getTopThree(challengeId: string): Promise<LeaderboardEntry[]> {
   const leaderboard = await getLeaderboard(challengeId);
   return leaderboard.slice(0, 3);
+}
+
+export async function getWorkoutDaysLeaderboard(): Promise<ActivityDaysEntry[]> {
+  const { data, error } = await supabase.rpc("get_workout_days_leaderboard", { p_limit: 10 });
+  if (error) throw error;
+  return (data ?? []).map((row, index) => ({
+    userId: row.user_id,
+    username: row.username,
+    displayName: row.display_name,
+    avatarUrl: row.avatar_url,
+    activeDays: row.active_days,
+    rank: index + 1,
+  }));
+}
+
+export async function getDietDaysLeaderboard(): Promise<ActivityDaysEntry[]> {
+  const { data, error } = await supabase.rpc("get_diet_days_leaderboard", { p_limit: 10 });
+  if (error) throw error;
+  return (data ?? []).map((row, index) => ({
+    userId: row.user_id,
+    username: row.username,
+    displayName: row.display_name,
+    avatarUrl: row.avatar_url,
+    activeDays: row.active_days,
+    rank: index + 1,
+  }));
 }

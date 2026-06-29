@@ -118,23 +118,42 @@ export const FEED_PAGE_SIZE = 20;
 
 export async function fetchFeed(
   currentUserId: string,
-  options: { before?: string; limit?: number } = {},
+  options: { offset?: number; limit?: number } = {},
 ): Promise<FeedPost[]> {
   const limit = options.limit ?? FEED_PAGE_SIZE;
-  let postsQuery = supabase
+  const offset = options.offset ?? 0;
+
+  const { data: rankedIds, error: rankError } = await supabase.rpc("get_feed_post_ids", {
+    p_user_id: currentUserId,
+    p_limit: limit,
+    p_offset: offset,
+  });
+  if (rankError) throw rankError;
+
+  const ids = (rankedIds ?? []).map((row) => row.post_id);
+  if (ids.length === 0) return [];
+
+  const { data: posts, error } = await supabase
     .from("posts")
     .select("id, content, media_url, created_at, user_id, workout_id")
-    .order("created_at", { ascending: false })
-    .limit(limit);
-
-  if (options.before) {
-    postsQuery = postsQuery.lt("created_at", options.before);
-  }
-
-  const { data: posts, error } = await postsQuery;
+    .in("id", ids);
   if (error) throw error;
 
-  return buildFeedPosts(posts ?? [], currentUserId);
+  const orderIndex = new Map(ids.map((id, index) => [id, index]));
+  const orderedPosts = (posts ?? []).sort(
+    (a, b) => (orderIndex.get(a.id) ?? 0) - (orderIndex.get(b.id) ?? 0),
+  );
+
+  return buildFeedPosts(orderedPosts, currentUserId);
+}
+
+export async function markPostsViewed(postIds: string[], userId: string) {
+  if (postIds.length === 0) return;
+  const rows = postIds.map((postId) => ({ post_id: postId, user_id: userId }));
+  const { error } = await supabase
+    .from("post_views")
+    .upsert(rows, { onConflict: "post_id,user_id", ignoreDuplicates: true });
+  if (error) throw error;
 }
 
 export async function fetchProfilePosts(

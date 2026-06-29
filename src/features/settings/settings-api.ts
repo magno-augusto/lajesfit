@@ -7,16 +7,28 @@ export type ProfileSettings = {
   avatar_url: string | null;
   recovery_email: string | null;
   is_admin: boolean;
+  is_private: boolean;
+  notifications_enabled: boolean;
 };
 
 export async function getProfileSettings(userId: string): Promise<ProfileSettings | null> {
   const { data, error } = await supabase
     .from("profiles")
-    .select("username, display_name, bio, avatar_url, recovery_email, is_admin")
+    .select(
+      "username, display_name, bio, avatar_url, recovery_email, is_admin, is_private, notifications_enabled",
+    )
     .eq("id", userId)
     .maybeSingle();
   if (error) throw error;
   return data ?? null;
+}
+
+export async function updateNotificationsEnabled(userId: string, enabled: boolean) {
+  const { error } = await supabase
+    .from("profiles")
+    .update({ notifications_enabled: enabled })
+    .eq("id", userId);
+  if (error) throw error;
 }
 
 export async function updateRecoveryEmail(userId: string, recoveryEmail: string | null) {

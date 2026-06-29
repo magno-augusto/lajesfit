@@ -13,6 +13,7 @@ enroll_enabled = true
 verify_enabled = true
 
 [auth.email]
+double_confirm_changes = false
 max_frequency = "1m0s"
 otp_length = 8
 

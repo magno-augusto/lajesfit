@@ -1,5 +1,5 @@
-import { notFound, useNavigate, useParams } from "@tanstack/react-router";
-import { Check, Clock, Lock, LogOut, Unlock, UserPlus, X } from "lucide-react";
+import { Link, notFound, useParams } from "@tanstack/react-router";
+import { Check, Clock, Lock, Settings, UserPlus, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -7,10 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PostCard } from "@/features/feed/PostCard";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { deletePost, fetchProfilePosts, type FeedPost } from "@/features/feed/feed-api";
-import { logout, useLocalAuth } from "@/features/auth/auth";
+import { useLocalAuth } from "@/features/auth/auth";
 import {
   acceptFollowRequest,
   cancelFollowRequest,
@@ -18,7 +17,6 @@ import {
   fetchIncomingFollowRequests,
   sendFollowOrRequest,
   unfollowProfile,
-  updateProfilePrivacy,
   type FollowProfile as Profile,
   type IncomingFollowRequest as IncomingRequest,
 } from "./follows-api";
@@ -27,7 +25,6 @@ type FollowStatus = "none" | "requested" | "following";
 
 export function ProfilePage() {
   const { username } = useParams({ from: "/_authenticated/profile/$username" });
-  const navigate = useNavigate();
   const { user } = useLocalAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -149,20 +146,6 @@ export function ProfilePage() {
     }
   }
 
-  async function updatePrivacy(nextPrivate: boolean) {
-    if (!profile || !user || profile.id !== user.id) return;
-    setBusyId(profile.id);
-    try {
-      await updateProfilePrivacy(user.id, nextPrivate);
-      setProfile((current) => (current ? { ...current, is_private: nextPrivate } : current));
-      toast.success(nextPrivate ? "Perfil privado ativado" : "Perfil publico ativado");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel alterar privacidade");
-    } finally {
-      setBusyId(null);
-    }
-  }
-
   async function cancelRequest() {
     if (!profile || !user) return;
     setBusyId(profile.id);
@@ -231,11 +214,6 @@ export function ProfilePage() {
   const isMe = profile.id === user.id;
   const canViewPosts = isMe || followStatus === "following" || !profile.is_private;
 
-  async function handleLogout() {
-    await logout();
-    navigate({ to: "/auth", replace: true });
-  }
-
   async function handleDeletePost(post: FeedPost) {
     if (!user || post.user_id !== user.id) return;
 
@@ -269,6 +247,13 @@ export function ProfilePage() {
               onUnfollow={unfollow}
             />
           )}
+          {isMe && (
+            <Button variant="ghost" size="icon" asChild aria-label="Configuracoes">
+              <Link to="/settings">
+                <Settings className="size-5" />
+              </Link>
+            </Button>
+          )}
         </div>
         {profile.bio && <p className="mt-4 text-sm">{profile.bio}</p>}
         <div className="mt-6 grid grid-cols-4 gap-2 text-center">
@@ -278,41 +263,6 @@ export function ProfilePage() {
           <Stat label="Seguindo" value={counts.following} />
         </div>
       </Card>
-
-      {isMe && (
-        <Card className="p-6">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5 rounded-full bg-primary/10 p-2 text-primary">
-                {profile.is_private ? <Lock className="size-4" /> : <Unlock className="size-4" />}
-              </div>
-              <div>
-                <h2 className="font-display text-2xl">PRIVACIDADE</h2>
-                <p className="text-sm text-muted-foreground">
-                  {profile.is_private
-                    ? "Suas publicacoes aparecem apenas para seguidores aprovados."
-                    : "Suas publicacoes aparecem para todos os usuarios da plataforma."}
-                </p>
-              </div>
-            </div>
-            <Switch
-              checked={profile.is_private}
-              onCheckedChange={updatePrivacy}
-              disabled={busyId === profile.id}
-              aria-label="Privar perfil"
-            />
-          </div>
-        </Card>
-      )}
-
-      {isMe && (
-        <Card className="p-6">
-          <Button variant="outline" className="w-full" onClick={() => void handleLogout()}>
-            <LogOut className="mr-2 size-4" />
-            Sair da conta
-          </Button>
-        </Card>
-      )}
 
       {isMe && profile.is_private && (
         <Card className="p-6">

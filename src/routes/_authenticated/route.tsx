@@ -1,11 +1,14 @@
 import { createFileRoute, Outlet, Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Activity, Apple, Home, LogIn, Trophy } from "lucide-react";
+import { BookOpen, Home, LogIn, Trophy } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NewActionMenu } from "@/components/new-action-menu";
-import { useLocalAuth } from "@/features/auth/auth";
+import { NotificationsSheet } from "@/features/notifications/NotificationsSheet";
+import { getUnreadNotificationCount } from "@/features/notifications/notifications-api";
+import { LEGACY_EMAIL_DOMAIN, useLocalAuth } from "@/features/auth/auth";
 import { useFitness } from "@/features/fitness/useFitness";
 import { supabase } from "@/integrations/supabase/client";
+import logo from "@/assets/logo.png";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -23,6 +26,7 @@ function AppShell() {
     avatar_url: string | null;
     is_admin: boolean;
   } | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     if (authLoading || fitnessLoading) return;
@@ -30,8 +34,14 @@ function AppShell() {
       navigate({ to: "/auth", replace: true });
       return;
     }
+    const needsRealEmail =
+      user?.email?.endsWith(LEGACY_EMAIL_DOMAIN) && !user?.new_email;
+    if (needsRealEmail) {
+      navigate({ to: "/require-email", replace: true });
+      return;
+    }
     if (!idrProfile) navigate({ to: "/setup", replace: true });
-  }, [authLoading, fitnessLoading, idrProfile, navigate, session]);
+  }, [authLoading, fitnessLoading, idrProfile, navigate, session, user]);
 
   useEffect(() => {
     if (!user) {
@@ -62,31 +72,58 @@ function AppShell() {
     };
   }, [user]);
 
+  useEffect(() => {
+    if (!user) return;
+    getUnreadNotificationCount(user.id)
+      .then(setUnreadCount)
+      .catch(() => {
+        // melhor esforco: badge so nao aparece se falhar
+      });
+  }, [user]);
+
   const navItems = [
     { to: "/feed", icon: Home, label: "Feed" },
-    { to: "/diet", icon: Apple, label: "Dieta" },
-    { to: "/workouts", icon: Activity, label: "Treinos" },
-    { to: "/desafio", icon: Trophy, label: "Desafio" },
+    { to: "/diario", icon: BookOpen, label: "Diario" },
   ] as const;
 
-  if (authLoading || fitnessLoading || !session || !idrProfile) {
+  const needsRealEmail = user?.email?.endsWith(LEGACY_EMAIL_DOMAIN) && !user?.new_email;
+
+  if (authLoading || fitnessLoading || !session || needsRealEmail || !idrProfile) {
     return <div className="min-h-screen bg-muted/40" />;
   }
 
   return (
     <div className="min-h-screen bg-muted/40">
-      <main className="container mx-auto px-4 py-6 pb-24">
+      <header className="sticky top-0 z-30 border-b bg-background/90 backdrop-blur">
+        <div className="container mx-auto flex h-16 items-center justify-between gap-3 px-4">
+          <Link to="/feed" className="flex items-center gap-2">
+            <img src={logo} alt="Lajes Fit" className="h-9 w-9 rounded-lg object-cover" />
+            <span className="font-display text-xl">LAJESFIT</span>
+          </Link>
+          <div className="flex items-center gap-1">
+            {user && <NotificationsSheet userId={user.id} unreadCount={unreadCount} onOpened={() => setUnreadCount(0)} />}
+          </div>
+        </div>
+      </header>
+
+      <main className="container mx-auto px-4 pt-3 pb-24">
         <Outlet />
       </main>
 
       <nav className="fixed bottom-0 inset-x-0 z-30 border-t bg-background">
-        <div className="grid grid-cols-6 items-end">
+        <div className="grid grid-cols-5 items-end">
           {[navItems[0], navItems[1]].map((item) => {
             const active = location.pathname.startsWith(item.to);
             return (
               <Link
                 key={item.to}
                 to={item.to}
+                onClick={(event) => {
+                  if (item.to === "/feed" && location.pathname.startsWith("/feed")) {
+                    event.preventDefault();
+                    window.location.reload();
+                  }
+                }}
                 className={`flex flex-col items-center gap-1 py-3 text-xs ${
                   active ? "text-primary" : "text-muted-foreground"
                 }`}
@@ -102,17 +139,6 @@ function AppShell() {
             <NewActionMenu compact />
             <span className="font-semibold">Novo</span>
           </div>
-          <Link
-            to="/workouts"
-            className={`flex flex-col items-center gap-1 py-3 text-xs ${
-              location.pathname.startsWith("/workouts") ? "text-primary" : "text-muted-foreground"
-            }`}
-          >
-            <span className="flex size-8 items-center justify-center">
-              <Activity className="size-5" />
-            </span>
-            <span>Treinos</span>
-          </Link>
           <Link
             to="/desafio"
             className={`flex flex-col items-center gap-1 py-3 text-xs ${

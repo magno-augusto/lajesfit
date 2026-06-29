@@ -1,21 +1,26 @@
+import type { ReactNode } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import type { LeaderboardEntry } from "./challenges-api";
 
-export function ChallengeLeaderboard({
+type RankedEntry = {
+  userId: string;
+  displayName: string;
+  avatarUrl: string | null;
+  rank: number;
+};
+
+export function RankingList<T extends RankedEntry>({
   entries,
   currentUserId,
+  emptyMessage,
+  renderValue,
 }: {
-  entries: LeaderboardEntry[];
+  entries: T[];
   currentUserId: string;
+  emptyMessage: string;
+  renderValue: (entry: T) => ReactNode;
 }) {
   if (entries.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        Ninguem registrou o peso final ainda. Quando os participantes registrarem, o ranking
-        aparece aqui.
-      </p>
-    );
+    return <p className="text-sm text-muted-foreground">{emptyMessage}</p>;
   }
 
   return (
@@ -40,10 +45,7 @@ export function ChallengeLeaderboard({
               {entry.displayName}
               {isMe && <span className="text-muted-foreground"> (voce)</span>}
             </span>
-            <Badge variant={entry.pctLoss > 0 ? "default" : "secondary"}>
-              {entry.pctLoss > 0 ? "-" : ""}
-              {Math.abs(entry.pctLoss).toFixed(1)}%
-            </Badge>
+            {renderValue(entry)}
           </li>
         );
       })}

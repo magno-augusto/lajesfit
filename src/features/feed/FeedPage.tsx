@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { CreatePostDialog } from "./CreatePostDialog";
 import { PostCard } from "./PostCard";
-import { deletePost, fetchFeed, FEED_PAGE_SIZE, type FeedPost } from "./feed-api";
+import { deletePost, fetchFeed, FEED_PAGE_SIZE, markPostsViewed, type FeedPost } from "./feed-api";
 import { useLocalAuth } from "@/features/auth/auth";
 import { consumePendingNewAction, NEW_ACTION_EVENT } from "@/components/new-action-menu";
+import { CHANGE_EVENT } from "@/features/fitness/change-event";
 
 export function FeedPage() {
   const { user, loading: authLoading } = useLocalAuth();
@@ -14,6 +15,11 @@ export function FeedPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [createPostOpen, setCreatePostOpen] = useState(false);
+
+  const seenIdsRef = useRef<Set<string>>(new Set());
+  const pendingViewIdsRef = useRef<Set<string>>(new Set());
+  const flushTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -58,6 +64,51 @@ export function FeedPage() {
     return () => window.removeEventListener(NEW_ACTION_EVENT, handleNewAction);
   }, []);
 
+  function flushPendingViews() {
+    if (!user || pendingViewIdsRef.current.size === 0) return;
+    const ids = Array.from(pendingViewIdsRef.current);
+    pendingViewIdsRef.current.clear();
+    markPostsViewed(ids, user.id).catch(() => {
+      // melhor esforco: nao bloqueia a navegacao do feed se falhar
+    });
+  }
+
+  function observePost(element: HTMLElement | null, postId: string) {
+    if (!element || seenIdsRef.current.has(postId)) return;
+
+    if (!observerRef.current) {
+      observerRef.current = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (!entry.isIntersecting) continue;
+            const id = (entry.target as HTMLElement).dataset.postId;
+            if (!id || seenIdsRef.current.has(id)) continue;
+
+            seenIdsRef.current.add(id);
+            pendingViewIdsRef.current.add(id);
+            observerRef.current?.unobserve(entry.target);
+
+            if (flushTimeoutRef.current) clearTimeout(flushTimeoutRef.current);
+            flushTimeoutRef.current = setTimeout(flushPendingViews, 800);
+          }
+        },
+        { threshold: 0.5 },
+      );
+    }
+
+    element.dataset.postId = postId;
+    observerRef.current.observe(element);
+  }
+
+  useEffect(() => {
+    return () => {
+      observerRef.current?.disconnect();
+      if (flushTimeoutRef.current) clearTimeout(flushTimeoutRef.current);
+      flushPendingViews();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function refreshFeed() {
     if (!user) return;
     const nextPosts = await fetchFeed(user.id);
@@ -65,12 +116,25 @@ export function FeedPage() {
     setHasMore(nextPosts.length === FEED_PAGE_SIZE);
   }
 
+  useEffect(() => {
+    if (!user) return;
+
+    function handleBackendChange() {
+      refreshFeed().catch(() => {
+        // atualizacao em segundo plano: falha aqui nao deve interromper o feed atual
+      });
+    }
+
+    window.addEventListener(CHANGE_EVENT, handleBackendChange);
+    return () => window.removeEventListener(CHANGE_EVENT, handleBackendChange);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
   async function loadMore() {
     if (!user || posts.length === 0) return;
-    const lastPost = posts[posts.length - 1];
     setLoadingMore(true);
     try {
-      const nextPosts = await fetchFeed(user.id, { before: lastPost.created_at });
+      const nextPosts = await fetchFeed(user.id, { offset: posts.length });
       setPosts((current) => [...current, ...nextPosts]);
       setHasMore(nextPosts.length === FEED_PAGE_SIZE);
     } catch (error) {
@@ -110,12 +174,9 @@ export function FeedPage() {
       ) : (
         <>
           {posts.map((post) => (
-            <PostCard
-              key={post.id}
-              post={post}
-              currentUserId={user?.id ?? null}
-              onDelete={handleDeletePost}
-            />
+            <div key={post.id} ref={(element) => observePost(element, post.id)}>
+              <PostCard post={post} currentUserId={user?.id ?? null} onDelete={handleDeletePost} />
+            </div>
           ))}
           {hasMore && (
             <div className="flex justify-center pt-2">

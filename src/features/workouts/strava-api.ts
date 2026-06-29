@@ -2,11 +2,13 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
+  deleteWorkoutsBeforeStravaConnection,
   ensureStravaWebhookSubscription,
   exchangeStravaToken,
   fetchStravaActivities,
   getStravaConfig,
   getValidStravaAccessToken,
+  stravaConnectionCutoffSeconds,
   upsertStravaActivities,
 } from "@/features/workouts/strava.server";
 
@@ -97,12 +99,7 @@ export const getStravaConnection = createServerFn({ method: "GET" })
 
 export const syncStravaActivities = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator(
-    z.object({
-      afterDays: z.number().int().min(1).max(365).default(90),
-    }),
-  )
-  .handler(async ({ data, context }) => {
+  .handler(async ({ context }) => {
     const { data: storedToken, error: tokenError } = await context.supabase
       .from("strava_tokens")
       .select("*")
@@ -112,10 +109,17 @@ export const syncStravaActivities = createServerFn({ method: "POST" })
     if (tokenError) throw new Error(tokenError.message);
     if (!storedToken) throw new Error("Conecte sua conta Strava primeiro.");
 
+    const removed = await deleteWorkoutsBeforeStravaConnection(
+      context.supabase,
+      context.userId,
+      storedToken.created_at,
+    );
+
     const accessToken = await getValidStravaAccessToken(context.supabase, storedToken);
-    const activities = await fetchStravaActivities(accessToken, data.afterDays);
+    const after = stravaConnectionCutoffSeconds(storedToken.created_at);
+    const activities = await fetchStravaActivities(accessToken, after);
     const imported = await upsertStravaActivities(context.supabase, context.userId, activities);
-    return { imported };
+    return { imported, removed };
   });
 
 export const setupStravaWebhook = createServerFn({ method: "POST" })

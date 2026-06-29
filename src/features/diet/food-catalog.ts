@@ -307,7 +307,7 @@ export async function searchOpenFoodFactsFoods(query: string) {
   const response = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?${params}`);
   if (!response.ok) throw new Error("Nao foi possivel buscar produtos industrializados");
 
-  const payload = await response.json();
+  const payload = (await response.json()) as { products?: OpenFoodFactsProduct[] };
   const products = Array.isArray(payload.products) ? payload.products : [];
 
   return products

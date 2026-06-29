@@ -161,10 +161,34 @@ export async function getValidStravaAccessToken(
   return accessToken;
 }
 
-export async function fetchStravaActivities(accessToken: string, afterDays: number) {
-  const after = Math.floor((Date.now() - afterDays * 24 * 60 * 60 * 1000) / 1000);
+// So importa atividades a partir do dia em que a conta Strava foi conectada
+// (inclusive) — nunca dias anteriores.
+export function stravaConnectionCutoffSeconds(connectedAt: string) {
+  const cutoff = new Date(connectedAt);
+  cutoff.setUTCHours(0, 0, 0, 0);
+  return Math.floor(cutoff.getTime() / 1000);
+}
+
+export async function deleteWorkoutsBeforeStravaConnection(
+  supabase: Supabase,
+  userId: string,
+  connectedAt: string,
+) {
+  const cutoffIso = new Date(stravaConnectionCutoffSeconds(connectedAt) * 1000).toISOString();
+  const { error, count } = await supabase
+    .from("workouts")
+    .delete({ count: "exact" })
+    .eq("user_id", userId)
+    .eq("source", "strava")
+    .lt("performed_at", cutoffIso);
+
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}
+
+export async function fetchStravaActivities(accessToken: string, afterEpochSeconds: number) {
   const params = new URLSearchParams({
-    after: String(after),
+    after: String(afterEpochSeconds),
     per_page: "50",
     page: "1",
   });

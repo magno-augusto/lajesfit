@@ -1,10 +1,5 @@
 import { Bar, BarChart, CartesianGrid, LabelList, XAxis } from "recharts";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from "@/components/ui/chart";
+import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 import { isSameLocalDate } from "@/lib/date";
 import type { LocalWorkout } from "./workouts-api";
 
@@ -33,7 +28,7 @@ export function WeeklyWorkoutChart({ workouts }: { workouts: LocalWorkout[] }) {
   });
 
   return (
-    <div className="rounded-lg border bg-card p-3 shadow-card">
+    <div className="p-3">
       <p className="mb-2 text-sm font-medium text-muted-foreground">
         Calorias queimadas nos ultimos 7 dias
       </p>
@@ -41,7 +36,6 @@ export function WeeklyWorkoutChart({ workouts }: { workouts: LocalWorkout[] }) {
         <BarChart data={data} margin={{ top: 16 }}>
           <CartesianGrid vertical={false} strokeDasharray="3 3" />
           <XAxis dataKey="label" tickLine={false} axisLine={false} />
-          <ChartTooltip content={<ChartTooltipContent />} />
           <Bar dataKey="calories" fill="var(--color-calories)" radius={4}>
             <LabelList dataKey="calories" position="top" fontSize={11} />
           </Bar>

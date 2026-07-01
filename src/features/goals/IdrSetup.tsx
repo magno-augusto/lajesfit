@@ -13,7 +13,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ACTIVITY_FACTORS, calculateIdr, saveIdrProfile, type IdrProfile } from "./goals-api";
-import logo from "@/assets/logo.png";
 
 type SetupState = Omit<IdrProfile, "idrCalories" | "createdAt">;
 
@@ -59,7 +58,6 @@ export function IdrSetup() {
       <header className="border-b bg-background">
         <div className="container mx-auto flex h-16 items-center px-4">
           <div className="flex items-center gap-2">
-            <img src={logo} alt="Lajes Fit" className="h-10 w-10 rounded-lg object-cover" />
             <span className="font-display text-2xl">LAJES FIT</span>
           </div>
         </div>

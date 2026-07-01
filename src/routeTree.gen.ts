@@ -17,10 +17,11 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StravaCallbackRouteImport } from './routes/strava.callback'
 import { Route as AuthResetPasswordRouteImport } from './routes/auth.reset-password'
+import { Route as AuthenticatedTreinosRouteImport } from './routes/_authenticated/treinos'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedSearchRouteImport } from './routes/_authenticated/search'
 import { Route as AuthenticatedFeedRouteImport } from './routes/_authenticated/feed'
-import { Route as AuthenticatedDiarioRouteImport } from './routes/_authenticated/diario'
+import { Route as AuthenticatedDietaRouteImport } from './routes/_authenticated/dieta'
 import { Route as AuthenticatedDesafioRouteImport } from './routes/_authenticated/desafio'
 import { Route as ApiStravaWebhookRouteImport } from './routes/api/strava/webhook'
 import { Route as AuthenticatedProfileUsernameRouteImport } from './routes/_authenticated/profile.$username'
@@ -64,6 +65,11 @@ const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
   path: '/reset-password',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthenticatedTreinosRoute = AuthenticatedTreinosRouteImport.update({
+  id: '/treinos',
+  path: '/treinos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -79,9 +85,9 @@ const AuthenticatedFeedRoute = AuthenticatedFeedRouteImport.update({
   path: '/feed',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedDiarioRoute = AuthenticatedDiarioRouteImport.update({
-  id: '/diario',
-  path: '/diario',
+const AuthenticatedDietaRoute = AuthenticatedDietaRouteImport.update({
+  id: '/dieta',
+  path: '/dieta',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedDesafioRoute = AuthenticatedDesafioRouteImport.update({
@@ -108,10 +114,11 @@ export interface FileRoutesByFullPath {
   '/require-email': typeof RequireEmailRoute
   '/setup': typeof SetupRoute
   '/desafio': typeof AuthenticatedDesafioRoute
-  '/diario': typeof AuthenticatedDiarioRoute
+  '/dieta': typeof AuthenticatedDietaRoute
   '/feed': typeof AuthenticatedFeedRoute
   '/search': typeof AuthenticatedSearchRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/treinos': typeof AuthenticatedTreinosRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/strava/callback': typeof StravaCallbackRoute
   '/profile/$username': typeof AuthenticatedProfileUsernameRoute
@@ -124,10 +131,11 @@ export interface FileRoutesByTo {
   '/require-email': typeof RequireEmailRoute
   '/setup': typeof SetupRoute
   '/desafio': typeof AuthenticatedDesafioRoute
-  '/diario': typeof AuthenticatedDiarioRoute
+  '/dieta': typeof AuthenticatedDietaRoute
   '/feed': typeof AuthenticatedFeedRoute
   '/search': typeof AuthenticatedSearchRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/treinos': typeof AuthenticatedTreinosRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/strava/callback': typeof StravaCallbackRoute
   '/profile/$username': typeof AuthenticatedProfileUsernameRoute
@@ -142,10 +150,11 @@ export interface FileRoutesById {
   '/require-email': typeof RequireEmailRoute
   '/setup': typeof SetupRoute
   '/_authenticated/desafio': typeof AuthenticatedDesafioRoute
-  '/_authenticated/diario': typeof AuthenticatedDiarioRoute
+  '/_authenticated/dieta': typeof AuthenticatedDietaRoute
   '/_authenticated/feed': typeof AuthenticatedFeedRoute
   '/_authenticated/search': typeof AuthenticatedSearchRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/_authenticated/treinos': typeof AuthenticatedTreinosRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/strava/callback': typeof StravaCallbackRoute
   '/_authenticated/profile/$username': typeof AuthenticatedProfileUsernameRoute
@@ -160,10 +169,11 @@ export interface FileRouteTypes {
     | '/require-email'
     | '/setup'
     | '/desafio'
-    | '/diario'
+    | '/dieta'
     | '/feed'
     | '/search'
     | '/settings'
+    | '/treinos'
     | '/auth/reset-password'
     | '/strava/callback'
     | '/profile/$username'
@@ -176,10 +186,11 @@ export interface FileRouteTypes {
     | '/require-email'
     | '/setup'
     | '/desafio'
-    | '/diario'
+    | '/dieta'
     | '/feed'
     | '/search'
     | '/settings'
+    | '/treinos'
     | '/auth/reset-password'
     | '/strava/callback'
     | '/profile/$username'
@@ -193,10 +204,11 @@ export interface FileRouteTypes {
     | '/require-email'
     | '/setup'
     | '/_authenticated/desafio'
-    | '/_authenticated/diario'
+    | '/_authenticated/dieta'
     | '/_authenticated/feed'
     | '/_authenticated/search'
     | '/_authenticated/settings'
+    | '/_authenticated/treinos'
     | '/auth/reset-password'
     | '/strava/callback'
     | '/_authenticated/profile/$username'
@@ -272,6 +284,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthResetPasswordRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_authenticated/treinos': {
+      id: '/_authenticated/treinos'
+      path: '/treinos'
+      fullPath: '/treinos'
+      preLoaderRoute: typeof AuthenticatedTreinosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/settings': {
       id: '/_authenticated/settings'
       path: '/settings'
@@ -293,11 +312,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFeedRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/diario': {
-      id: '/_authenticated/diario'
-      path: '/diario'
-      fullPath: '/diario'
-      preLoaderRoute: typeof AuthenticatedDiarioRouteImport
+    '/_authenticated/dieta': {
+      id: '/_authenticated/dieta'
+      path: '/dieta'
+      fullPath: '/dieta'
+      preLoaderRoute: typeof AuthenticatedDietaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/desafio': {
@@ -326,19 +345,21 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDesafioRoute: typeof AuthenticatedDesafioRoute
-  AuthenticatedDiarioRoute: typeof AuthenticatedDiarioRoute
+  AuthenticatedDietaRoute: typeof AuthenticatedDietaRoute
   AuthenticatedFeedRoute: typeof AuthenticatedFeedRoute
   AuthenticatedSearchRoute: typeof AuthenticatedSearchRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
+  AuthenticatedTreinosRoute: typeof AuthenticatedTreinosRoute
   AuthenticatedProfileUsernameRoute: typeof AuthenticatedProfileUsernameRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDesafioRoute: AuthenticatedDesafioRoute,
-  AuthenticatedDiarioRoute: AuthenticatedDiarioRoute,
+  AuthenticatedDietaRoute: AuthenticatedDietaRoute,
   AuthenticatedFeedRoute: AuthenticatedFeedRoute,
   AuthenticatedSearchRoute: AuthenticatedSearchRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
+  AuthenticatedTreinosRoute: AuthenticatedTreinosRoute,
   AuthenticatedProfileUsernameRoute: AuthenticatedProfileUsernameRoute,
 }
 

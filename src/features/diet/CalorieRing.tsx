@@ -1,3 +1,5 @@
+import React from "react";
+
 const SIZE = 140;
 const STROKE = 12;
 const RADIUS = (SIZE - STROKE) / 2;
@@ -7,10 +9,12 @@ export function CalorieRing({
   consumed,
   target,
   burned,
+  burnedSlot,
 }: {
   consumed: number;
   target: number;
   burned: number;
+  burnedSlot?: React.ReactNode;
 }) {
   const remaining = Math.round(target - consumed + burned);
   const percent = target > 0 ? Math.min(100, Math.max(0, (consumed / target) * 100)) : 0;
@@ -52,6 +56,7 @@ export function CalorieRing({
       </div>
 
       <div className="text-center">
+        {burnedSlot}
         <p className="text-xs text-muted-foreground">Queimadas</p>
         <p className="font-display text-xl">{Math.round(burned)}</p>
       </div>

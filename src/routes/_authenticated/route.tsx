@@ -1,14 +1,10 @@
 import { createFileRoute, Outlet, Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { BookOpen, Home, LogIn, Trophy } from "lucide-react";
+import { Activity, Apple, Home, LogIn, Trophy } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { NewActionMenu } from "@/components/new-action-menu";
-import { NotificationsSheet } from "@/features/notifications/NotificationsSheet";
-import { getUnreadNotificationCount } from "@/features/notifications/notifications-api";
 import { LEGACY_EMAIL_DOMAIN, useLocalAuth } from "@/features/auth/auth";
 import { useFitness } from "@/features/fitness/useFitness";
 import { supabase } from "@/integrations/supabase/client";
-import logo from "@/assets/logo.png";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -26,7 +22,6 @@ function AppShell() {
     avatar_url: string | null;
     is_admin: boolean;
   } | null>(null);
-  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     if (authLoading || fitnessLoading) return;
@@ -72,18 +67,10 @@ function AppShell() {
     };
   }, [user]);
 
-  useEffect(() => {
-    if (!user) return;
-    getUnreadNotificationCount(user.id)
-      .then(setUnreadCount)
-      .catch(() => {
-        // melhor esforco: badge so nao aparece se falhar
-      });
-  }, [user]);
-
   const navItems = [
     { to: "/feed", icon: Home, label: "Feed" },
-    { to: "/diario", icon: BookOpen, label: "Dieta" },
+    { to: "/dieta", icon: Apple, label: "Dieta" },
+    { to: "/treinos", icon: Activity, label: "Treinos" },
   ] as const;
 
   const needsRealEmail = user?.email?.endsWith(LEGACY_EMAIL_DOMAIN) && !user?.new_email;
@@ -94,18 +81,6 @@ function AppShell() {
 
   return (
     <div className="min-h-screen bg-muted/40">
-      <header className="sticky top-0 z-30 border-b bg-background/90 backdrop-blur">
-        <div className="container mx-auto flex h-16 items-center justify-between gap-3 px-4">
-          <Link to="/feed" className="flex items-center gap-2">
-            <img src={logo} alt="Lajes Fit" className="h-9 w-9 rounded-lg object-cover" />
-            <span className="font-display text-xl">LAJESFIT</span>
-          </Link>
-          <div className="flex items-center gap-1">
-            {user && <NotificationsSheet userId={user.id} unreadCount={unreadCount} onOpened={() => setUnreadCount(0)} />}
-          </div>
-        </div>
-      </header>
-
       <main className="container mx-auto px-4 pt-3 pb-24">
         <Outlet />
       </main>
@@ -113,7 +88,7 @@ function AppShell() {
       <nav className="fixed bottom-0 inset-x-0 z-30 border-t bg-background">
         <div className="grid grid-cols-5 items-end">
           {[navItems[0], navItems[1]].map((item) => {
-            const active = location.pathname.startsWith(item.to);
+            const active = location.pathname === item.to || location.pathname.startsWith(item.to + "/");
             return (
               <Link
                 key={item.to}
@@ -135,10 +110,17 @@ function AppShell() {
               </Link>
             );
           })}
-          <div className="-mt-7 flex flex-col items-center gap-1 pb-2 text-xs text-primary">
-            <NewActionMenu compact />
-            <span className="font-semibold">Novo</span>
-          </div>
+          <Link
+            to="/treinos"
+            className={`flex flex-col items-center gap-1 py-3 text-xs ${
+              location.pathname.startsWith("/treinos") ? "text-primary" : "text-muted-foreground"
+            }`}
+          >
+            <span className="flex size-8 items-center justify-center">
+              <Activity className="size-5" />
+            </span>
+            <span>Treinos</span>
+          </Link>
           <Link
             to="/desafio"
             className={`flex flex-col items-center gap-1 py-3 text-xs ${

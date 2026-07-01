@@ -22,7 +22,7 @@ function StravaCallbackPage() {
       if (search.error) {
         setMessage("Autorizacao cancelada.");
         toast.error("Autorizacao do Strava cancelada");
-        navigate({ to: "/diario", replace: true });
+        navigate({ to: "/treinos", replace: true });
         return;
       }
 
@@ -32,14 +32,14 @@ function StravaCallbackPage() {
       if (!search.code || !search.state || search.state !== expectedState) {
         setMessage("Nao foi possivel validar o retorno do Strava.");
         toast.error("Retorno do Strava invalido");
-        navigate({ to: "/diario", replace: true });
+        navigate({ to: "/treinos", replace: true });
         return;
       }
 
       try {
         await exchangeStravaCode({ data: { code: search.code, scope: search.scope } });
         toast.success("Strava conectado");
-        navigate({ to: "/diario", replace: true });
+        navigate({ to: "/treinos", replace: true });
       } catch (error) {
         setMessage(error instanceof Error ? error.message : "Nao foi possivel conectar ao Strava");
         toast.error(error instanceof Error ? error.message : "Nao foi possivel conectar ao Strava");

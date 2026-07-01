@@ -1,3 +1,4 @@
+import React from "react";
 import { CalorieRing } from "./CalorieRing";
 
 export function DailySummaryCard({
@@ -7,6 +8,7 @@ export function DailySummaryCard({
   protein,
   carbs,
   fat,
+  burnedSlot,
 }: {
   consumed: number;
   target: number;
@@ -14,10 +16,11 @@ export function DailySummaryCard({
   protein: number;
   carbs: number;
   fat: number;
+  burnedSlot?: React.ReactNode;
 }) {
   return (
     <div className="rounded-lg border bg-card p-4 shadow-card">
-      <CalorieRing consumed={consumed} target={target} burned={burned} />
+      <CalorieRing consumed={consumed} target={target} burned={burned} burnedSlot={burnedSlot} />
       <div className="grid grid-cols-3 gap-2 mt-4 text-center">
         <Macro label="Proteina" value={protein} unit="g" />
         <Macro label="Carboidrato" value={carbs} unit="g" />

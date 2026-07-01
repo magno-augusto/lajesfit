@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { describeEmailUpdateError, logout } from "./auth";
-import logo from "@/assets/logo.png";
 
 export function RequireEmail() {
   const navigate = useNavigate();
@@ -42,8 +41,7 @@ export function RequireEmail() {
     <main className="grid min-h-screen place-items-center bg-muted/40 px-4">
       <section className="w-full max-w-sm rounded-lg border bg-card p-6 shadow-card">
         <div className="mb-6 text-center">
-          <img src={logo} alt="Lajes Fit" className="mx-auto h-14 w-14 rounded-lg object-cover" />
-          <h1 className="mt-3 font-display text-3xl leading-none">CADASTRE SEU E-MAIL</h1>
+          <h1 className="font-display text-3xl leading-none">CADASTRE SEU E-MAIL</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Sua conta ainda nao tem um e-mail real. Cadastre um para conseguir recuperar sua senha
             caso a esqueca.

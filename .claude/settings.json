@@ -4,7 +4,9 @@
       "Bash(npx --no-install supabase db query --linked \"select id, name, category from public.foods where source='estimated' order by name;\" -o json)",
       "Read(//tmp/**)",
       "Bash(npx vercel *)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "PowerShell(git add src/routes/_authenticated/route.tsx src/features/diary/DiaryPage.tsx src/features/diet/AddFoodDialog.tsx)",
+      "PowerShell(npx vite-node node_modules/@tanstack/router-vite-plugin/dist/route-generator.js 2>&1)"
     ]
   }
 }

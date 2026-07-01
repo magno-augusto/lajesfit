@@ -29,8 +29,8 @@ export function NewActionMenu({ compact = false }: { compact?: boolean }) {
     window.dispatchEvent(new CustomEvent(NEW_ACTION_EVENT, { detail: action }));
 
     if (action === "post") navigate({ to: "/feed" });
-    if (action === "meal") navigate({ to: "/diario" });
-    if (action === "workout") navigate({ to: "/diario" });
+    if (action === "meal") navigate({ to: "/dieta" });
+    if (action === "workout") navigate({ to: "/treinos" });
   }
 
   return (

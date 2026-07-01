@@ -21,7 +21,6 @@ import {
 } from "./auth";
 import { getIdrProfile } from "@/features/goals/goals-api";
 import { useFitness } from "@/features/fitness/useFitness";
-import logo from "@/assets/logo.png";
 
 export function AuthPage() {
   const navigate = useNavigate();
@@ -95,8 +94,7 @@ export function AuthPage() {
     <main className="grid min-h-screen place-items-center bg-muted/40 px-4 py-8">
       <section className="w-full max-w-sm rounded-lg border bg-card p-6 shadow-card">
         <div className="mb-6 text-center">
-          <img src={logo} alt="Lajes Fit" className="mx-auto h-14 w-14 rounded-lg object-cover" />
-          <h1 className="mt-3 font-display text-4xl leading-none">LAJES FIT</h1>
+          <h1 className="font-display text-4xl leading-none">LAJES FIT</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {mode === "login" ? "Entre para continuar" : "Crie seu cadastro"}
           </p>

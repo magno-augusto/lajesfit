@@ -296,19 +296,38 @@ export function DiaryPage() {
                       {Math.round(kcal)} kcal · {items.length} item(ns)
                     </p>
                   </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    className="rounded-full"
-                    aria-label={`Adicionar item em ${meal.label}`}
-                    onClick={() => {
-                      setTargetMeal(meal.key);
-                      setAddMealOpen(true);
-                    }}
-                  >
-                    <Plus className="size-4" />
-                  </Button>
+                  {items.length === 0 ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="rounded-full"
+                      aria-label={`Adicionar item em ${meal.label}`}
+                      onClick={() => {
+                        setTargetMeal(meal.key);
+                        setAddMealOpen(true);
+                      }}
+                    >
+                      <Plus className="size-4" />
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="rounded-full"
+                      aria-label={`Editar ${meal.label}`}
+                      onClick={() => {
+                        const editableGroup = groups.find((g) => g.dietMealId);
+                        if (editableGroup) {
+                          setEditingGroup(editableGroup);
+                          setEditMealOpen(true);
+                        }
+                      }}
+                    >
+                      <Pencil className="size-4" />
+                    </Button>
+                  )}
                 </header>
                 <div className="divide-y">
                   {loading ? (
@@ -322,22 +341,6 @@ export function DiaryPage() {
                   ) : (
                     groups.map((group) => (
                       <div key={group.id} className="bg-card">
-                        {group.dietMealId && (
-                          <div className="flex justify-end px-4 pt-3">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setEditingGroup(group);
-                                setEditMealOpen(true);
-                              }}
-                            >
-                              <Pencil className="mr-1 size-3.5" />
-                              Editar
-                            </Button>
-                          </div>
-                        )}
                         <MealGroupPhoto group={group} />
                         <ul className="divide-y border-t">
                           {group.items.map((entry) => (

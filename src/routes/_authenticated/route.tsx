@@ -83,7 +83,7 @@ function AppShell() {
 
   const navItems = [
     { to: "/feed", icon: Home, label: "Feed" },
-    { to: "/diario", icon: BookOpen, label: "Diario" },
+    { to: "/diario", icon: BookOpen, label: "Dieta" },
   ] as const;
 
   const needsRealEmail = user?.email?.endsWith(LEGACY_EMAIL_DOMAIN) && !user?.new_email;

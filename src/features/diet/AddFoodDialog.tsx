@@ -1,5 +1,5 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
-import { Camera, ImageIcon, ListPlus, Plus, Trash2, X } from "lucide-react";
+import { Camera, Check, ImageIcon, ListPlus, Pencil, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -178,6 +178,8 @@ export function AddFoodDialog({
   const [quantity, setQuantity] = useState("100");
   const [measureId, setMeasureId] = useState("g");
   const [mealItems, setMealItems] = useState<MealFoodInput[]>([]);
+  const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
+  const [editingItemGrams, setEditingItemGrams] = useState("");
   const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
   const [pickingPhoto, setPickingPhoto] = useState(false);
   const [photoLoading, setPhotoLoading] = useState(false);
@@ -393,7 +395,7 @@ export function AddFoodDialog({
       return;
     }
 
-    if (hasDraft || protectDraftRef.current) return;
+    if (!isEditing && (hasDraft || protectDraftRef.current)) return;
     setOpen(false);
   }
 
@@ -463,6 +465,46 @@ export function AddFoodDialog({
 
   function removeMealItem(index: number) {
     setMealItems((current) => current.filter((_, itemIndex) => itemIndex !== index));
+    if (editingItemIndex === index) {
+      setEditingItemIndex(null);
+      setEditingItemGrams("");
+    }
+  }
+
+  function startEditItem(index: number) {
+    setEditingItemIndex(index);
+    setEditingItemGrams(String(mealItems[index].grams));
+  }
+
+  function cancelEditItem() {
+    setEditingItemIndex(null);
+    setEditingItemGrams("");
+  }
+
+  function confirmEditItem() {
+    if (editingItemIndex === null) return;
+    const nextGrams = Number(editingItemGrams);
+    if (!Number.isFinite(nextGrams) || nextGrams <= 0) {
+      toast.error("Informe uma quantidade valida");
+      return;
+    }
+
+    setMealItems((current) =>
+      current.map((item, index) => {
+        if (index !== editingItemIndex) return item;
+        const ratio = nextGrams / item.grams;
+        return {
+          ...item,
+          grams: Math.round(nextGrams),
+          calories: item.calories * ratio,
+          protein: item.protein * ratio,
+          carbs: item.carbs * ratio,
+          fat: item.fat * ratio,
+        };
+      }),
+    );
+    setEditingItemIndex(null);
+    setEditingItemGrams("");
   }
 
   async function submitFoodRequest() {
@@ -538,7 +580,7 @@ export function AddFoodDialog({
         <DialogContent
           className="max-h-[92vh] overflow-y-auto sm:max-w-lg"
           onInteractOutside={(event) => {
-            if (hasDraft || protectDraftRef.current) event.preventDefault();
+            if (!isEditing && (hasDraft || protectDraftRef.current)) event.preventDefault();
           }}
         >
           <input
@@ -831,28 +873,75 @@ export function AddFoodDialog({
                   </p>
                 ) : (
                   <ul className="divide-y">
-                    {mealItems.map((item, index) => (
-                      <li
-                        key={`${item.foodId}-${index}`}
-                        className="flex items-center gap-3 px-3 py-2"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium">{item.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {item.grams}g - {Math.round(item.calories)} kcal
-                          </p>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeMealItem(index)}
-                          aria-label="Remover alimento"
+                    {mealItems.map((item, index) =>
+                      editingItemIndex === index ? (
+                        <li
+                          key={`${item.foodId}-${index}`}
+                          className="flex items-center gap-2 px-3 py-2"
                         >
-                          <Trash2 className="size-4" />
-                        </Button>
-                      </li>
-                    ))}
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium">{item.name}</p>
+                            <Input
+                              type="number"
+                              min="0.1"
+                              step="0.1"
+                              autoFocus
+                              value={editingItemGrams}
+                              onChange={(event) => setEditingItemGrams(event.target.value)}
+                              className="mt-1 h-8"
+                            />
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={confirmEditItem}
+                            aria-label="Confirmar quantidade"
+                          >
+                            <Check className="size-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={cancelEditItem}
+                            aria-label="Cancelar edicao"
+                          >
+                            <X className="size-4" />
+                          </Button>
+                        </li>
+                      ) : (
+                        <li
+                          key={`${item.foodId}-${index}`}
+                          className="flex items-center gap-3 px-3 py-2"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium">{item.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {item.grams}g - {Math.round(item.calories)} kcal
+                            </p>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => startEditItem(index)}
+                            aria-label="Editar quantidade"
+                          >
+                            <Pencil className="size-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeMealItem(index)}
+                            aria-label="Remover alimento"
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </li>
+                      ),
+                    )}
                   </ul>
                 )}
               </div>

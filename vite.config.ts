@@ -5,10 +5,16 @@
 //     error logger plugins, and sandbox detection (port/host/strictPort).
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import basicSsl from "@vitejs/plugin-basic-ssl";
+
+// Habilita HTTPS local (com certificado auto-assinado) apenas quando HTTPS=true,
+// permitindo testar recursos que exigem contexto seguro (camera) pelo IP da rede.
+const useHttps = process.env.HTTPS === "true";
 
 export default defineConfig({
   vite: {
     base: process.env.GITHUB_PAGES ? "/lajesfit/" : "/",
+    plugins: useHttps ? [basicSsl()] : [],
   },
   nitro: {
     preset: "vercel",

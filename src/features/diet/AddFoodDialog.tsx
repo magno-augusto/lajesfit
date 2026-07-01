@@ -658,7 +658,7 @@ export function AddFoodDialog({
           </DialogTrigger>
         )}
         <DialogContent
-          className="max-h-[92vh] overflow-y-auto sm:max-w-lg"
+          className="max-h-[92vh] w-[calc(100%-1.5rem)] max-w-[calc(100%-1.5rem)] overflow-x-hidden overflow-y-auto p-4 sm:max-w-lg sm:p-6"
           onInteractOutside={(event) => {
             if (!isEditing && (hasDraft || protectDraftRef.current)) event.preventDefault();
           }}
@@ -774,6 +774,7 @@ export function AddFoodDialog({
               <Label>Alimento</Label>
               <div className="flex gap-2">
                 <Input
+                  className="min-w-0 flex-1"
                   value={foodQuery}
                   onFocus={() => setFoodListOpen(true)}
                   onClick={() => setFoodListOpen(true)}
@@ -916,7 +917,7 @@ export function AddFoodDialog({
                                 selectFood(food);
                               }}
                             >
-                              <span className="min-w-0">
+                              <span className="min-w-0 flex-1">
                                 <span className="block truncate">{food.name}</span>
                                 {food.category && (
                                   <span className="block truncate text-xs font-normal text-muted-foreground">
@@ -947,7 +948,7 @@ export function AddFoodDialog({
             </div>
             <div className="space-y-2">
               <Label>Quantidade</Label>
-              <div className="grid grid-cols-[minmax(0,1fr)_minmax(9rem,auto)] gap-2">
+              <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,8rem)] gap-2">
                 <Input
                   id="meal-quantity"
                   type="number"

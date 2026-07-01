@@ -147,13 +147,13 @@ export function AuthPage() {
 
         <form onSubmit={submit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="username">Usuario</Label>
+            <Label htmlFor="username">{mode === "signup" ? "Usuario" : "Usuario ou e-mail"}</Label>
             <Input
               id="username"
               autoComplete="username"
               value={username}
               onChange={(event) => setUsername(event.target.value)}
-              placeholder="seu usuario"
+              placeholder={mode === "signup" ? "seu usuario" : "seu usuario ou e-mail"}
               required
             />
           </div>

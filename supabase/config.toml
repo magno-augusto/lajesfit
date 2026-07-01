@@ -5,7 +5,9 @@ site_url = "https://lajesfit.vercel.app"
 additional_redirect_urls = [
   "https://lajesfit.vercel.app/**",
   "http://localhost:8080/**",
+  "http://localhost:8081/**",
   "http://192.168.0.155:8080/**",
+  "http://192.168.0.155:8081/**",
 ]
 
 [auth.mfa.totp]

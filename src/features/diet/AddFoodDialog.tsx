@@ -623,15 +623,11 @@ export function AddFoodDialog({
                     <X className="size-4" />
                   </Button>
                 </div>
-              ) : photoLoading || pickingPhoto ? (
+              ) : (photoLoading || pickingPhoto) ? (
                 <div className="flex h-32 items-center justify-center rounded-lg border border-dashed bg-muted/40 text-sm text-muted-foreground">
                   Processando foto...
                 </div>
-              ) : (
-                <div className="flex h-32 items-center justify-center rounded-lg border border-dashed bg-muted/40 text-muted-foreground">
-                  <ImageIcon className="size-8" />
-                </div>
-              )}
+              ) : null}
               {pickerOpen || photoDataUrl ? (
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <Button

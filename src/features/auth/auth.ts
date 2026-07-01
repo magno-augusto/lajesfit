@@ -57,18 +57,25 @@ export async function signUpWithPassword(username: string, password: string, ema
   return data;
 }
 
-export async function loginWithPassword(username: string, password: string) {
-  const normalizedUsername = normalizeUsername(username);
+export async function loginWithPassword(identifier: string, password: string) {
+  const cleanIdentifier = identifier.trim();
   const cleanPassword = password.trim();
 
-  if (!normalizedUsername || !cleanPassword) {
-    throw new Error("Informe usuario e senha para entrar");
+  if (!cleanIdentifier || !cleanPassword) {
+    throw new Error("Informe usuario ou e-mail e senha para entrar");
   }
 
-  const { data: email, error: lookupError } = await supabase.rpc("get_login_email", {
-    p_username: normalizedUsername,
-  });
-  if (lookupError || !email) throw new Error("Usuario ou senha incorretos");
+  let email: string;
+  if (isValidEmail(cleanIdentifier)) {
+    email = cleanIdentifier.toLowerCase();
+  } else {
+    const normalizedUsername = normalizeUsername(cleanIdentifier);
+    const { data: lookedUpEmail, error: lookupError } = await supabase.rpc("get_login_email", {
+      p_username: normalizedUsername,
+    });
+    if (lookupError || !lookedUpEmail) throw new Error("Usuario ou senha incorretos");
+    email = lookedUpEmail;
+  }
 
   const { data, error } = await supabase.auth.signInWithPassword({
     email,

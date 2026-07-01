@@ -1,6 +1,109 @@
 ﻿import { supabase } from "@/integrations/supabase/client";
 import { getUserId } from "@/lib/supabase-user";
 
+const CATEGORY_TRANSLATIONS: Record<string, string> = {
+  // Bebidas
+  "beverages and beverages preparations": "Bebidas",
+  "beverages": "Bebidas",
+  "carbonated drinks": "Bebidas carbonatadas",
+  "sodas": "Refrigerantes",
+  "soft drinks": "Refrigerantes",
+  "waters": "Águas",
+  "mineral waters": "Águas minerais",
+  "juices and nectars": "Sucos e néctares",
+  "fruit juices": "Sucos de fruta",
+  "plant-based beverages": "Bebidas vegetais",
+  "energy drinks": "Bebidas energéticas",
+  "alcoholic beverages": "Bebidas alcoólicas",
+  "beers": "Cervejas",
+  "wines": "Vinhos",
+  "coffee and tea": "Café e chá",
+  "coffees": "Cafés",
+  "teas": "Chás",
+  "hot drinks": "Bebidas quentes",
+  // Laticínios
+  "milk and dairy products": "Laticínios",
+  "dairy products": "Laticínios",
+  "milks": "Leites",
+  "yogurts": "Iogurtes",
+  "cheeses": "Queijos",
+  "butters": "Manteigas",
+  "creams": "Cremes",
+  "ice creams and sorbets": "Sorvetes",
+  "ice creams": "Sorvetes",
+  // Carnes e proteínas
+  "meats": "Carnes",
+  "poultry": "Aves",
+  "beef": "Carne bovina",
+  "pork": "Carne suína",
+  "processed meats": "Carnes processadas",
+  "sausages": "Salsichas e linguiças",
+  "fish and seafood": "Peixes e frutos do mar",
+  "fish": "Peixes",
+  "seafood": "Frutos do mar",
+  "eggs": "Ovos",
+  // Cereais e pães
+  "cereals and potatoes": "Cereais e tubérculos",
+  "cereals and their products": "Cereais",
+  "breakfast cereals": "Cereais matinais",
+  "breads": "Pães",
+  "pasta": "Massas",
+  "rice": "Arroz",
+  "flours": "Farinhas",
+  // Frutas e vegetais
+  "fruits and vegetables based foods": "Frutas e vegetais",
+  "fruits and vegetables": "Frutas e vegetais",
+  "vegetables": "Vegetais",
+  "fruits": "Frutas",
+  "legumes": "Leguminosas",
+  "beans": "Feijões",
+  // Snacks e doces
+  "snacks": "Snacks",
+  "sweet snacks": "Snacks doces",
+  "salty snacks": "Snacks salgados",
+  "biscuits and cakes": "Biscoitos e bolos",
+  "biscuits": "Biscoitos",
+  "cookies": "Biscoitos",
+  "cakes": "Bolos",
+  "candies": "Balas e confeitos",
+  "chocolates": "Chocolates",
+  "chocolate products": "Chocolates",
+  "desserts": "Sobremesas",
+  "confectioneries": "Confeitaria",
+  // Gorduras e condimentos
+  "fats and oils": "Gorduras e óleos",
+  "oils": "Óleos",
+  "plant oils": "Óleos vegetais",
+  "condiments": "Condimentos",
+  "sauces": "Molhos",
+  "vinegars": "Vinagres",
+  "seasonings": "Temperos",
+  "spices": "Especiarias",
+  "salt": "Sal",
+  "sugars": "Açúcares",
+  "sweeteners": "Adoçantes",
+  "honey": "Mel",
+  // Refeições e outros
+  "prepared meals": "Refeições prontas",
+  "soups": "Sopas",
+  "sandwiches": "Sanduíches",
+  "baby foods": "Alimentos infantis",
+  "dietary supplements": "Suplementos",
+  "plant-based foods and beverages": "Alimentos e bebidas vegetais",
+  "plant-based foods": "Alimentos vegetais",
+  "organic foods": "Alimentos orgânicos",
+  "groceries": "Mercearia",
+  "nuts and seeds": "Nozes e sementes",
+  "nuts": "Nozes e castanhas",
+  "seeds": "Sementes",
+};
+
+export function translateFoodCategory(category: string | null): string | null {
+  if (!category) return null;
+  const key = category.toLowerCase().trim();
+  return CATEGORY_TRANSLATIONS[key] ?? category;
+}
+
 export type FoodSource = "tbca" | "taco" | "open_food_facts" | "manual" | "estimated";
 
 export type FoodMeasureUnit = "g" | "ml" | "unit" | "tsp" | "tbsp" | "cup" | "serving";
@@ -170,7 +273,7 @@ function mapFood(row: FoodCatalogRow): TacoFood {
     sourceId: row.source_id ?? String(row.id),
     brand: row.brand ?? null,
     name: row.name,
-    category: row.category,
+    category: translateFoodCategory(row.category),
     calories: Number(row.kcal) || 0,
     protein: Number(row.protein_g) || 0,
     carbs: Number(row.carbs_g) || 0,
@@ -247,6 +350,37 @@ export function foodMatchesQuery(food: TacoFood, rawQuery: string) {
   return searchText.includes(query) || tokens.every((token) => searchText.includes(token));
 }
 
+export async function searchFoods(query: string): Promise<TacoFood[]> {
+  const q = query.trim();
+  if (q.length < 2) return [];
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any).rpc("search_foods", {
+    p_query: q,
+    p_limit: 20,
+  });
+
+  if (error || !data) return [];
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (data as any[]).map<TacoFood>((row) => ({
+    id: `${row.source}:${row.source_id ?? row.id}`,
+    foodId: null,
+    source: row.source as TacoFood["source"],
+    sourceId: row.source_id,
+    brand: row.brand,
+    name: row.name,
+    category: translateFoodCategory(row.category),
+    calories: row.kcal,
+    protein: row.protein_g,
+    carbs: row.carbs_g,
+    fat: row.fat_g,
+    fiber: row.fiber_g,
+    aliases: [],
+    measures: [{ id: "g", label: "gramas", unit: "g", grams: 1, isDefault: true }],
+  }));
+}
+
 export async function requestFoodSuggestion(query: string) {
   const normalizedQuery = normalizeFoodSearch(query);
   if (normalizedQuery.length < 2) {
@@ -276,9 +410,10 @@ function numberFromOpenFoodFacts(value: unknown) {
 
 function openFoodFactsCategory(product: OpenFoodFactsProduct) {
   if (typeof product.categories === "string" && product.categories.trim()) {
-    return product.categories.split(",")[0]?.trim() || "Produto industrializado";
+    const raw = product.categories.split(",")[0]?.trim() || null;
+    return translateFoodCategory(raw);
   }
-  return "Produto industrializado";
+  return null;
 }
 
 function parseServingGrams(servingSize: unknown) {
@@ -300,8 +435,7 @@ export async function searchOpenFoodFactsFoods(query: string) {
     search_simple: "1",
     action: "process",
     json: "1",
-    page_size: "12",
-    countries_tags_en: "Brazil",
+    page_size: "16",
     fields: "code,product_name,brands,categories,serving_size,nutriments",
   });
   const response = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?${params}`);
@@ -351,6 +485,50 @@ export async function searchOpenFoodFactsFoods(query: string) {
       return { ...food, measures: uniqueMeasures(measures) };
     })
     .filter((food): food is TacoFood => Boolean(food));
+}
+
+export async function lookupOpenFoodFactsByBarcode(barcode: string): Promise<TacoFood | null> {
+  const fields = "code,product_name,brands,categories,serving_size,nutriments";
+  const response = await fetch(
+    `https://world.openfoodfacts.net/api/v2/product/${barcode}.json?fields=${fields}`,
+    { headers: { "User-Agent": "LajesFit/1.0 (https://lajesfit.vercel.app)" } },
+  );
+  if (!response.ok) return null;
+
+  const data = (await response.json()) as { status: number; product?: OpenFoodFactsProduct };
+  if (data.status !== 1 || !data.product) return null;
+
+  const product = data.product;
+  const nutriments = product.nutriments ?? {};
+  const calories =
+    numberFromOpenFoodFacts(nutriments["energy-kcal_100g"]) ||
+    numberFromOpenFoodFacts(nutriments["energy-kcal_value"]);
+  const name = String(product.product_name ?? "").trim();
+  const code = String(product.code ?? barcode).trim();
+
+  if (!name || calories <= 0) return null;
+
+  const servingGrams = parseServingGrams(product.serving_size);
+  const food = {
+    id: `open_food_facts:${code}`,
+    foodId: null,
+    source: "open_food_facts" as const,
+    sourceId: code,
+    brand: typeof product.brands === "string" && product.brands.trim() ? product.brands : null,
+    name,
+    category: openFoodFactsCategory(product),
+    calories,
+    protein: numberFromOpenFoodFacts(nutriments.proteins_100g),
+    carbs: numberFromOpenFoodFacts(nutriments.carbohydrates_100g),
+    fat: numberFromOpenFoodFacts(nutriments.fat_100g),
+    fiber: numberFromOpenFoodFacts(nutriments.fiber_100g),
+    aliases: [],
+  };
+  const measures = defaultMeasuresForFood(food);
+  if (servingGrams) {
+    measures.unshift({ id: "serving", label: "porcao", unit: "serving", grams: servingGrams, isDefault: true });
+  }
+  return { ...food, measures: uniqueMeasures(measures) };
 }
 
 export async function cacheFoodInCatalog(food: TacoFood) {

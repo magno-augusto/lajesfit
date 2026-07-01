@@ -1,5 +1,5 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
-import { Camera, Check, ImageIcon, ListPlus, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Camera, Check, ImageIcon, ListPlus, Pencil, Plus, ScanBarcode, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,14 +24,16 @@ import {
   caloriesFromGrams,
   defaultMeasureForFood,
   defaultQuantityForMeasure,
-  foodMatchesQuery,
   getFoodCatalog,
   normalizeFoodSearch,
   requestFoodSuggestion,
+  searchFoods,
+  searchOpenFoodFactsFoods,
   type FoodMeasure,
   type TacoFood,
 } from "./food-catalog";
 import { addMealWithItems, updateMealItems, type LocalMeal, type MealFoodInput } from "./meals-api";
+import { BarcodeScannerDialog } from "./BarcodeScannerDialog";
 import type { MealGroup } from "./meal-grouping";
 import {
   compressImageDataUrl,
@@ -169,6 +171,9 @@ export function AddFoodDialog({
   const [foodsLoading, setFoodsLoading] = useState(false);
   const [foodRequestSending, setFoodRequestSending] = useState(false);
   const [submittedFoodRequests, setSubmittedFoodRequests] = useState<Set<string>>(() => new Set());
+  const [offFoods, setOffFoods] = useState<TacoFood[]>([]);
+  const [offLoading, setOffLoading] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
   const [foodQuery, setFoodQuery] = useState("");
   const [foodListOpen, setFoodListOpen] = useState(false);
   const [historyMode, setHistoryMode] = useState<"popular" | "recent">("popular");
@@ -180,6 +185,13 @@ export function AddFoodDialog({
   const [mealItems, setMealItems] = useState<MealFoodInput[]>([]);
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
   const [editingItemGrams, setEditingItemGrams] = useState("");
+  const [showManualForm, setShowManualForm] = useState(false);
+  const [manualName, setManualName] = useState("");
+  const [manualBrand, setManualBrand] = useState("");
+  const [manualCalories, setManualCalories] = useState("");
+  const [manualProtein, setManualProtein] = useState("");
+  const [manualCarbs, setManualCarbs] = useState("");
+  const [manualFat, setManualFat] = useState("");
   const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
   const [pickingPhoto, setPickingPhoto] = useState(false);
   const [photoLoading, setPhotoLoading] = useState(false);
@@ -310,21 +322,49 @@ export function AddFoodDialog({
     };
   }, [foods.length, open]);
 
-  const filteredFoods = useMemo(() => {
-    const query = normalizeFoodSearch(foodQuery);
-    return query ? foods.filter((food) => foodMatchesQuery(food, query)).slice(0, 16) : foods;
-  }, [foodQuery, foods]);
+  useEffect(() => {
+    const query = foodQuery.trim();
+    if (query.length < 2) {
+      setOffFoods([]);
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      setOffLoading(true);
+      try {
+        // Busca server-side no banco (todos os 25k+ produtos)
+        const dbResults = await searchFoods(query);
+        if (!cancelled) setOffFoods(dbResults);
+
+        // Se não encontrou nada no banco, tenta o OFF em tempo real
+        if (!cancelled && dbResults.length === 0 && query.length >= 3) {
+          const offResults = await searchOpenFoodFactsFoods(query);
+          if (!cancelled) setOffFoods(offResults);
+        }
+      } catch {
+        if (!cancelled) setOffFoods([]);
+      } finally {
+        if (!cancelled) setOffLoading(false);
+      }
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [foodQuery]);
 
   const historyFoods = useMemo(
     () => getHistoryFoods(meals, foods, historyMode),
     [foods, historyMode, meals],
   );
 
-  const visibleFoods = foodQuery.trim() ? filteredFoods : historyFoods;
+  const visibleFoods = foodQuery.trim() ? offFoods : historyFoods;
+
   const normalizedFoodRequest = normalizeFoodSearch(foodQuery);
   const canSuggestFood =
     normalizedFoodRequest.length >= 2 &&
     visibleFoods.length === 0 &&
+    !offLoading &&
     !submittedFoodRequests.has(normalizedFoodRequest);
 
   function applyDefaultMeasure(food: TacoFood | null) {
@@ -505,6 +545,46 @@ export function AddFoodDialog({
     );
     setEditingItemIndex(null);
     setEditingItemGrams("");
+  }
+
+  function resetManualForm() {
+    setShowManualForm(false);
+    setManualName("");
+    setManualBrand("");
+    setManualCalories("");
+    setManualProtein("");
+    setManualCarbs("");
+    setManualFat("");
+  }
+
+  async function submitManualFood(e: React.FormEvent) {
+    e.preventDefault();
+    const kcal = Number(manualCalories);
+    if (!manualName.trim() || !Number.isFinite(kcal) || kcal <= 0) {
+      toast.error("Informe nome e calorias para cadastrar o alimento");
+      return;
+    }
+    const id = `manual:${crypto.randomUUID()}`;
+    const food: TacoFood = {
+      id,
+      foodId: null,
+      source: "manual",
+      sourceId: id,
+      name: manualName.trim(),
+      brand: manualBrand.trim() || null,
+      category: null,
+      calories: kcal,
+      protein: Number(manualProtein) || 0,
+      carbs: Number(manualCarbs) || 0,
+      fat: Number(manualFat) || 0,
+      fiber: 0,
+      aliases: [],
+      measures: [{ id: "g", label: "gramas", unit: "g", grams: 1, isDefault: true }],
+    };
+    void cacheFoodInCatalog(food);
+    selectFood(food);
+    resetManualForm();
+    setFoodListOpen(false);
   }
 
   async function submitFoodRequest() {
@@ -692,16 +772,28 @@ export function AddFoodDialog({
             </div>
             <div className="space-y-2">
               <Label>Alimento</Label>
-              <Input
-                value={foodQuery}
-                onFocus={() => setFoodListOpen(true)}
-                onClick={() => setFoodListOpen(true)}
-                onChange={(event) => {
-                  setFoodQuery(event.target.value);
-                  setFoodListOpen(true);
-                }}
-                placeholder="Buscar alimento: arroz, frango, banana, iogurte..."
-              />
+              <div className="flex gap-2">
+                <Input
+                  value={foodQuery}
+                  onFocus={() => setFoodListOpen(true)}
+                  onClick={() => setFoodListOpen(true)}
+                  onChange={(event) => {
+                    setFoodQuery(event.target.value);
+                    setFoodListOpen(true);
+                  }}
+                  placeholder="Buscar alimento: arroz, frango, banana..."
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0"
+                  onClick={() => setScannerOpen(true)}
+                  aria-label="Escanear código de barras"
+                >
+                  <ScanBarcode className="size-4" />
+                </Button>
+              </div>
               {foodListOpen && (
                 <div className="overflow-hidden rounded-lg border bg-background">
                   {!foodQuery.trim() && (
@@ -731,27 +823,82 @@ export function AddFoodDialog({
                       <p className="px-3 py-4 text-center text-sm text-muted-foreground">
                         Carregando base de alimentos...
                       </p>
+                    ) : visibleFoods.length === 0 && offLoading ? (
+                      <p className="px-3 py-4 text-center text-sm text-muted-foreground">
+                        Buscando...
+                      </p>
                     ) : visibleFoods.length === 0 ? (
-                      <div className="space-y-3 px-3 py-4 text-center">
-                        <p className="text-sm text-muted-foreground">
-                          {foodQuery.trim()
-                            ? "Nao encontramos esse alimento na nossa base."
-                            : "Nenhum alimento usado ainda"}
-                        </p>
-                        {foodQuery.trim() && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={submitFoodRequest}
-                            disabled={!canSuggestFood || foodRequestSending}
-                          >
-                            {foodRequestSending
-                              ? "Enviando..."
-                              : submittedFoodRequests.has(normalizedFoodRequest)
-                                ? "Sugestao enviada"
-                                : "Sugerir alimento"}
-                          </Button>
+                      <div className="space-y-3 px-3 py-4">
+                        {!foodQuery.trim() ? (
+                          <p className="text-center text-sm text-muted-foreground">Nenhum alimento usado ainda</p>
+                        ) : showManualForm ? (
+                          <form onSubmit={submitManualFood} className="space-y-2">
+                            <p className="text-xs font-medium text-muted-foreground">Cadastrar alimento</p>
+                            <Input
+                              placeholder="Nome do alimento *"
+                              value={manualName}
+                              onChange={(e) => setManualName(e.target.value)}
+                              autoFocus
+                              required
+                            />
+                            <Input
+                              placeholder="Marca (opcional)"
+                              value={manualBrand}
+                              onChange={(e) => setManualBrand(e.target.value)}
+                            />
+                            <p className="text-[11px] text-muted-foreground">Valores por 100g</p>
+                            <div className="grid grid-cols-2 gap-2">
+                              <Input
+                                type="number"
+                                min="1"
+                                placeholder="Calorias (kcal) *"
+                                value={manualCalories}
+                                onChange={(e) => setManualCalories(e.target.value)}
+                                required
+                              />
+                              <Input
+                                type="number"
+                                min="0"
+                                step="0.1"
+                                placeholder="Proteína (g)"
+                                value={manualProtein}
+                                onChange={(e) => setManualProtein(e.target.value)}
+                              />
+                              <Input
+                                type="number"
+                                min="0"
+                                step="0.1"
+                                placeholder="Carboidrato (g)"
+                                value={manualCarbs}
+                                onChange={(e) => setManualCarbs(e.target.value)}
+                              />
+                              <Input
+                                type="number"
+                                min="0"
+                                step="0.1"
+                                placeholder="Gordura (g)"
+                                value={manualFat}
+                                onChange={(e) => setManualFat(e.target.value)}
+                              />
+                            </div>
+                            <div className="flex gap-2">
+                              <Button type="submit" size="sm" className="flex-1">Salvar alimento</Button>
+                              <Button type="button" size="sm" variant="outline" onClick={resetManualForm}>Cancelar</Button>
+                            </div>
+                          </form>
+                        ) : (
+                          <div className="space-y-2 text-center">
+                            <p className="text-sm text-muted-foreground">Nao encontramos esse alimento.</p>
+                            <div className="flex flex-col gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={() => { setManualName(foodQuery); setShowManualForm(true); }}
+                              >
+                                Cadastrar alimento
+                              </Button>
+                            </div>
+                          </div>
                         )}
                       </div>
                     ) : (
@@ -788,6 +935,11 @@ export function AddFoodDialog({
                           );
                         })}
                       </>
+                    )}
+                    {offLoading && visibleFoods.length > 0 && (
+                      <p className="px-3 py-2 text-center text-[10px] text-muted-foreground">
+                        Buscando mais...
+                      </p>
                     )}
                   </div>
                 </div>
@@ -959,6 +1111,15 @@ export function AddFoodDialog({
           </form>
         </DialogContent>
       </Dialog>
+      <BarcodeScannerDialog
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onFound={(food) => {
+          void cacheFoodInCatalog(food);
+          selectFood(food);
+          setScannerOpen(false);
+        }}
+      />
     </>
   );
 }

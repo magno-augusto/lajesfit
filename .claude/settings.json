@@ -6,7 +6,10 @@
       "Bash(npx vercel *)",
       "Bash(npm run *)",
       "PowerShell(git add src/routes/_authenticated/route.tsx src/features/diary/DiaryPage.tsx src/features/diet/AddFoodDialog.tsx)",
-      "PowerShell(npx vite-node node_modules/@tanstack/router-vite-plugin/dist/route-generator.js 2>&1)"
+      "PowerShell(npx vite-node node_modules/@tanstack/router-vite-plugin/dist/route-generator.js 2>&1)",
+      "PowerShell(npx tsc --noEmit 2>&1)",
+      "PowerShell(supabase db push --linked 2>&1)",
+      "PowerShell(git add -A)"
     ]
   }
 }

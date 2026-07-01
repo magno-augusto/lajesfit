@@ -34,7 +34,10 @@ export function WorkoutsPage() {
 
   useEffect(() => {
     getStravaConnection()
-      .then((connection) => setStravaConnected(connection.connected))
+      .then((connection) => {
+        setStravaConnected(connection.connected);
+        if (connection.connected) autoSyncStrava();
+      })
       .catch(() => setStravaConnected(false));
   }, []);
 
@@ -70,6 +73,23 @@ export function WorkoutsPage() {
 
   async function handleCreateWorkout(workout: Omit<LocalWorkout, "id">) {
     await addWorkout(workout);
+  }
+
+  async function autoSyncStrava() {
+    const key = "lajesfit-strava-last-sync";
+    const last = sessionStorage.getItem(key);
+    const fiveMinutes = 5 * 60 * 1000;
+    if (last && Date.now() - Number(last) < fiveMinutes) return;
+
+    sessionStorage.setItem(key, String(Date.now()));
+    try {
+      const result = await syncStravaActivities();
+      if (result.imported > 0) {
+        window.dispatchEvent(new Event(CHANGE_EVENT));
+      }
+    } catch {
+      // silencioso — sync em background não deve mostrar erros ao usuário
+    }
   }
 
   async function handleRemoveWorkout(id: string) {

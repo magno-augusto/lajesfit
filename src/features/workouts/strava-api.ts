@@ -6,6 +6,7 @@ import {
   ensureStravaWebhookSubscription,
   exchangeStravaToken,
   fetchStravaActivities,
+  fetchStravaActivity,
   getStravaConfig,
   getValidStravaAccessToken,
   stravaConnectionCutoffSeconds,
@@ -118,7 +119,21 @@ export const syncStravaActivities = createServerFn({ method: "POST" })
     const accessToken = await getValidStravaAccessToken(context.supabase, storedToken);
     const after = stravaConnectionCutoffSeconds(storedToken.created_at);
     const activities = await fetchStravaActivities(accessToken, after);
-    const imported = await upsertStravaActivities(context.supabase, context.userId, activities);
+
+    // O endpoint de lista não retorna calorias — buscamos o detalhe de cada
+    // atividade que não trouxe esse dado para obtê-lo.
+    const activitiesWithCalories = await Promise.all(
+      activities.map(async (activity) => {
+        if (typeof activity.calories === "number" && activity.calories > 0) return activity;
+        try {
+          return await fetchStravaActivity(accessToken, activity.id);
+        } catch {
+          return activity;
+        }
+      }),
+    );
+
+    const imported = await upsertStravaActivities(context.supabase, context.userId, activitiesWithCalories);
     return { imported, removed };
   });
 

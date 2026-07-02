@@ -658,7 +658,7 @@ export function AddFoodDialog({
           </DialogTrigger>
         )}
         <DialogContent
-          className="max-h-[92vh] w-[calc(100%-1.5rem)] max-w-[calc(100%-1.5rem)] overflow-x-hidden overflow-y-auto p-4 sm:max-w-lg sm:p-6"
+          className="inset-0 h-full max-h-full w-full max-w-full translate-x-0 translate-y-0 overflow-x-hidden overflow-y-auto p-4 sm:rounded-none sm:p-6"
           onInteractOutside={(event) => {
             if (!isEditing && (hasDraft || protectDraftRef.current)) event.preventDefault();
           }}

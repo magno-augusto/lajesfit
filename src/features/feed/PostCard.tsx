@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { type FeedPost } from "./feed-api";
 import { formatDistance, formatDuration, timeAgo } from "./format";
+import { buildShareImage, getPostShareStats } from "./share-image";
 import { likePost, unlikePost } from "./likes-api";
 import { CommentsDialog } from "./CommentsDialog";
 
@@ -94,8 +95,12 @@ export function PostCard({
     try {
       const response = await fetch(mediaUrl);
       const blob = await response.blob();
-      const extension = blob.type.split("/")[1] ?? "jpg";
-      const file = new File([blob], `lajesfit-post.${extension}`, { type: blob.type });
+      // sobrepoe marca e estatisticas (treino/refeicao) na foto; se nao der
+      // (ex: video), compartilha a midia original
+      const composed = await buildShareImage(blob, getPostShareStats(post));
+      const finalBlob = composed ?? blob;
+      const extension = finalBlob.type.split("/")[1] ?? "jpg";
+      const file = new File([finalBlob], `lajesfit-post.${extension}`, { type: finalBlob.type });
       setShareFile(file);
       return file;
     } catch {

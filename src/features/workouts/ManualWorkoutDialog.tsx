@@ -23,6 +23,9 @@ import { type LocalWorkout } from "./workouts-api";
 
 const ACTIVITIES = ["Corrida", "Caminhada", "Ciclismo", "Musculacao", "Trilha", "Natacao", "Outro"];
 
+// Modalidades sem nocao de distancia percorrida
+const NO_DISTANCE_ACTIVITIES = ["Musculacao"];
+
 function formatDateTimeLocal(value?: string) {
   if (!value) return "";
   const date = new Date(value);
@@ -51,7 +54,9 @@ export function ManualWorkoutDialog({
   const [internalOpen, setInternalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [activityType, setActivityType] = useState(initialWorkout?.activityType ?? "Corrida");
-  const [name, setName] = useState(initialWorkout?.name ?? "");
+  const [name, setName] = useState(
+    initialWorkout?.name ?? initialWorkout?.activityType ?? "Corrida",
+  );
   const [startedAt, setStartedAt] = useState(
     formatDateTimeLocal(initialWorkout?.startedAt ?? defaultStartedAt),
   );
@@ -68,6 +73,7 @@ export function ManualWorkoutDialog({
   const defaultMinutes = Math.floor((durationSeconds % 3600) / 60);
   const [hours, setHours] = useState(defaultHours ? String(defaultHours) : "");
   const [minutes, setMinutes] = useState(defaultMinutes ? String(defaultMinutes) : "");
+  const showDistance = !NO_DISTANCE_ACTIVITIES.includes(activityType);
 
   useEffect(() => {
     if (!open) return;
@@ -77,7 +83,7 @@ export function ManualWorkoutDialog({
     const nextMinutes = Math.floor((nextDurationSeconds % 3600) / 60);
 
     setActivityType(initialWorkout?.activityType ?? "Corrida");
-    setName(initialWorkout?.name ?? "");
+    setName(initialWorkout?.name ?? initialWorkout?.activityType ?? "Corrida");
     setStartedAt(formatDateTimeLocal(initialWorkout?.startedAt ?? defaultStartedAt));
     setDistanceKm(
       initialWorkout?.distanceMeters ? String(initialWorkout.distanceMeters / 1000) : "",
@@ -92,6 +98,12 @@ export function ManualWorkoutDialog({
     else setInternalOpen(nextOpen);
   }
 
+  // Ao trocar a modalidade, acompanha o nome padrao — mas preserva nome customizado
+  function changeActivityType(nextActivity: string) {
+    if (!name.trim() || name === activityType) setName(nextActivity);
+    setActivityType(nextActivity);
+  }
+
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
@@ -99,7 +111,9 @@ export function ManualWorkoutDialog({
     try {
       const parsedHours = parseOptionalNumber(hours, "Horas", { min: 0 }) ?? 0;
       const parsedMinutes = parseOptionalNumber(minutes, "Minutos", { min: 0, max: 59 }) ?? 0;
-      const parsedDistanceKm = parseOptionalNumber(distanceKm, "Distancia", { min: 0 });
+      const parsedDistanceKm = showDistance
+        ? parseOptionalNumber(distanceKm, "Distancia", { min: 0 })
+        : null;
       const parsedCalories = parseOptionalNumber(calories, "Calorias", { min: 0 });
       const duration = parsedHours * 3600 + parsedMinutes * 60;
 
@@ -146,7 +160,7 @@ export function ManualWorkoutDialog({
           <div className="grid sm:grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>Modalidade</Label>
-              <Select name="activity_type" value={activityType} onValueChange={setActivityType}>
+              <Select name="activity_type" value={activityType} onValueChange={changeActivityType}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -164,7 +178,6 @@ export function ManualWorkoutDialog({
               <Input
                 id="workout-name"
                 name="name"
-                placeholder="Treino matinal"
                 maxLength={120}
                 value={name}
                 onChange={(event) => setName(event.target.value)}
@@ -184,20 +197,21 @@ export function ManualWorkoutDialog({
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="distance-km">Distancia (km)</Label>
-              <Input
-                id="distance-km"
-                name="distance_km"
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="5.2"
-                value={distanceKm}
-                onChange={(event) => setDistanceKm(event.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
+            {showDistance && (
+              <div className="space-y-2">
+                <Label htmlFor="distance-km">Distancia (km)</Label>
+                <Input
+                  id="distance-km"
+                  name="distance_km"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={distanceKm}
+                  onChange={(event) => setDistanceKm(event.target.value)}
+                />
+              </div>
+            )}
+            <div className={showDistance ? "space-y-2" : "col-span-2 space-y-2"}>
               <Label htmlFor="calories">Calorias queimadas (kcal)</Label>
               <Input
                 id="calories"
@@ -205,7 +219,6 @@ export function ManualWorkoutDialog({
                 type="number"
                 min="0"
                 step="1"
-                placeholder="320"
                 value={calories}
                 onChange={(event) => setCalories(event.target.value)}
               />
@@ -218,7 +231,6 @@ export function ManualWorkoutDialog({
                 type="number"
                 min="0"
                 step="1"
-                placeholder="0"
                 value={hours}
                 onChange={(event) => setHours(event.target.value)}
               />
@@ -232,7 +244,6 @@ export function ManualWorkoutDialog({
                 min="0"
                 max="59"
                 step="1"
-                placeholder="45"
                 value={minutes}
                 onChange={(event) => setMinutes(event.target.value)}
               />

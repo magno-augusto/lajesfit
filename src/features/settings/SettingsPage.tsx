@@ -12,7 +12,9 @@ import { toast } from "sonner";
 import {
   changePassword,
   describeEmailUpdateError,
+  hasPasswordLogin,
   LEGACY_EMAIL_DOMAIN,
+  setPassword,
   useLocalAuth,
 } from "@/features/auth/auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -149,16 +151,26 @@ export function SettingsPage() {
     }
   }
 
+  const canChangePassword = hasPasswordLogin(user);
+
   async function submitChangePassword(e: React.FormEvent) {
     e.preventDefault();
     setChangingPassword(true);
     try {
-      await changePassword(currentPassword, newPassword);
+      if (canChangePassword) {
+        await changePassword(currentPassword, newPassword);
+      } else {
+        await setPassword(newPassword);
+      }
       setCurrentPassword("");
       setNewPassword("");
-      toast.success("Senha alterada com sucesso!");
+      toast.success(
+        canChangePassword
+          ? "Senha alterada com sucesso!"
+          : "Senha definida! Agora voce tambem pode entrar com usuario e senha.",
+      );
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel trocar a senha");
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel salvar a senha");
     } finally {
       setChangingPassword(false);
     }
@@ -266,11 +278,7 @@ export function SettingsPage() {
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-start gap-3">
             <div className="mt-0.5 rounded-full bg-primary/10 p-2 text-primary">
-              {notificationsEnabled ? (
-                <Bell className="size-4" />
-              ) : (
-                <BellOff className="size-4" />
-              )}
+              {notificationsEnabled ? <Bell className="size-4" /> : <BellOff className="size-4" />}
             </div>
             <div>
               <h2 className="font-display text-2xl">NOTIFICAÇÕES</h2>
@@ -300,17 +308,24 @@ export function SettingsPage() {
         </div>
 
         <form onSubmit={submitChangePassword} className="space-y-3 border-b pb-4">
-          <div className="space-y-2">
-            <Label htmlFor="current-password">Senha atual</Label>
-            <Input
-              id="current-password"
-              type="password"
-              autoComplete="current-password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              required
-            />
-          </div>
+          {canChangePassword ? (
+            <div className="space-y-2">
+              <Label htmlFor="current-password">Senha atual</Label>
+              <Input
+                id="current-password"
+                type="password"
+                autoComplete="current-password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                required
+              />
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Sua conta entra com o Google e ainda nao tem senha. Defina uma para tambem poder
+              entrar com usuario e senha (util em outros dispositivos).
+            </p>
+          )}
           <div className="space-y-2">
             <Label htmlFor="new-password">Nova senha</Label>
             <Input
@@ -324,7 +339,11 @@ export function SettingsPage() {
             />
           </div>
           <Button type="submit" variant="outline" className="w-full" disabled={changingPassword}>
-            {changingPassword ? "Trocando..." : "Trocar senha"}
+            {changingPassword
+              ? "Salvando..."
+              : canChangePassword
+                ? "Trocar senha"
+                : "Definir senha"}
           </Button>
         </form>
 

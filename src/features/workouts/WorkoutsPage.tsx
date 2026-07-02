@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { Activity, ChevronLeft, ChevronRight, Flame, RefreshCw, Trash2, Zap } from "lucide-react";
+import { Activity, ChevronLeft, ChevronRight, Flame, Trash2, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -118,27 +118,12 @@ export function WorkoutsPage() {
     }
   }
 
-  async function importStravaActivities() {
-    setStravaBusy(true);
-    try {
-      const result = await syncStravaActivities();
-      window.dispatchEvent(new Event(CHANGE_EVENT));
-      toast.success(
-        result.imported > 0
-          ? `${result.imported} atividade(s) importada(s)`
-          : "Nenhuma atividade nova encontrada",
-      );
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel importar do Strava");
-    } finally {
-      setStravaBusy(false);
-    }
-  }
-
   return (
     <div
       className="max-w-3xl mx-auto space-y-2"
-      onTouchStart={(e) => { swipeStartXRef.current = e.touches[0]?.clientX ?? null; }}
+      onTouchStart={(e) => {
+        swipeStartXRef.current = e.touches[0]?.clientX ?? null;
+      }}
       onTouchEnd={(e) => {
         const start = swipeStartXRef.current;
         const end = e.changedTouches[0]?.clientX ?? null;
@@ -196,37 +181,19 @@ export function WorkoutsPage() {
         </Button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Button
-          type="button"
-          className="bg-[#FC4C02] text-white hover:bg-[#e34402]"
-          onClick={stravaConnected ? importStravaActivities : connectStrava}
-          disabled={stravaBusy}
-        >
-          {stravaConnected ? (
-            <>
-              <RefreshCw className="mr-2 size-4" />
-              {stravaBusy ? "Importando..." : "Importar do Strava"}
-            </>
-          ) : (
-            <>
-              <Zap className="mr-2 size-4" />
-              {stravaBusy ? "Abrindo..." : "Conectar Strava"}
-            </>
-          )}
-        </Button>
-        {stravaConnected && (
+      {!stravaConnected && (
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             type="button"
-            variant="ghost"
-            size="sm"
+            className="bg-[#FC4C02] text-white hover:bg-[#e34402]"
             onClick={connectStrava}
             disabled={stravaBusy}
           >
-            Reconectar
+            <Zap className="mr-2 size-4" />
+            {stravaBusy ? "Abrindo..." : "Conectar Strava"}
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-3 gap-2">
         <div className="rounded-lg border bg-card p-2 text-center shadow-card">
@@ -255,9 +222,7 @@ export function WorkoutsPage() {
         </div>
         <ul className="divide-y">
           {loading && (
-            <li className="p-8 text-center text-muted-foreground text-sm">
-              Carregando treinos...
-            </li>
+            <li className="p-8 text-center text-muted-foreground text-sm">Carregando treinos...</li>
           )}
           {!loading && dayWorkouts.length === 0 && (
             <li className="p-8 text-center text-muted-foreground text-sm">
@@ -269,16 +234,9 @@ export function WorkoutsPage() {
             const durationLabel = formatDuration(workout.durationSeconds);
             const distanceLabel = formatDistance(workout.distanceMeters);
             return (
-              <li
-                key={workout.id}
-                className="px-4 py-3 flex items-center gap-3 hover:bg-muted/40"
-              >
+              <li key={workout.id} className="px-4 py-3 flex items-center gap-3 hover:bg-muted/40">
                 {workout.mediaUrl ? (
-                  <img
-                    src={workout.mediaUrl}
-                    alt=""
-                    className="size-10 rounded-lg object-cover"
-                  />
+                  <img src={workout.mediaUrl} alt="" className="size-10 rounded-lg object-cover" />
                 ) : (
                   <div className="size-10 rounded-lg bg-primary/10 text-primary grid place-items-center">
                     <Activity className="size-5" />
@@ -293,9 +251,7 @@ export function WorkoutsPage() {
                   </p>
                 </div>
                 <div className="text-right shrink-0">
-                  {distanceLabel !== "-" && (
-                    <p className="font-display text-lg">{distanceLabel}</p>
-                  )}
+                  {distanceLabel !== "-" && <p className="font-display text-lg">{distanceLabel}</p>}
                   <div className="mt-0.5 flex items-center justify-end gap-1 text-xs text-muted-foreground">
                     {durationLabel !== "-" && (
                       <>

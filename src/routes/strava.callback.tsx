@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { exchangeStravaCode } from "@/features/workouts/strava-api";
+import { exchangeStravaCode, syncStravaActivities } from "@/features/workouts/strava-api";
 
 export const Route = createFileRoute("/strava/callback")({
   component: StravaCallbackPage,
@@ -38,7 +38,20 @@ function StravaCallbackPage() {
 
       try {
         await exchangeStravaCode({ data: { code: search.code, scope: search.scope } });
-        toast.success("Strava conectado");
+
+        setMessage("Importando atividades do mes...");
+        try {
+          const result = await syncStravaActivities();
+          toast.success(
+            result.imported > 0
+              ? `Strava conectado: ${result.imported} atividade(s) do mes importada(s)`
+              : "Strava conectado",
+          );
+        } catch {
+          // conexao ja foi salva; a proxima visita a pagina de treinos re-sincroniza
+          toast.success("Strava conectado");
+        }
+
         navigate({ to: "/treinos", replace: true });
       } catch (error) {
         setMessage(error instanceof Error ? error.message : "Nao foi possivel conectar ao Strava");

@@ -1,29 +1,35 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { CalendarCheck, Flame, Footprints, Scale, UtensilsCrossed } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLocalAuth } from "@/features/auth/auth";
 import { CHANGE_EVENT } from "@/features/fitness/change-event";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminParticipantsCard } from "./AdminParticipantsCard";
+import { ChallengeCard } from "./ChallengeCard";
 import { PodiumCard } from "./PodiumCard";
-import { RankingList } from "./RankingList";
 import {
   ensureChallengeLifecycle,
   getActiveChallenge,
+  getCaloriesLeaderboard,
   getDietDaysLeaderboard,
+  getDistanceLeaderboard,
   getLastClosedChallenge,
   getLeaderboard,
   getTopThree,
   getWorkoutDaysLeaderboard,
   type ActivityDaysEntry,
+  type CaloriesEntry,
   type Challenge,
+  type DistanceEntry,
   type LeaderboardEntry,
 } from "./challenges-api";
 
-type TabKey = "weight" | "workouts" | "diet";
+function formatDistance(meters: number) {
+  const km = meters / 1000;
+  return `${km.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km`;
+}
 
 export function ChallengePage() {
   const { user, loading: authLoading } = useLocalAuth();
@@ -33,6 +39,8 @@ export function ChallengePage() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [topThree, setTopThree] = useState<LeaderboardEntry[]>([]);
   const [workoutDays, setWorkoutDays] = useState<ActivityDaysEntry[]>([]);
+  const [distance, setDistance] = useState<DistanceEntry[]>([]);
+  const [caloriesBurned, setCaloriesBurned] = useState<CaloriesEntry[]>([]);
   const [dietDays, setDietDays] = useState<ActivityDaysEntry[]>([]);
 
   useEffect(() => {
@@ -62,24 +70,32 @@ export function ChallengePage() {
     async function load() {
       try {
         await ensureChallengeLifecycle();
-        const [active, lastClosed, workoutDaysBoard, dietDaysBoard] = await Promise.all([
-          getActiveChallenge(),
-          getLastClosedChallenge(),
-          getWorkoutDaysLeaderboard(),
-          getDietDaysLeaderboard(),
-        ]);
+        // allSettled: a falha de um ranking nao pode esvaziar os demais cards
+        const [active, lastClosed, workoutDaysBoard, distanceBoard, caloriesBoard, dietDaysBoard] =
+          await Promise.allSettled([
+            getActiveChallenge(),
+            getLastClosedChallenge(),
+            getWorkoutDaysLeaderboard(),
+            getDistanceLeaderboard(),
+            getCaloriesLeaderboard(),
+            getDietDaysLeaderboard(),
+          ]);
         if (!mounted) return;
-        setChallenge(active);
-        setWorkoutDays(workoutDaysBoard);
-        setDietDays(dietDaysBoard);
+        setChallenge(active.status === "fulfilled" ? active.value : null);
+        setWorkoutDays(workoutDaysBoard.status === "fulfilled" ? workoutDaysBoard.value : []);
+        setDistance(distanceBoard.status === "fulfilled" ? distanceBoard.value : []);
+        setCaloriesBurned(caloriesBoard.status === "fulfilled" ? caloriesBoard.value : []);
+        setDietDays(dietDaysBoard.status === "fulfilled" ? dietDaysBoard.value : []);
 
-        const [board, top3] = await Promise.all([
-          active ? getLeaderboard(active.id) : Promise.resolve([]),
-          lastClosed ? getTopThree(lastClosed.id) : Promise.resolve([]),
+        const activeChallenge = active.status === "fulfilled" ? active.value : null;
+        const lastClosedChallenge = lastClosed.status === "fulfilled" ? lastClosed.value : null;
+        const [board, top3] = await Promise.allSettled([
+          activeChallenge ? getLeaderboard(activeChallenge.id) : Promise.resolve([]),
+          lastClosedChallenge ? getTopThree(lastClosedChallenge.id) : Promise.resolve([]),
         ]);
         if (!mounted) return;
-        setLeaderboard(board);
-        setTopThree(top3);
+        setLeaderboard(board.status === "fulfilled" ? board.value : []);
+        setTopThree(top3.status === "fulfilled" ? top3.value : []);
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Nao foi possivel carregar o desafio");
       }
@@ -100,12 +116,17 @@ export function ChallengePage() {
     }
 
     async function refreshRankings() {
-      const [workoutDaysBoard, dietDaysBoard] = await Promise.all([
-        getWorkoutDaysLeaderboard(),
-        getDietDaysLeaderboard(),
-      ]);
-      setWorkoutDays(workoutDaysBoard);
-      setDietDays(dietDaysBoard);
+      const [workoutDaysBoard, distanceBoard, caloriesBoard, dietDaysBoard] =
+        await Promise.allSettled([
+          getWorkoutDaysLeaderboard(),
+          getDistanceLeaderboard(),
+          getCaloriesLeaderboard(),
+          getDietDaysLeaderboard(),
+        ]);
+      if (workoutDaysBoard.status === "fulfilled") setWorkoutDays(workoutDaysBoard.value);
+      if (distanceBoard.status === "fulfilled") setDistance(distanceBoard.value);
+      if (caloriesBoard.status === "fulfilled") setCaloriesBurned(caloriesBoard.value);
+      if (dietDaysBoard.status === "fulfilled") setDietDays(dietDaysBoard.value);
       await refreshLeaderboard();
     }
 
@@ -120,34 +141,18 @@ export function ChallengePage() {
     setLeaderboard(board);
   }
 
-  const tabOrder = useMemo<TabKey[]>(() => {
-    return leaderboard.length > 0
-      ? ["weight", "workouts", "diet"]
-      : ["workouts", "diet", "weight"];
-  }, [leaderboard.length]);
-
-  const tabLabels: Record<TabKey, string> = {
-    weight: "Peso perdido",
-    workouts: "Dias ativos",
-    diet: "Refeicoes",
-  };
-
   if (authLoading || loading) {
     return (
       <div className="space-y-4">
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-64 w-full" />
+        <Skeleton className="h-56 w-full" />
+        <Skeleton className="h-56 w-full" />
       </div>
     );
   }
 
-  if (!challenge) {
-    return <p className="text-sm text-muted-foreground">Nenhum desafio disponivel agora.</p>;
-  }
-
   return (
     <div className="space-y-6">
-      {isAdmin && (
+      {isAdmin && challenge && (
         <AdminParticipantsCard
           challengeId={challenge.id}
           currentUserId={user?.id ?? ""}
@@ -155,62 +160,72 @@ export function ChallengePage() {
         />
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Ranking</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue={tabOrder[0]}>
-            <TabsList className="grid w-full grid-cols-3">
-              {tabOrder.map((key) => (
-                <TabsTrigger key={key} value={key}>
-                  {tabLabels[key]}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+      <ChallengeCard
+        title="Dias ativos"
+        description="Quem registrou atividade fisica em mais dias neste mes."
+        icon={<CalendarCheck className="size-4 text-primary" />}
+        entries={workoutDays}
+        currentUserId={user?.id ?? ""}
+        emptyMessage="Ninguem registrou treino este mes ainda."
+        renderValue={(entry) => (
+          <Badge variant="default">
+            {entry.activeDays} dia{entry.activeDays === 1 ? "" : "s"}
+          </Badge>
+        )}
+      />
 
-            <TabsContent value="weight" className="mt-4">
-              <RankingList
-                entries={leaderboard}
-                currentUserId={user?.id ?? ""}
-                emptyMessage="Ninguem registrou o peso final ainda. Quando os participantes registrarem, o ranking aparece aqui."
-                renderValue={(entry) => (
-                  <Badge variant={entry.pctLoss > 0 ? "default" : "secondary"}>
-                    {entry.pctLoss > 0 ? "-" : ""}
-                    {Math.abs(entry.pctLoss).toFixed(1)}%
-                  </Badge>
-                )}
-              />
-            </TabsContent>
+      <ChallengeCard
+        title="Distancia"
+        description="Quem caminhou e correu a maior distancia neste mes."
+        icon={<Footprints className="size-4 text-primary" />}
+        entries={distance}
+        currentUserId={user?.id ?? ""}
+        emptyMessage="Ninguem registrou corrida ou caminhada este mes ainda."
+        renderValue={(entry) => (
+          <Badge variant="default">{formatDistance(entry.distanceMeters)}</Badge>
+        )}
+      />
 
-            <TabsContent value="workouts" className="mt-4">
-              <RankingList
-                entries={workoutDays}
-                currentUserId={user?.id ?? ""}
-                emptyMessage="Ninguem registrou treino este mes ainda."
-                renderValue={(entry) => (
-                  <Badge variant="default">
-                    {entry.activeDays} dia{entry.activeDays === 1 ? "" : "s"}
-                  </Badge>
-                )}
-              />
-            </TabsContent>
+      <ChallengeCard
+        title="Calorias queimadas"
+        description="Quem queimou mais calorias em treinos neste mes."
+        icon={<Flame className="size-4 text-primary" />}
+        entries={caloriesBurned}
+        currentUserId={user?.id ?? ""}
+        emptyMessage="Nenhum treino com calorias registrado este mes ainda."
+        renderValue={(entry) => (
+          <Badge variant="default">{Math.round(entry.calories).toLocaleString("pt-BR")} kcal</Badge>
+        )}
+      />
 
-            <TabsContent value="diet" className="mt-4">
-              <RankingList
-                entries={dietDays}
-                currentUserId={user?.id ?? ""}
-                emptyMessage="Ninguem registrou refeicao este mes ainda."
-                renderValue={(entry) => (
-                  <Badge variant="default">
-                    {entry.activeDays} dia{entry.activeDays === 1 ? "" : "s"}
-                  </Badge>
-                )}
-              />
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+      <ChallengeCard
+        title="Peso perdido"
+        description="Quem perdeu o maior percentual de peso no desafio do mes."
+        icon={<Scale className="size-4 text-primary" />}
+        entries={leaderboard}
+        currentUserId={user?.id ?? ""}
+        emptyMessage="Ninguem registrou o peso final ainda. Quando os participantes registrarem, o ranking aparece aqui."
+        renderValue={(entry) => (
+          <Badge variant={entry.pctLoss > 0 ? "default" : "secondary"}>
+            {entry.pctLoss > 0 ? "-" : ""}
+            {Math.abs(entry.pctLoss).toFixed(1)}%
+          </Badge>
+        )}
+      />
+
+      <ChallengeCard
+        title="Refeicoes"
+        description="Quem registrou refeicoes em mais dias neste mes."
+        icon={<UtensilsCrossed className="size-4 text-primary" />}
+        entries={dietDays}
+        currentUserId={user?.id ?? ""}
+        emptyMessage="Ninguem registrou refeicao este mes ainda."
+        renderValue={(entry) => (
+          <Badge variant="default">
+            {entry.activeDays} dia{entry.activeDays === 1 ? "" : "s"}
+          </Badge>
+        )}
+      />
 
       <PodiumCard topThree={topThree} />
     </div>

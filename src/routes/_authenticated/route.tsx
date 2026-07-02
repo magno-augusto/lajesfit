@@ -1,15 +1,44 @@
 import { createFileRoute, Outlet, Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Activity, Apple, Home, LogIn, Trophy } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { NewActionMenu } from "@/components/new-action-menu";
 import { LEGACY_EMAIL_DOMAIN, useLocalAuth } from "@/features/auth/auth";
 import { useFitness } from "@/features/fitness/useFitness";
+import { NotificationsSheet } from "@/features/notifications/NotificationsSheet";
+import { getUnreadNotificationCount } from "@/features/notifications/notifications-api";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   component: AppShell,
 });
+
+function AppHeader({ userId }: { userId: string }) {
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    getUnreadNotificationCount(userId)
+      .then(setUnreadCount)
+      .catch(() => {
+        // contador e' informativo: falha nao deve quebrar o cabecalho
+      });
+  }, [userId]);
+
+  const handleOpened = useCallback(() => setUnreadCount(0), []);
+
+  return (
+    <header className="fixed inset-x-0 top-0 z-30 border-b bg-background">
+      <div className="container relative mx-auto flex h-14 items-center justify-between px-4">
+        <NotificationsSheet userId={userId} unreadCount={unreadCount} onOpened={handleOpened} />
+        <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 font-display text-2xl tracking-wide">
+          LAJES FIT
+        </span>
+        <NewActionMenu />
+      </div>
+    </header>
+  );
+}
 
 function AppShell() {
   const location = useLocation();
@@ -29,8 +58,7 @@ function AppShell() {
       navigate({ to: "/auth", replace: true });
       return;
     }
-    const needsRealEmail =
-      user?.email?.endsWith(LEGACY_EMAIL_DOMAIN) && !user?.new_email;
+    const needsRealEmail = user?.email?.endsWith(LEGACY_EMAIL_DOMAIN) && !user?.new_email;
     if (needsRealEmail) {
       navigate({ to: "/require-email", replace: true });
       return;
@@ -81,14 +109,17 @@ function AppShell() {
 
   return (
     <div className="min-h-screen bg-muted/40">
-      <main className="container mx-auto px-4 pt-3 pb-24">
+      {user && <AppHeader userId={user.id} />}
+
+      <main className="container mx-auto px-4 pt-17 pb-24">
         <Outlet />
       </main>
 
       <nav className="fixed bottom-0 inset-x-0 z-30 border-t bg-background">
         <div className="grid grid-cols-5 items-end">
           {[navItems[0], navItems[1]].map((item) => {
-            const active = location.pathname === item.to || location.pathname.startsWith(item.to + "/");
+            const active =
+              location.pathname === item.to || location.pathname.startsWith(item.to + "/");
             return (
               <Link
                 key={item.to}

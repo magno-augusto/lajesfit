@@ -137,6 +137,23 @@ export async function logout() {
   await supabase.auth.signOut();
 }
 
+// Contas criadas via OAuth (ex: Google) nao possuem senha; a deteccao e' pela
+// ausencia da identidade "email" no usuario.
+export function hasPasswordLogin(user: User | null): boolean {
+  const providers = (user?.app_metadata?.providers as string[] | undefined) ?? [];
+  return providers.includes("email");
+}
+
+export async function setPassword(newPassword: string) {
+  const cleanPassword = newPassword.trim();
+  if (cleanPassword.length < 6) {
+    throw new Error("A senha precisa ter pelo menos 6 caracteres");
+  }
+
+  const { error } = await supabase.auth.updateUser({ password: cleanPassword });
+  if (error) throw new Error(error.message);
+}
+
 export async function changePassword(currentPassword: string, newPassword: string) {
   const cleanNewPassword = newPassword.trim();
   if (cleanNewPassword.length < 6) {

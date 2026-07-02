@@ -767,6 +767,30 @@ export type Database = {
           username: string;
         }[];
       };
+      get_distance_leaderboard: {
+        Args: {
+          p_limit?: number;
+        };
+        Returns: {
+          avatar_url: string | null;
+          display_name: string;
+          total_distance_meters: number;
+          user_id: string;
+          username: string;
+        }[];
+      };
+      get_calories_leaderboard: {
+        Args: {
+          p_limit?: number;
+        };
+        Returns: {
+          avatar_url: string | null;
+          display_name: string;
+          total_calories: number;
+          user_id: string;
+          username: string;
+        }[];
+      };
       admin_set_participant_weight: {
         Args: {
           p_challenge_id: string;

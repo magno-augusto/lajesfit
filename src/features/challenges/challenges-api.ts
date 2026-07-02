@@ -25,6 +25,24 @@ export type ActivityDaysEntry = {
   rank: number;
 };
 
+export type DistanceEntry = {
+  userId: string;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+  distanceMeters: number;
+  rank: number;
+};
+
+export type CaloriesEntry = {
+  userId: string;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+  calories: number;
+  rank: number;
+};
+
 type ChallengeRow = {
   id: string;
   period_start: string;
@@ -104,8 +122,34 @@ export async function getTopThree(challengeId: string): Promise<LeaderboardEntry
   return leaderboard.slice(0, 3);
 }
 
+export async function getDistanceLeaderboard(): Promise<DistanceEntry[]> {
+  const { data, error } = await supabase.rpc("get_distance_leaderboard", { p_limit: 100 });
+  if (error) throw error;
+  return (data ?? []).map((row, index) => ({
+    userId: row.user_id,
+    username: row.username,
+    displayName: row.display_name,
+    avatarUrl: row.avatar_url,
+    distanceMeters: Number(row.total_distance_meters),
+    rank: index + 1,
+  }));
+}
+
+export async function getCaloriesLeaderboard(): Promise<CaloriesEntry[]> {
+  const { data, error } = await supabase.rpc("get_calories_leaderboard", { p_limit: 100 });
+  if (error) throw error;
+  return (data ?? []).map((row, index) => ({
+    userId: row.user_id,
+    username: row.username,
+    displayName: row.display_name,
+    avatarUrl: row.avatar_url,
+    calories: Number(row.total_calories),
+    rank: index + 1,
+  }));
+}
+
 export async function getWorkoutDaysLeaderboard(): Promise<ActivityDaysEntry[]> {
-  const { data, error } = await supabase.rpc("get_workout_days_leaderboard", { p_limit: 10 });
+  const { data, error } = await supabase.rpc("get_workout_days_leaderboard", { p_limit: 100 });
   if (error) throw error;
   return (data ?? []).map((row, index) => ({
     userId: row.user_id,
@@ -118,7 +162,7 @@ export async function getWorkoutDaysLeaderboard(): Promise<ActivityDaysEntry[]> 
 }
 
 export async function getDietDaysLeaderboard(): Promise<ActivityDaysEntry[]> {
-  const { data, error } = await supabase.rpc("get_diet_days_leaderboard", { p_limit: 10 });
+  const { data, error } = await supabase.rpc("get_diet_days_leaderboard", { p_limit: 100 });
   if (error) throw error;
   return (data ?? []).map((row, index) => ({
     userId: row.user_id,

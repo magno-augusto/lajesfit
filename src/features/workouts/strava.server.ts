@@ -161,10 +161,11 @@ export async function getValidStravaAccessToken(
   return accessToken;
 }
 
-// So importa atividades a partir do dia em que a conta Strava foi conectada
-// (inclusive) — nunca dias anteriores.
+// So importa atividades a partir do inicio do mes em que a conta Strava foi
+// conectada (inclusive) — nunca meses anteriores.
 export function stravaConnectionCutoffSeconds(connectedAt: string) {
   const cutoff = new Date(connectedAt);
+  cutoff.setUTCDate(1);
   cutoff.setUTCHours(0, 0, 0, 0);
   return Math.floor(cutoff.getTime() / 1000);
 }

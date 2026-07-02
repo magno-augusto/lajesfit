@@ -214,8 +214,7 @@ export function AuthPage() {
                     />
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Enviaremos um link de redefinicao de senha para o e-mail cadastrado nessa
-                    conta.
+                    Enviaremos um link de redefinicao de senha para o e-mail cadastrado nessa conta.
                   </p>
                   <Button type="submit" className="w-full" disabled={resetSubmitting}>
                     {resetSubmitting ? "Enviando..." : "Enviar link"}

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { Activity, ChevronLeft, ChevronRight, Flame, Trash2, Zap } from "lucide-react";
+import { Activity, ChevronLeft, ChevronRight, Flame, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -13,7 +13,7 @@ import { formatDistance, formatDuration, timeAgo } from "@/features/feed/format"
 import { ManualWorkoutDialog } from "./ManualWorkoutDialog";
 import { WeeklyWorkoutChart } from "./WeeklyWorkoutChart";
 import { addWorkout, removeWorkout, updateWorkout, type LocalWorkout } from "./workouts-api";
-import { getStravaAuthorizationUrl, getStravaConnection, syncStravaActivities } from "./strava-api";
+import { getStravaConnection, syncStravaActivities } from "./strava-api";
 import { CHANGE_EVENT } from "@/features/fitness/change-event";
 
 function buildStartedAtForSelectedDay(day: Date) {
@@ -29,16 +29,15 @@ export function WorkoutsPage() {
   const swipeStartXRef = useRef<number | null>(null);
   const [addWorkoutOpen, setAddWorkoutOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [stravaConnected, setStravaConnected] = useState(false);
-  const [stravaBusy, setStravaBusy] = useState(false);
 
   useEffect(() => {
     getStravaConnection()
       .then((connection) => {
-        setStravaConnected(connection.connected);
         if (connection.connected) autoSyncStrava();
       })
-      .catch(() => setStravaConnected(false));
+      .catch(() => {
+        // sem conexao Strava: nada a sincronizar
+      });
   }, []);
 
   useEffect(() => {
@@ -104,20 +103,6 @@ export function WorkoutsPage() {
     }
   }
 
-  async function connectStrava() {
-    setStravaBusy(true);
-    try {
-      const state = crypto.randomUUID();
-      sessionStorage.setItem("lajesfit-strava-oauth-state", state);
-      const redirectUri = `${window.location.origin}/strava/callback`;
-      const { url } = await getStravaAuthorizationUrl({ data: { redirectUri, state } });
-      window.location.assign(url);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel iniciar o Strava");
-      setStravaBusy(false);
-    }
-  }
-
   return (
     <div
       className="max-w-3xl mx-auto space-y-2"
@@ -180,20 +165,6 @@ export function WorkoutsPage() {
           <ChevronRight className="size-4" />
         </Button>
       </div>
-
-      {!stravaConnected && (
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            className="bg-[#FC4C02] text-white hover:bg-[#e34402]"
-            onClick={connectStrava}
-            disabled={stravaBusy}
-          >
-            <Zap className="mr-2 size-4" />
-            {stravaBusy ? "Abrindo..." : "Conectar Strava"}
-          </Button>
-        </div>
-      )}
 
       <div className="grid grid-cols-3 gap-2">
         <div className="rounded-lg border bg-card p-2 text-center shadow-card">

@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Bell, BellOff, Lock, Unlock } from "lucide-react";
+import { Bell, BellOff, Lock, Unlock, Zap } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { updateProfilePrivacy } from "@/features/profile/follows-api";
 import { setupStravaWebhook } from "@/features/workouts/strava-api";
+import { useStravaConnection } from "@/features/workouts/useStravaConnection";
 import {
   getProfileSettings,
   updateNotificationsEnabled,
@@ -47,6 +48,13 @@ export function SettingsPage() {
 
   const [isAdmin, setIsAdmin] = useState(false);
   const [settingUpWebhook, setSettingUpWebhook] = useState(false);
+
+  const {
+    connected: stravaConnected,
+    busy: stravaBusy,
+    connect: connectStrava,
+    disconnect: disconnectStravaAccount,
+  } = useStravaConnection();
 
   const [isPrivate, setIsPrivate] = useState(false);
   const [savingPrivacy, setSavingPrivacy] = useState(false);
@@ -367,6 +375,44 @@ export function SettingsPage() {
             {savingRecoveryEmail ? "Salvando..." : "Salvar e-mail"}
           </Button>
         </form>
+      </Card>
+
+      <Card className="p-6 space-y-3">
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 rounded-full bg-[#FC4C02]/10 p-2 text-[#FC4C02]">
+            <Zap className="size-4" />
+          </div>
+          <div>
+            <h2 className="font-display text-2xl">STRAVA</h2>
+            <p className="text-sm text-muted-foreground">
+              {stravaConnected
+                ? "Sua conta do Strava esta conectada. Seus treinos sao importados automaticamente."
+                : "Conecte sua conta do Strava para importar seus treinos automaticamente."}
+            </p>
+          </div>
+        </div>
+        {stravaConnected === true && (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full text-destructive hover:text-destructive"
+            onClick={disconnectStravaAccount}
+            disabled={stravaBusy}
+          >
+            {stravaBusy ? "Desconectando..." : "Desconectar Strava"}
+          </Button>
+        )}
+        {stravaConnected === false && (
+          <Button
+            type="button"
+            className="w-full bg-[#FC4C02] text-white hover:bg-[#e34402]"
+            onClick={connectStrava}
+            disabled={stravaBusy}
+          >
+            <Zap className="mr-2 size-4" />
+            {stravaBusy ? "Abrindo..." : "Conectar Strava"}
+          </Button>
+        )}
       </Card>
 
       {isAdmin && (

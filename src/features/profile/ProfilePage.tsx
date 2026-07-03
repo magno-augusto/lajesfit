@@ -237,16 +237,6 @@ export function ProfilePage() {
             <h1 className="font-display text-3xl">{profile.display_name}</h1>
             <p className="text-sm text-muted-foreground">@{profile.username}</p>
           </div>
-          {!isMe && (
-            <FollowButton
-              status={followStatus}
-              isPrivate={profile.is_private}
-              disabled={busyId === profile.id}
-              onFollowOrRequest={followOrRequest}
-              onCancelRequest={cancelRequest}
-              onUnfollow={unfollow}
-            />
-          )}
           {isMe && (
             <Button variant="ghost" size="icon" asChild aria-label="Configuracoes">
               <Link to="/settings">
@@ -256,6 +246,18 @@ export function ProfilePage() {
           )}
         </div>
         {profile.bio && <p className="mt-4 text-sm">{profile.bio}</p>}
+        {!isMe && (
+          <div className="mt-4">
+            <FollowButton
+              status={followStatus}
+              isPrivate={profile.is_private}
+              disabled={busyId === profile.id}
+              onFollowOrRequest={followOrRequest}
+              onCancelRequest={cancelRequest}
+              onUnfollow={unfollow}
+            />
+          </div>
+        )}
         <div className="mt-6 grid grid-cols-4 gap-2 text-center">
           <Stat label="Posts" value={counts.posts} />
           <Stat label="Treinos" value={counts.workouts} />
@@ -371,7 +373,7 @@ function FollowButton({
 }) {
   if (status === "following") {
     return (
-      <Button onClick={onUnfollow} variant="outline" disabled={disabled}>
+      <Button onClick={onUnfollow} variant="outline" disabled={disabled} className="w-full">
         Seguindo
       </Button>
     );
@@ -379,7 +381,7 @@ function FollowButton({
 
   if (status === "requested") {
     return (
-      <Button onClick={onCancelRequest} variant="secondary" disabled={disabled}>
+      <Button onClick={onCancelRequest} variant="secondary" disabled={disabled} className="w-full">
         <Clock className="mr-2 size-4" />
         Solicitado
       </Button>
@@ -387,7 +389,7 @@ function FollowButton({
   }
 
   return (
-    <Button onClick={onFollowOrRequest} disabled={disabled}>
+    <Button onClick={onFollowOrRequest} disabled={disabled} className="w-full">
       <UserPlus className="mr-2 size-4" />
       {isPrivate ? "Solicitar" : "Seguir"}
     </Button>

@@ -1,10 +1,12 @@
 import { createFileRoute, Outlet, Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { Activity, Apple, Home, LogIn, Trophy } from "lucide-react";
+import { Activity, Apple, Home, LogIn, Trophy, Zap } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { NewActionMenu } from "@/components/new-action-menu";
 import { LEGACY_EMAIL_DOMAIN, useLocalAuth } from "@/features/auth/auth";
 import { useFitness } from "@/features/fitness/useFitness";
+import { useStravaConnection } from "@/features/workouts/useStravaConnection";
 import { NotificationsSheet } from "@/features/notifications/NotificationsSheet";
 import { getUnreadNotificationCount } from "@/features/notifications/notifications-api";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,7 +16,17 @@ export const Route = createFileRoute("/_authenticated")({
   component: AppShell,
 });
 
-function AppHeader({ userId }: { userId: string }) {
+function AppHeader({
+  userId,
+  showStravaConnect,
+  stravaBusy,
+  onConnectStrava,
+}: {
+  userId: string;
+  showStravaConnect: boolean;
+  stravaBusy: boolean;
+  onConnectStrava: () => void;
+}) {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
@@ -36,6 +48,20 @@ function AppHeader({ userId }: { userId: string }) {
         </span>
         <NewActionMenu />
       </div>
+      {showStravaConnect && (
+        <div className="container mx-auto flex justify-center px-4 pb-2">
+          <Button
+            type="button"
+            size="sm"
+            className="h-8 rounded-full bg-[#FC4C02] px-4 text-white hover:bg-[#e34402]"
+            onClick={onConnectStrava}
+            disabled={stravaBusy}
+          >
+            <Zap className="mr-1.5 size-3.5" />
+            {stravaBusy ? "Abrindo..." : "Conectar Strava"}
+          </Button>
+        </div>
+      )}
     </header>
   );
 }
@@ -45,6 +71,11 @@ function AppShell() {
   const navigate = useNavigate();
   const { user, session, loading: authLoading } = useLocalAuth();
   const { idrProfile, loading: fitnessLoading } = useFitness();
+  const {
+    connected: stravaConnected,
+    busy: stravaBusy,
+    connect: connectStrava,
+  } = useStravaConnection();
   const [profile, setProfile] = useState<{
     username: string;
     display_name: string;
@@ -103,15 +134,28 @@ function AppShell() {
 
   const needsRealEmail = user?.email?.endsWith(LEGACY_EMAIL_DOMAIN) && !user?.new_email;
 
+  // Botao "Conectar Strava" abaixo do nome do app, apenas nestas telas e enquanto desconectado
+  const stravaConnectRoutes = ["/feed", "/dieta", "/treinos", "/desafio"];
+  const showStravaConnect =
+    stravaConnected === false &&
+    stravaConnectRoutes.some((route) => location.pathname.startsWith(route));
+
   if (authLoading || fitnessLoading || !session || needsRealEmail || !idrProfile) {
     return <div className="min-h-screen bg-muted/40" />;
   }
 
   return (
     <div className="min-h-screen bg-muted/40">
-      {user && <AppHeader userId={user.id} />}
+      {user && (
+        <AppHeader
+          userId={user.id}
+          showStravaConnect={showStravaConnect}
+          stravaBusy={stravaBusy}
+          onConnectStrava={connectStrava}
+        />
+      )}
 
-      <main className="container mx-auto px-4 pt-17 pb-24">
+      <main className={`container mx-auto px-4 pb-24 ${showStravaConnect ? "pt-27" : "pt-17"}`}>
         <Outlet />
       </main>
 

@@ -1,7 +1,17 @@
 import React from "react";
+import { Flame } from "lucide-react";
 
-const SIZE = 140;
-const STROKE = 12;
+const SIZE = 116;
+const STROKE = 10;
+
+function PacManIcon({ className }: { className?: string }) {
+  // Lucide nao tem pac-man: circulo com "boca" aberta para a direita
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}>
+      <path d="M12 12 L20.66 7 A10 10 0 1 0 20.66 17 Z" />
+    </svg>
+  );
+}
 const RADIUS = (SIZE - STROKE) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
@@ -21,9 +31,10 @@ export function CalorieRing({
   const offset = CIRCUMFERENCE * (1 - percent / 100);
 
   return (
-    <div className="flex items-center justify-center gap-4">
-      <div className="text-center">
-        <p className="text-xs text-muted-foreground">Consumidas</p>
+    <div className="flex items-center justify-center gap-2">
+      <div className="min-w-0 flex-1 text-center">
+        <PacManIcon className="mx-auto mb-0.5 size-4 text-primary" />
+        <p className="truncate text-xs text-muted-foreground">Consumidas</p>
         <p className="font-display text-xl">{Math.round(consumed)}</p>
       </div>
 
@@ -55,9 +66,10 @@ export function CalorieRing({
         </div>
       </div>
 
-      <div className="text-center">
+      <div className="min-w-0 flex-1 text-center">
         {burnedSlot}
-        <p className="text-xs text-muted-foreground">Queimadas</p>
+        <Flame className="mx-auto mb-0.5 size-4 text-primary" />
+        <p className="truncate text-xs text-muted-foreground">Queimadas</p>
         <p className="font-display text-xl">{Math.round(burned)}</p>
       </div>
     </div>

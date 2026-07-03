@@ -124,6 +124,12 @@
 @layer base {
   * {
     border-color: var(--color-border);
+    /* Esconde barras de rolagem em todo o app, mantendo a rolagem funcional */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  *::-webkit-scrollbar {
+    display: none;
   }
   body {
     background-color: var(--color-background);

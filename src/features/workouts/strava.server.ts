@@ -122,7 +122,9 @@ export function mapStravaActivity(activity: StravaActivity, userId: string) {
       typeof activity.calories === "number" && activity.calories > 0
         ? Math.round(activity.calories)
         : null,
-    performed_at: activity.start_date_local ?? activity.start_date ?? new Date().toISOString(),
+    // start_date e' o instante UTC real; start_date_local vem com "Z" mas é hora
+    // de parede local, o que deslocava os treinos em -3h ao exibir no Brasil.
+    performed_at: activity.start_date ?? new Date().toISOString(),
     media_url: extractStravaPhotoUrl(activity),
   };
 }
@@ -245,6 +247,30 @@ export async function upsertStravaActivities(
   const newWorkouts = (upserted ?? []).filter(
     (workout) => !existingIds.has(workout.strava_activity_id),
   );
+
+  // Atividades editadas no Strava: reflete titulo, foto e horario no post do feed
+  const updatedWorkouts = (upserted ?? []).filter((workout) =>
+    existingIds.has(workout.strava_activity_id),
+  );
+  await Promise.all(
+    updatedWorkouts.map(async (workout) => {
+      const { error: postUpdateError } = await supabase
+        .from("posts")
+        .update({
+          content: workout.title ?? workout.activity_type,
+          media_url: workout.media_url,
+          created_at: workout.performed_at,
+        })
+        .eq("workout_id", workout.id);
+      if (postUpdateError) {
+        console.error("[Strava] Nao foi possivel atualizar post de treino editado", {
+          workoutId: workout.id,
+          error: postUpdateError,
+        });
+      }
+    }),
+  );
+
   if (newWorkouts.length > 0) {
     const { error: postsError } = await supabase.from("posts").insert(
       newWorkouts.map((workout) => ({

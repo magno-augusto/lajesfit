@@ -10,7 +10,6 @@ import {
   Plus,
   Soup,
   Trash2,
-  Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -18,7 +17,11 @@ import { Calendar } from "@/components/ui/calendar";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { addDays, formatSelectedDate, isSameLocalDate, startOfLocalDay } from "@/lib/date";
-import { consumePendingNewAction, NEW_ACTION_EVENT, type NewAction } from "@/components/new-action-menu";
+import {
+  consumePendingNewAction,
+  NEW_ACTION_EVENT,
+  type NewAction,
+} from "@/components/new-action-menu";
 import { useFitness } from "@/features/fitness/useFitness";
 import { AddFoodDialog } from "@/features/diet/AddFoodDialog";
 import { DailySummaryCard } from "@/features/diet/DailySummaryCard";
@@ -27,7 +30,6 @@ import { groupMealEntries, type MealGroup } from "@/features/diet/meal-grouping"
 import { removeMeal } from "@/features/diet/meals-api";
 import { WeeklyCalorieChart } from "@/features/diet/WeeklyCalorieChart";
 import { WeeklyWorkoutChart } from "@/features/workouts/WeeklyWorkoutChart";
-import { getStravaAuthorizationUrl, getStravaConnection } from "@/features/workouts/strava-api";
 
 const MEAL_ICONS: Record<Meal, typeof Coffee> = {
   breakfast: Coffee,
@@ -57,9 +59,6 @@ export function DiaryPage() {
   const touchStartXRef = useRef<number | null>(null);
   const swipeStartXRef = useRef<number | null>(null);
 
-  const [stravaConnected, setStravaConnected] = useState(false);
-  const [stravaBusy, setStravaBusy] = useState(false);
-
   const workoutTotals = useMemo(
     () =>
       workouts
@@ -85,12 +84,6 @@ export function DiaryPage() {
     return () => window.removeEventListener(NEW_ACTION_EVENT, handleNewAction);
   }, []);
 
-  useEffect(() => {
-    getStravaConnection()
-      .then((connection) => setStravaConnected(connection.connected))
-      .catch(() => setStravaConnected(false));
-  }, []);
-
   const dayMeals = useMemo(
     () => meals.filter((meal) => isSameLocalDate(meal.createdAt, selectedDate)),
     [meals, selectedDate],
@@ -108,20 +101,6 @@ export function DiaryPage() {
     );
   }, [dayMeals]);
 
-  async function connectStrava() {
-    setStravaBusy(true);
-    try {
-      const state = crypto.randomUUID();
-      sessionStorage.setItem("lajesfit-strava-oauth-state", state);
-      const redirectUri = `${window.location.origin}/strava/callback`;
-      const { url } = await getStravaAuthorizationUrl({ data: { redirectUri, state } });
-      window.location.assign(url);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel iniciar o Strava");
-      setStravaBusy(false);
-    }
-  }
-
   async function handleRemoveMeal(id: string) {
     try {
       await removeMeal(id);
@@ -132,11 +111,12 @@ export function DiaryPage() {
     }
   }
 
-
   return (
     <div
       className="max-w-3xl mx-auto -mt-3"
-      onTouchStart={(e) => { swipeStartXRef.current = e.touches[0]?.clientX ?? null; }}
+      onTouchStart={(e) => {
+        swipeStartXRef.current = e.touches[0]?.clientX ?? null;
+      }}
       onTouchEnd={(e) => {
         const start = swipeStartXRef.current;
         const end = e.changedTouches[0]?.clientX ?? null;
@@ -213,109 +193,97 @@ export function DiaryPage() {
         protein={mealTotals.p}
         carbs={mealTotals.c}
         fat={mealTotals.g}
-        burnedSlot={
-          stravaConnected ? (
-            <div className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground mb-1">
-              <span className="size-1.5 rounded-full bg-[#FC4C02]" />
-              Strava vinculado
-            </div>
-          ) : (
-            <button
-              type="button"
-              className="mb-1 text-[10px] text-[#FC4C02] underline-offset-2 hover:underline"
-              onClick={connectStrava}
-              disabled={stravaBusy}
-            >
-              {stravaBusy ? "Abrindo..." : "Conectar Strava"}
-            </button>
-          )
-        }
       />
 
       <div className="space-y-2 mt-2">
-          {MEALS.map((meal) => {
-            const items = dayMeals.filter((entry) => entry.meal === meal.key);
-            const groups = groupMealEntries(items);
-            const kcal = items.reduce((sum, entry) => sum + entry.calories, 0);
-            const MealIcon = MEAL_ICONS[meal.key];
-            return (
-              <section
-                key={meal.key}
-                className="bg-card rounded-lg border shadow-card overflow-hidden"
-              >
-                <header className="flex items-center gap-3 p-4 border-b">
-                  {groups.find((g) => g.photoUrl) ? (
-                    <button
-                      type="button"
-                      className="shrink-0"
-                      onClick={() => setLightboxUrl(groups.find((g) => g.photoUrl)!.photoUrl!)}
-                    >
-                      <img
-                        src={groups.find((g) => g.photoUrl)!.photoUrl!}
-                        alt=""
-                        className="size-10 rounded-full object-cover"
-                      />
-                    </button>
-                  ) : (
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                      <MealIcon className="size-5" />
-                    </div>
-                  )}
+        {MEALS.map((meal) => {
+          const items = dayMeals.filter((entry) => entry.meal === meal.key);
+          const groups = groupMealEntries(items);
+          const kcal = items.reduce((sum, entry) => sum + entry.calories, 0);
+          const MealIcon = MEAL_ICONS[meal.key];
+          return (
+            <section
+              key={meal.key}
+              className="bg-card rounded-lg border shadow-card overflow-hidden"
+            >
+              <header className="flex items-center gap-3 p-4 border-b">
+                {groups.find((g) => g.photoUrl) ? (
                   <button
                     type="button"
-                    className="min-w-0 flex-1 text-left"
-                    onClick={() => {
-                      if (items.length === 0) {
-                        setTargetMeal(meal.key);
-                        setAddMealOpen(true);
-                        return;
+                    className="shrink-0"
+                    onClick={() => setLightboxUrl(groups.find((g) => g.photoUrl)!.photoUrl!)}
+                  >
+                    <img
+                      src={groups.find((g) => g.photoUrl)!.photoUrl!}
+                      alt=""
+                      className="size-10 rounded-full object-cover"
+                    />
+                  </button>
+                ) : (
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <MealIcon className="size-5" />
+                  </div>
+                )}
+                <button
+                  type="button"
+                  className="min-w-0 flex-1 text-left"
+                  onClick={() => {
+                    if (items.length === 0) {
+                      setTargetMeal(meal.key);
+                      setAddMealOpen(true);
+                      return;
+                    }
+                    setExpandedMeals((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(meal.key)) {
+                        next.delete(meal.key);
+                      } else {
+                        next.add(meal.key);
                       }
-                      setExpandedMeals((prev) => {
-                        const next = new Set(prev);
-                        next.has(meal.key) ? next.delete(meal.key) : next.add(meal.key);
-                        return next;
-                      });
+                      return next;
+                    });
+                  }}
+                >
+                  <h3 className="font-medium">{meal.label}</h3>
+                  <p className="text-xs text-muted-foreground">
+                    {Math.round(kcal)} kcal · {items.length} item(ns)
+                  </p>
+                </button>
+                {items.length === 0 ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="rounded-full"
+                    aria-label={`Adicionar item em ${meal.label}`}
+                    onClick={() => {
+                      setTargetMeal(meal.key);
+                      setAddMealOpen(true);
                     }}
                   >
-                    <h3 className="font-medium">{meal.label}</h3>
-                    <p className="text-xs text-muted-foreground">
-                      {Math.round(kcal)} kcal · {items.length} item(ns)
-                    </p>
-                  </button>
-                  {items.length === 0 ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="rounded-full"
-                      aria-label={`Adicionar item em ${meal.label}`}
-                      onClick={() => {
-                        setTargetMeal(meal.key);
-                        setAddMealOpen(true);
-                      }}
-                    >
-                      <Plus className="size-4" />
-                    </Button>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="rounded-full"
-                      aria-label={`Editar ${meal.label}`}
-                      onClick={() => {
-                        const editableGroup = groups.find((g) => g.dietMealId);
-                        if (editableGroup) {
-                          setEditingGroup(editableGroup);
-                          setEditMealOpen(true);
-                        }
-                      }}
-                    >
-                      <Pencil className="size-4" />
-                    </Button>
-                  )}
-                </header>
-                {expandedMeals.has(meal.key) && items.length > 0 && <div className="divide-y">
+                    <Plus className="size-4" />
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="rounded-full"
+                    aria-label={`Editar ${meal.label}`}
+                    onClick={() => {
+                      const editableGroup = groups.find((g) => g.dietMealId);
+                      if (editableGroup) {
+                        setEditingGroup(editableGroup);
+                        setEditMealOpen(true);
+                      }
+                    }}
+                  >
+                    <Pencil className="size-4" />
+                  </Button>
+                )}
+              </header>
+              {expandedMeals.has(meal.key) && items.length > 0 && (
+                <div className="divide-y">
                   {loading ? (
                     <div className="px-4 py-6 text-sm text-muted-foreground text-center">
                       Carregando refeicoes...
@@ -367,9 +335,7 @@ export function DiaryPage() {
                                     {entry.carbs.toFixed(1)}C / {entry.fat.toFixed(1)}G
                                   </p>
                                 </div>
-                                <p className="font-display text-xl">
-                                  {Math.round(entry.calories)}
-                                </p>
+                                <p className="font-display text-xl">{Math.round(entry.calories)}</p>
                               </div>
                             </li>
                           ))}
@@ -377,31 +343,41 @@ export function DiaryPage() {
                       </div>
                     ))
                   )}
-                </div>}
-              </section>
-            );
-          })}
-
-          <Dialog open={Boolean(lightboxUrl)} onOpenChange={(open) => { if (!open) setLightboxUrl(null); }}>
-            <DialogContent className="max-w-screen-sm border-0 bg-transparent p-0 shadow-none">
-              {lightboxUrl && (
-                <img src={lightboxUrl} alt="" className="w-full rounded-lg object-contain max-h-[80vh]" />
+                </div>
               )}
-            </DialogContent>
-          </Dialog>
+            </section>
+          );
+        })}
 
-          <AddFoodDialog
-            open={editMealOpen}
-            onOpenChange={(nextOpen) => {
-              setEditMealOpen(nextOpen);
-              if (!nextOpen) setEditingGroup(null);
-            }}
-            selectedDate={selectedDate}
-            meals={meals}
-            editingGroup={editingGroup}
-            showTrigger={false}
-            disableDraft
-          />
+        <Dialog
+          open={Boolean(lightboxUrl)}
+          onOpenChange={(open) => {
+            if (!open) setLightboxUrl(null);
+          }}
+        >
+          <DialogContent className="max-w-screen-sm border-0 bg-transparent p-0 shadow-none">
+            {lightboxUrl && (
+              <img
+                src={lightboxUrl}
+                alt=""
+                className="w-full rounded-lg object-contain max-h-[80vh]"
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+
+        <AddFoodDialog
+          open={editMealOpen}
+          onOpenChange={(nextOpen) => {
+            setEditMealOpen(nextOpen);
+            if (!nextOpen) setEditingGroup(null);
+          }}
+          selectedDate={selectedDate}
+          meals={meals}
+          editingGroup={editingGroup}
+          showTrigger={false}
+          disableDraft
+        />
       </div>
     </div>
   );

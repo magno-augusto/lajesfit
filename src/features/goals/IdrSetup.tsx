@@ -12,13 +12,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ACTIVITY_FACTORS, calculateIdr, saveIdrProfile, type IdrProfile } from "./goals-api";
+import { normalizeUsername } from "@/features/auth/auth";
+import {
+  ACTIVITY_FACTORS,
+  calculateIdr,
+  checkUsernameAvailable,
+  getMyUsername,
+  saveIdrProfile,
+  type IdrProfile,
+} from "./goals-api";
 
 type SetupState = Omit<IdrProfile, "idrCalories" | "createdAt">;
+
+type UsernameStatus = "idle" | "invalid" | "checking" | "available" | "taken";
 
 export function IdrSetup() {
   const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
+  const [username, setUsername] = useState("");
+  const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>("idle");
   const [state, setState] = useState<SetupState>({
     name: "",
     sex: "female",
@@ -29,6 +41,33 @@ export function IdrSetup() {
   });
 
   const preview = useMemo(() => calculateIdr(state), [state]);
+
+  useEffect(() => {
+    getMyUsername()
+      .then((current) => setUsername((typed) => typed || current))
+      .catch(() => {
+        // sem prefill: o usuario ainda pode digitar o proprio @
+      });
+  }, []);
+
+  useEffect(() => {
+    const clean = normalizeUsername(username);
+    if (!clean) {
+      setUsernameStatus("idle");
+      return;
+    }
+    if (clean.length < 3) {
+      setUsernameStatus("invalid");
+      return;
+    }
+    setUsernameStatus("checking");
+    const timer = setTimeout(() => {
+      checkUsernameAvailable(clean)
+        .then((available) => setUsernameStatus(available ? "available" : "taken"))
+        .catch(() => setUsernameStatus("idle"));
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [username]);
 
   function update<K extends keyof SetupState>(key: K, value: SetupState[K]) {
     setState((current) => ({ ...current, [key]: value }));
@@ -41,9 +80,25 @@ export function IdrSetup() {
       return;
     }
 
+    const cleanUsername = normalizeUsername(username);
+    if (cleanUsername.length < 3) {
+      toast.error("Escolha um nome de usuario com pelo menos 3 caracteres");
+      return;
+    }
+    if (usernameStatus === "taken") {
+      toast.error("Esse nome de usuario ja esta em uso");
+      return;
+    }
+
     setSaving(true);
     try {
-      await saveIdrProfile({ ...state, name: state.name.trim() });
+      const available = await checkUsernameAvailable(cleanUsername);
+      if (!available) {
+        setUsernameStatus("taken");
+        toast.error("Esse nome de usuario ja esta em uso");
+        return;
+      }
+      await saveIdrProfile({ ...state, name: state.name.trim() }, cleanUsername);
       toast.success("Objetivo calorico calculado");
       navigate({ to: "/feed", replace: true });
     } catch (error) {
@@ -89,6 +144,39 @@ export function IdrSetup() {
                     placeholder="Como quer aparecer"
                     required
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="setup-username">Nome de usuario</Label>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-muted-foreground">
+                      @
+                    </span>
+                    <Input
+                      id="setup-username"
+                      className="pl-8"
+                      value={username}
+                      onChange={(event) => setUsername(normalizeUsername(event.target.value))}
+                      placeholder="seu_usuario"
+                      autoComplete="off"
+                      required
+                    />
+                  </div>
+                  {usernameStatus === "checking" && (
+                    <p className="text-xs text-muted-foreground">Verificando disponibilidade...</p>
+                  )}
+                  {usernameStatus === "available" && (
+                    <p className="text-xs text-green-600">
+                      @{normalizeUsername(username)} esta disponivel
+                    </p>
+                  )}
+                  {usernameStatus === "taken" && (
+                    <p className="text-xs text-destructive">Esse nome de usuario ja esta em uso</p>
+                  )}
+                  {usernameStatus === "invalid" && (
+                    <p className="text-xs text-destructive">
+                      Use pelo menos 3 caracteres (letras minusculas, numeros e _)
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>Sexo biologico</Label>

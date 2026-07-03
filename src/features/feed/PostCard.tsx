@@ -361,8 +361,14 @@ export function PostCard({
           <MessageCircle className="size-4 mr-2" /> {commentsCount}
         </Button>
         {canShare && (
-          <Button variant="ghost" size="sm" onClick={() => void handleShare()}>
-            <Share2 className="size-4 mr-2" /> Compartilhar
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => void handleShare()}
+            className="ml-auto"
+            aria-label="Compartilhar publicacao"
+          >
+            <Share2 className="size-4" />
           </Button>
         )}
       </footer>

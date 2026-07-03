@@ -19,7 +19,8 @@ import {
 } from "@/features/auth/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { updateProfilePrivacy } from "@/features/profile/follows-api";
-import { setupStravaWebhook } from "@/features/workouts/strava-api";
+import { getStravaWebhookStatus, setupStravaWebhook } from "@/features/workouts/strava-api";
+import { timeAgo } from "@/features/feed/format";
 import { useStravaConnection } from "@/features/workouts/useStravaConnection";
 import {
   getProfileSettings,
@@ -48,6 +49,18 @@ export function SettingsPage() {
 
   const [isAdmin, setIsAdmin] = useState(false);
   const [settingUpWebhook, setSettingUpWebhook] = useState(false);
+  const [webhookStatus, setWebhookStatus] = useState<{
+    active: boolean;
+    lastEventAt: string | null;
+    lastEventStatus: string | null;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    getStravaWebhookStatus()
+      .then(setWebhookStatus)
+      .catch(() => setWebhookStatus(null));
+  }, [isAdmin]);
 
   const {
     connected: stravaConnected,
@@ -193,6 +206,9 @@ export function SettingsPage() {
           ? "Inscricao do webhook do Strava criada com sucesso."
           : "Webhook do Strava ja estava configurado.",
       );
+      getStravaWebhookStatus()
+        .then(setWebhookStatus)
+        .catch(() => {});
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Nao foi possivel configurar o webhook");
     } finally {
@@ -424,6 +440,21 @@ export function SettingsPage() {
               automaticamente para todos os usuarios conectados.
             </p>
           </div>
+          {webhookStatus && (
+            <div className="flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-sm">
+              <span
+                className={`size-2 shrink-0 rounded-full ${
+                  webhookStatus.active ? "bg-green-500" : "bg-destructive"
+                }`}
+              />
+              <span>
+                {webhookStatus.active ? "Inscricao ativa" : "Inscricao inativa"}
+                {webhookStatus.lastEventAt
+                  ? ` - ultimo evento ${timeAgo(webhookStatus.lastEventAt)} (${webhookStatus.lastEventStatus})`
+                  : " - nenhum evento recebido ainda"}
+              </span>
+            </div>
+          )}
           <Button
             type="button"
             variant="outline"

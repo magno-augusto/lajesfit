@@ -6,7 +6,7 @@ export type LocalAuthSession = Session;
 
 export const LEGACY_EMAIL_DOMAIN = "@lajesfit.local";
 
-function normalizeUsername(username: string) {
+export function normalizeUsername(username: string) {
   return username
     .trim()
     .toLowerCase()

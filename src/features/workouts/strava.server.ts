@@ -230,16 +230,32 @@ export async function upsertStravaActivities(
   const stravaActivityIds = rows.map((row) => row.strava_activity_id);
   const { data: existing, error: existingError } = await supabase
     .from("workouts")
-    .select("strava_activity_id")
+    .select("strava_activity_id, calories, media_url")
     .eq("user_id", userId)
     .in("strava_activity_id", stravaActivityIds);
 
   if (existingError) throw new Error(existingError.message);
   const existingIds = new Set((existing ?? []).map((row) => row.strava_activity_id));
+  const existingByStravaId = new Map((existing ?? []).map((row) => [row.strava_activity_id, row]));
+
+  // O endpoint de lista nao traz calorias/fotos; quando o dado vier vazio,
+  // preserva o que ja foi salvo por um detalhe/webhook anterior.
+  const rowsPreservingDetails = rows.map((row) => {
+    const current = existingByStravaId.get(row.strava_activity_id);
+    if (!current) return row;
+    return {
+      ...row,
+      calories: row.calories ?? current.calories,
+      media_url: row.media_url ?? current.media_url,
+    };
+  });
 
   const { data: upserted, error } = await supabase
     .from("workouts")
-    .upsert(rows, { onConflict: "user_id,strava_activity_id", ignoreDuplicates: false })
+    .upsert(rowsPreservingDetails, {
+      onConflict: "user_id,strava_activity_id",
+      ignoreDuplicates: false,
+    })
     .select("id, title, activity_type, media_url, performed_at, strava_activity_id");
 
   if (error) throw new Error(error.message);

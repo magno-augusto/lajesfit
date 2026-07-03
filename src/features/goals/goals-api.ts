@@ -83,12 +83,41 @@ export async function getIdrProfile() {
   return mapProfile(data);
 }
 
-export async function saveIdrProfile(profile: Omit<IdrProfile, "idrCalories" | "createdAt">) {
+export async function getMyUsername() {
+  const userId = await getUserId();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("username")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data?.username ?? "";
+}
+
+export async function checkUsernameAvailable(username: string) {
+  const userId = await getUserId();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("username", username)
+    .neq("id", userId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return !data;
+}
+
+export async function saveIdrProfile(
+  profile: Omit<IdrProfile, "idrCalories" | "createdAt">,
+  username?: string,
+) {
   const userId = await getUserId();
   const calorieGoal = calculateIdr(profile);
   const { data, error } = await supabase
     .from("profiles")
     .update({
+      ...(username ? { username } : {}),
       display_name: profile.name,
       calorie_goal: calorieGoal,
       goal_sex: profile.sex,
@@ -105,6 +134,11 @@ export async function saveIdrProfile(profile: Omit<IdrProfile, "idrCalories" | "
 
   if (error) {
     console.error("Erro ao salvar objetivo calorico:", error);
+    if (error.code === "23505") {
+      throw new Error(
+        "Esse nome de usuario acabou de ser escolhido por outra pessoa. Tente outro.",
+      );
+    }
     throw new Error(error.message);
   }
   notifyChange();

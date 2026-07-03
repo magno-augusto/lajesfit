@@ -41,7 +41,7 @@ function AppHeader({
 
   return (
     <header className="fixed inset-x-0 top-0 z-30 border-b bg-background">
-      <div className="container relative mx-auto flex h-14 items-center justify-between px-4">
+      <div className="relative mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
         <NotificationsSheet userId={userId} unreadCount={unreadCount} onOpened={handleOpened} />
         <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 font-display text-2xl tracking-wide">
           LAJES FIT
@@ -49,7 +49,7 @@ function AppHeader({
         <NewActionMenu />
       </div>
       {showStravaConnect && (
-        <div className="container mx-auto flex justify-center px-4 pb-2">
+        <div className="mx-auto flex max-w-3xl justify-center px-4 pb-2">
           <Button
             type="button"
             size="sm"
@@ -155,12 +155,12 @@ function AppShell() {
         />
       )}
 
-      <main className={`container mx-auto px-4 pb-24 ${showStravaConnect ? "pt-27" : "pt-17"}`}>
+      <main className={`mx-auto max-w-3xl px-4 pb-24 ${showStravaConnect ? "pt-27" : "pt-17"}`}>
         <Outlet />
       </main>
 
       <nav className="fixed bottom-0 inset-x-0 z-30 border-t bg-background">
-        <div className="grid grid-cols-5 items-end">
+        <div className="mx-auto grid max-w-3xl grid-cols-5 items-end">
           {[navItems[0], navItems[1]].map((item) => {
             const active =
               location.pathname === item.to || location.pathname.startsWith(item.to + "/");

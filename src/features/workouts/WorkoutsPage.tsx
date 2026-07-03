@@ -75,12 +75,14 @@ export function WorkoutsPage() {
   }
 
   async function autoSyncStrava() {
+    // Reconciliacao rara: o webhook e' a via primaria de sincronizacao; este
+    // polling so cobre eventos perdidos, para economizar requisicoes ao Strava.
     const key = "lajesfit-strava-last-sync";
-    const last = sessionStorage.getItem(key);
-    const fiveMinutes = 5 * 60 * 1000;
-    if (last && Date.now() - Number(last) < fiveMinutes) return;
+    const last = localStorage.getItem(key);
+    const sixHours = 6 * 60 * 60 * 1000;
+    if (last && Date.now() - Number(last) < sixHours) return;
 
-    sessionStorage.setItem(key, String(Date.now()));
+    localStorage.setItem(key, String(Date.now()));
     try {
       const result = await syncStravaActivities();
       if (result.imported > 0) {

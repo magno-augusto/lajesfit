@@ -9,7 +9,8 @@
       "PowerShell(npx vite-node node_modules/@tanstack/router-vite-plugin/dist/route-generator.js 2>&1)",
       "PowerShell(npx tsc --noEmit 2>&1)",
       "PowerShell(supabase db push --linked 2>&1)",
-      "PowerShell(git add -A)"
+      "PowerShell(git add -A)",
+      "Bash(git commit -m 'Otimiza sincronizacao Strava e melhora setup, layout desktop e compartilhamento *)"
     ]
   }
 }

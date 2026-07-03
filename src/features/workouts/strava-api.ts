@@ -9,9 +9,11 @@ import {
   fetchStravaActivity,
   getStravaConfig,
   getValidStravaAccessToken,
+  listStravaPushSubscriptions,
   stravaConnectionCutoffSeconds,
   upsertStravaActivities,
 } from "@/features/workouts/strava.server";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const STRAVA_AUTHORIZE_URL = "https://www.strava.com/oauth/authorize";
 
@@ -152,11 +154,26 @@ export const syncStravaActivities = createServerFn({ method: "POST" })
     const after = stravaConnectionCutoffSeconds(storedToken.created_at);
     const activities = await fetchStravaActivities(accessToken, after);
 
-    // O endpoint de lista não retorna calorias — buscamos o detalhe de cada
-    // atividade que não trouxe esse dado para obtê-lo.
+    // O endpoint de lista não retorna calorias. Para economizar requisições ao
+    // Strava, só buscamos o detalhe de atividades novas ou ainda sem calorias no
+    // banco; as demais reaproveitam a caloria já salva (preservada no upsert).
+    const { data: existingRows, error: existingError } = await context.supabase
+      .from("workouts")
+      .select("strava_activity_id, calories")
+      .eq("user_id", context.userId)
+      .not("strava_activity_id", "is", null);
+    if (existingError) throw new Error(existingError.message);
+
+    const idsWithCalories = new Set(
+      (existingRows ?? [])
+        .filter((row) => typeof row.calories === "number" && row.calories > 0)
+        .map((row) => row.strava_activity_id),
+    );
+
     const activitiesWithCalories = await Promise.all(
       activities.map(async (activity) => {
         if (typeof activity.calories === "number" && activity.calories > 0) return activity;
+        if (idsWithCalories.has(activity.id)) return activity;
         try {
           return await fetchStravaActivity(accessToken, activity.id);
         } catch {
@@ -171,6 +188,42 @@ export const syncStravaActivities = createServerFn({ method: "POST" })
       activitiesWithCalories,
     );
     return { imported, removed };
+  });
+
+export const getStravaWebhookStatus = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: profile, error: profileError } = await context.supabase
+      .from("profiles")
+      .select("is_admin")
+      .eq("id", context.userId)
+      .maybeSingle();
+
+    if (profileError) throw new Error(profileError.message);
+    if (!profile?.is_admin) throw new Error("Apenas administradores podem ver o webhook.");
+
+    const appUrl = process.env.VITE_APP_URL;
+    const callbackUrl = appUrl ? `${appUrl.replace(/\/$/, "")}/api/strava/webhook` : null;
+    const subscriptions = await listStravaPushSubscriptions();
+    const active = callbackUrl
+      ? subscriptions.some((subscription) => subscription.callback_url === callbackUrl)
+      : subscriptions.length > 0;
+
+    // a tabela de eventos so e' acessivel via service role (RLS sem policies)
+    const { data: lastEvent, error: eventError } = await supabaseAdmin
+      .from("strava_webhook_events")
+      .select("created_at, status")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (eventError) throw new Error(eventError.message);
+
+    return {
+      active,
+      lastEventAt: lastEvent?.created_at ?? null,
+      lastEventStatus: lastEvent?.status ?? null,
+    };
   });
 
 export const setupStravaWebhook = createServerFn({ method: "POST" })

@@ -93,7 +93,7 @@ function LandingPage() {
             100% grátis · Feito em Lajedão
           </p>
           <h1 className="font-display text-6xl leading-[0.9] text-secondary">
-            Desafios que fazem você voltar amanhã.
+            Juntos por uma Lajedão mais ativa e saudável.
           </h1>
           <p className="mt-4 text-base leading-7 text-muted-foreground">
             O LajesFit transforma treino e alimentação em um jogo com a galera da cidade: entre no

@@ -11,6 +11,7 @@ import { useStravaConnection } from "@/features/workouts/useStravaConnection";
 import { NotificationsSheet } from "@/features/notifications/NotificationsSheet";
 import { getUnreadNotificationCount } from "@/features/notifications/notifications-api";
 import { supabase } from "@/integrations/supabase/client";
+import logoUrl from "@/assets/logo.png";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -42,16 +43,18 @@ function AppHeader({
 
   return (
     <header className="fixed inset-x-0 top-0 z-30 border-b bg-background">
-      <div className="mx-auto grid h-14 max-w-3xl grid-cols-[1fr_auto_1fr] items-center gap-2 pl-1 pr-4">
-        <div className="flex items-center gap-1 justify-self-start">
-          <NotificationsSheet userId={userId} unreadCount={unreadCount} onOpened={handleOpened} />
+      <div className="mx-auto flex h-14 max-w-3xl items-center gap-2 px-3">
+        <Link to="/feed" className="flex min-w-0 flex-1 items-center gap-2">
+          <img src={logoUrl} alt="LajesFit" className="size-9 shrink-0 rounded-md" />
+          <span className="truncate font-display text-2xl leading-none text-secondary">
+            lajesfit
+          </span>
+        </Link>
+
+        <div className="flex shrink-0 items-center justify-end gap-1">
           <InstallAppButton header />
-        </div>
-        <span className="justify-self-center whitespace-nowrap font-display text-xl tracking-wide sm:text-2xl">
-          LAJESFIT
-        </span>
-        <div className="justify-self-end">
           <NewActionMenu />
+          <NotificationsSheet userId={userId} unreadCount={unreadCount} onOpened={handleOpened} />
         </div>
       </div>
       {showStravaConnect && (

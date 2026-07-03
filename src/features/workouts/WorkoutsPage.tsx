@@ -4,11 +4,15 @@ import { Activity, ChevronLeft, ChevronRight, Flame, Trash2 } from "lucide-react
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { addDays, formatSelectedDate, isSameLocalDate, startOfLocalDay } from "@/lib/date";
 import { consumePendingNewAction, NEW_ACTION_EVENT } from "@/components/new-action-menu";
 import { useFitness } from "@/features/fitness/useFitness";
+import { useLocalAuth } from "@/features/auth/auth";
+import { fetchWorkoutPost, type FeedPost } from "@/features/feed/feed-api";
+import { PostCard } from "@/features/feed/PostCard";
 import { formatDistance, formatDuration, timeAgo } from "@/features/feed/format";
 import { ManualWorkoutDialog } from "./ManualWorkoutDialog";
 import { WeeklyWorkoutChart } from "./WeeklyWorkoutChart";
@@ -25,10 +29,14 @@ function buildStartedAtForSelectedDay(day: Date) {
 
 export function WorkoutsPage() {
   const { workouts, loading } = useFitness();
+  const { user } = useLocalAuth();
   const [selectedDate, setSelectedDate] = useState(() => startOfLocalDay(new Date()));
   const swipeStartXRef = useRef<number | null>(null);
   const [addWorkoutOpen, setAddWorkoutOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [selectedPostOpen, setSelectedPostOpen] = useState(false);
+  const [selectedPost, setSelectedPost] = useState<FeedPost | null>(null);
+  const [selectedPostLoading, setSelectedPostLoading] = useState(false);
 
   useEffect(() => {
     getStravaConnection()
@@ -90,6 +98,28 @@ export function WorkoutsPage() {
       }
     } catch {
       // silencioso — sync em background não deve mostrar erros ao usuário
+    }
+  }
+
+  async function openWorkoutPost(workout: LocalWorkout) {
+    if (!user) return;
+
+    setSelectedPost(null);
+    setSelectedPostOpen(true);
+    setSelectedPostLoading(true);
+    try {
+      const post = await fetchWorkoutPost(workout.id, user.id);
+      if (!post) {
+        toast.error("Publicacao deste treino nao encontrada no feed");
+        setSelectedPostOpen(false);
+        return;
+      }
+      setSelectedPost(post);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel abrir este treino");
+      setSelectedPostOpen(false);
+    } finally {
+      setSelectedPostLoading(false);
     }
   }
 
@@ -207,7 +237,18 @@ export function WorkoutsPage() {
             const durationLabel = formatDuration(workout.durationSeconds);
             const distanceLabel = formatDistance(workout.distanceMeters);
             return (
-              <li key={workout.id} className="px-4 py-3 flex items-center gap-3 hover:bg-muted/40">
+              <li
+                key={workout.id}
+                className="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-muted/40 focus-within:bg-muted/40 focus:outline-none focus:ring-2 focus:ring-primary"
+                role="button"
+                tabIndex={0}
+                onClick={() => void openWorkoutPost(workout)}
+                onKeyDown={(event) => {
+                  if (event.key !== "Enter" && event.key !== " ") return;
+                  event.preventDefault();
+                  void openWorkoutPost(workout);
+                }}
+              >
                 {workout.mediaUrl ? (
                   <img src={workout.mediaUrl} alt="" className="size-10 rounded-lg object-cover" />
                 ) : (
@@ -243,11 +284,16 @@ export function WorkoutsPage() {
                   onSaved={(updatedWorkout) => {
                     void updateWorkout(workout.id, updatedWorkout);
                   }}
+                  triggerWrapperClassName="shrink-0"
                 />
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => handleRemoveWorkout(workout.id)}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    void handleRemoveWorkout(workout.id);
+                  }}
+                  onKeyDown={(event) => event.stopPropagation()}
                   disabled={deletingId === workout.id}
                   aria-label="Remover treino"
                 >
@@ -258,6 +304,18 @@ export function WorkoutsPage() {
           })}
         </ul>
       </div>
+
+      <Dialog open={selectedPostOpen} onOpenChange={setSelectedPostOpen}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto border-0 bg-transparent p-0 shadow-none sm:max-w-md">
+          {selectedPostLoading ? (
+            <div className="rounded-lg border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
+              Abrindo treino...
+            </div>
+          ) : selectedPost ? (
+            <PostCard post={selectedPost} currentUserId={user?.id ?? null} />
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

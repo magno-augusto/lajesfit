@@ -1118,7 +1118,6 @@ export function AddFoodDialog({
         onFound={(food) => {
           void cacheFoodInCatalog(food);
           selectFood(food);
-          setScannerOpen(false);
         }}
       />
     </>

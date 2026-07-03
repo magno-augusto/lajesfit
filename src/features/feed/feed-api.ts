@@ -172,6 +172,22 @@ export async function fetchProfilePosts(
   return buildFeedPosts(posts ?? [], currentUserId);
 }
 
+export async function fetchWorkoutPost(
+  workoutId: string,
+  currentUserId: string,
+): Promise<FeedPost | null> {
+  const { data: posts, error } = await supabase
+    .from("posts")
+    .select("id, content, media_url, created_at, user_id, workout_id")
+    .eq("workout_id", workoutId)
+    .limit(1);
+
+  if (error) throw error;
+
+  const [post] = await buildFeedPosts(posts ?? [], currentUserId);
+  return post ?? null;
+}
+
 export async function deletePost(postId: string, userId: string) {
   const { error } = await supabase.from("posts").delete().eq("id", postId).eq("user_id", userId);
   if (error) throw error;

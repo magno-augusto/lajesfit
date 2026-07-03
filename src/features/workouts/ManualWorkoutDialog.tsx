@@ -41,6 +41,7 @@ export function ManualWorkoutDialog({
   onOpenChange,
   defaultStartedAt,
   showTrigger = true,
+  triggerWrapperClassName,
 }: {
   userId?: string;
   initialWorkout?: LocalWorkout;
@@ -50,6 +51,7 @@ export function ManualWorkoutDialog({
   onOpenChange?: (open: boolean) => void;
   defaultStartedAt?: string;
   showTrigger?: boolean;
+  triggerWrapperClassName?: string;
 }) {
   const [internalOpen, setInternalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -138,17 +140,23 @@ export function ManualWorkoutDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       {showTrigger && (
-        <DialogTrigger asChild>
-          {editing ? (
-            <Button variant="ghost" size="icon" aria-label="Editar treino">
-              <Pencil className="size-4" />
-            </Button>
-          ) : (
-            <Button size="sm" variant="secondary">
-              <Plus className="size-4 mr-1" /> Registrar
-            </Button>
-          )}
-        </DialogTrigger>
+        <span
+          className={triggerWrapperClassName}
+          onClick={(event) => event.stopPropagation()}
+          onKeyDown={(event) => event.stopPropagation()}
+        >
+          <DialogTrigger asChild>
+            {editing ? (
+              <Button variant="ghost" size="icon" aria-label="Editar treino">
+                <Pencil className="size-4" />
+              </Button>
+            ) : (
+              <Button size="sm" variant="secondary">
+                <Plus className="size-4 mr-1" /> Registrar
+              </Button>
+            )}
+          </DialogTrigger>
+        </span>
       )}
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>

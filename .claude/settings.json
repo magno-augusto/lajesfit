@@ -11,7 +11,8 @@
       "PowerShell(supabase db push --linked 2>&1)",
       "PowerShell(git add -A)",
       "Bash(git commit -m 'Otimiza sincronizacao Strava e melhora setup, layout desktop e compartilhamento *)",
-      "Bash(vercel ls *)"
+      "Bash(vercel ls *)",
+      "Bash(git commit -m 'Melhora copy da landing page *)"
     ]
   }
 }

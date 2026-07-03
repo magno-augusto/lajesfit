@@ -38,6 +38,13 @@ export function AuthPage() {
   const [resetSubmitting, setResetSubmitting] = useState(false);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (new URLSearchParams(window.location.search).get("mode") === "signup") {
+      setMode("signup");
+    }
+  }, []);
+
+  useEffect(() => {
     if (!session || authLoading || fitnessLoading) return;
     navigate({ to: idrProfile ? "/feed" : "/setup", replace: true });
   }, [authLoading, fitnessLoading, idrProfile, navigate, session]);

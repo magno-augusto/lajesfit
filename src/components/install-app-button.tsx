@@ -36,10 +36,13 @@ export function InstallAppButton({
   compact = false,
   className = "",
   menuItem = false,
+  header = false,
 }: {
   compact?: boolean;
   className?: string;
   menuItem?: boolean;
+  /** Variante do cabecalho: rotulo "Download", visivel em qualquer largura */
+  header?: boolean;
 }) {
   const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = useState(false);
@@ -50,7 +53,7 @@ export function InstallAppButton({
     function updateVisibility() {
       const mobile = isMobileDevice();
       const installed = isStandalone();
-      setVisible(mobile && !installed);
+      setVisible((header || mobile) && !installed);
       setPlatform(getPlatform());
     }
 
@@ -77,7 +80,7 @@ export function InstallAppButton({
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
       window.removeEventListener("appinstalled", handleInstalled);
     };
-  }, []);
+  }, [header]);
 
   if (!visible) return null;
 
@@ -110,6 +113,17 @@ export function InstallAppButton({
       <Download className="mr-2 size-4" />
       Baixar
     </DropdownMenuItem>
+  ) : header ? (
+    <Button
+      type="button"
+      onClick={install}
+      size="sm"
+      variant="secondary"
+      className={`h-7 rounded-full px-2.5 text-[11px] leading-none shadow-sm ${className}`}
+    >
+      <Download className="size-3.5" />
+      Download
+    </Button>
   ) : (
     <Button
       type="button"

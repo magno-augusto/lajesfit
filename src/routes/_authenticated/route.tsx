@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Activity, Apple, Home, LogIn, Trophy, Zap } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { InstallAppButton } from "@/components/install-app-button";
 import { NewActionMenu } from "@/components/new-action-menu";
 import { LEGACY_EMAIL_DOMAIN, useLocalAuth } from "@/features/auth/auth";
 import { useFitness } from "@/features/fitness/useFitness";
@@ -42,7 +43,10 @@ function AppHeader({
   return (
     <header className="fixed inset-x-0 top-0 z-30 border-b bg-background">
       <div className="relative mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
-        <NotificationsSheet userId={userId} unreadCount={unreadCount} onOpened={handleOpened} />
+        <div className="flex items-center gap-1">
+          <NotificationsSheet userId={userId} unreadCount={unreadCount} onOpened={handleOpened} />
+          <InstallAppButton header />
+        </div>
         <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 font-display text-2xl tracking-wide">
           LAJES FIT
         </span>

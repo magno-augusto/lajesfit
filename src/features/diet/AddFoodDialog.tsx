@@ -1,5 +1,5 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
-import { Camera, Check, ImageIcon, ListPlus, Pencil, Plus, ScanBarcode, Trash2, X } from "lucide-react";
+import { Check, ImageIcon, ListPlus, Pencil, Plus, ScanBarcode, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,7 +38,6 @@ import type { MealGroup } from "./meal-grouping";
 import {
   compressImageDataUrl,
   dataUrlToBlob,
-  isOlderAndroidBrowser,
   readFileAsDataUrl,
 } from "./image-utils";
 
@@ -195,11 +194,10 @@ export function AddFoodDialog({
   const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
   const [pickingPhoto, setPickingPhoto] = useState(false);
   const [photoLoading, setPhotoLoading] = useState(false);
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const [preferGallery, setPreferGallery] = useState(false);
   const [draftReady, setDraftReady] = useState(false);
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
-  const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  const foodSearchSectionRef = useRef<HTMLDivElement | null>(null);
+  const photoCancelResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const protectDraftRef = useRef(false);
   const open = controlledOpen ?? internalOpen;
 
@@ -227,10 +225,6 @@ export function AddFoodDialog({
       })),
     );
   }, [editingGroup, open]);
-
-  useEffect(() => {
-    setPreferGallery(isOlderAndroidBrowser());
-  }, []);
 
   useEffect(() => {
     if (disableDraft) {
@@ -382,6 +376,13 @@ export function AddFoodDialog({
     applyDefaultMeasure(food);
   }
 
+  function openFoodSearch() {
+    setFoodListOpen(true);
+    window.setTimeout(() => {
+      foodSearchSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+  }
+
   useEffect(() => {
     if (!selectedFood) return;
     const hasMeasure = selectedFood.measures.some((measure) => measure.id === measureId);
@@ -435,8 +436,20 @@ export function AddFoodDialog({
       return;
     }
 
+    if (scannerOpen) return;
     if (!isEditing && (hasDraft || protectDraftRef.current)) return;
     setOpen(false);
+  }
+
+  function openBarcodeScanner() {
+    protectDraftRef.current = true;
+    setOpen(true);
+    setScannerOpen(true);
+  }
+
+  function closeBarcodeScanner() {
+    setScannerOpen(false);
+    setOpen(true);
   }
 
   function cancelMealDraft() {
@@ -606,7 +619,39 @@ export function AddFoodDialog({
     }
   }
 
+  function clearPhotoCancelReset() {
+    if (!photoCancelResetRef.current) return;
+    clearTimeout(photoCancelResetRef.current);
+    photoCancelResetRef.current = null;
+  }
+
+  useEffect(() => clearPhotoCancelReset, []);
+
+  function openPhotoPicker() {
+    protectDraftRef.current = true;
+    setPickingPhoto(true);
+
+    const input = galleryInputRef.current;
+    if (!input) {
+      setPickingPhoto(false);
+      return;
+    }
+
+    const resetIfCancelled = () => {
+      clearPhotoCancelReset();
+      photoCancelResetRef.current = setTimeout(() => {
+        if (input.files && input.files.length > 0) return;
+        setPickingPhoto(false);
+        setPhotoLoading(false);
+      }, 300);
+    };
+
+    window.addEventListener("focus", resetIfCancelled, { once: true });
+    input.click();
+  }
+
   async function pickPhoto(event: React.ChangeEvent<HTMLInputElement>) {
+    clearPhotoCancelReset();
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) {
@@ -630,7 +675,6 @@ export function AddFoodDialog({
       const dataUrl = await compressImageDataUrl(rawDataUrl);
       setOpen(true);
       setPhotoDataUrl(dataUrl);
-      setPickerOpen(false);
       toast.success("Foto adicionada a refeicao");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Nao foi possivel carregar a foto");
@@ -644,7 +688,6 @@ export function AddFoodDialog({
     setPickingPhoto(false);
     setPhotoLoading(false);
     setPhotoDataUrl(null);
-    setPickerOpen(false);
   }
 
   return (
@@ -660,6 +703,7 @@ export function AddFoodDialog({
         <DialogContent
           className="inset-0 h-full max-h-full w-full max-w-full translate-x-0 translate-y-0 overflow-x-hidden overflow-y-auto p-4 sm:rounded-none sm:p-6"
           onInteractOutside={(event) => {
+            if (scannerOpen) event.preventDefault();
             if (!isEditing && (hasDraft || protectDraftRef.current)) event.preventDefault();
           }}
         >
@@ -670,25 +714,12 @@ export function AddFoodDialog({
             className="hidden"
             onChange={pickPhoto}
           />
-          <input
-            ref={cameraInputRef}
-            type="file"
-            accept="image/*"
-            capture={preferGallery ? undefined : "environment"}
-            className="hidden"
-            onChange={pickPhoto}
-          />
           <DialogHeader>
             <DialogTitle>{isEditing ? "Editar refeicao" : "Adicionar refeicao"}</DialogTitle>
           </DialogHeader>
           <form onSubmit={submit} className="space-y-4">
             <div className={isEditing ? "hidden" : "space-y-2"}>
               <Label>Foto da refeicao</Label>
-              {preferGallery && !photoDataUrl && (
-                <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                  Neste aparelho, tire a foto pela camera do celular e depois escolha em Galeria.
-                </div>
-              )}
               {photoDataUrl ? (
                 <div className="relative flex h-32 items-center justify-center overflow-hidden rounded-lg border border-dashed bg-muted/40 text-muted-foreground">
                   <img src={photoDataUrl} alt="" className="h-full w-full object-cover" />
@@ -708,48 +739,10 @@ export function AddFoodDialog({
                   Processando foto...
                 </div>
               ) : null}
-              {pickerOpen || photoDataUrl ? (
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <Button
-                    type="button"
-                    variant={preferGallery ? "default" : "outline"}
-                    className="w-full"
-                    onClick={() => {
-                      protectDraftRef.current = true;
-                      setPickingPhoto(true);
-                      galleryInputRef.current?.click();
-                    }}
-                  >
-                    <ImageIcon className="mr-2 size-4" />
-                    Galeria
-                  </Button>
-                  {!preferGallery && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => {
-                        protectDraftRef.current = true;
-                        setPickingPhoto(true);
-                        cameraInputRef.current?.click();
-                      }}
-                    >
-                      <Camera className="mr-2 size-4" />
-                      Camera
-                    </Button>
-                  )}
-                </div>
-              ) : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => setPickerOpen(true)}
-                >
-                  <ImageIcon className="mr-2 size-4" />
-                  Adicionar foto
-                </Button>
-              )}
+              <Button type="button" variant="outline" className="w-full" onClick={openPhotoPicker}>
+                <ImageIcon className="mr-2 size-4" />
+                {photoDataUrl ? "Trocar foto" : "Adicionar foto"}
+              </Button>
             </div>
             <div className="space-y-2">
               <Label>Refeicao</Label>
@@ -770,26 +763,26 @@ export function AddFoodDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
+            <div ref={foodSearchSectionRef} className="scroll-mt-4 space-y-2">
               <Label>Alimento</Label>
               <div className="flex gap-2">
                 <Input
                   className="min-w-0 flex-1"
                   value={foodQuery}
-                  onFocus={() => setFoodListOpen(true)}
-                  onClick={() => setFoodListOpen(true)}
+                  onFocus={openFoodSearch}
+                  onClick={openFoodSearch}
                   onChange={(event) => {
                     setFoodQuery(event.target.value);
                     setFoodListOpen(true);
                   }}
-                  placeholder="Buscar alimento: arroz, frango, banana..."
+                  placeholder="Buscar alimento"
                 />
                 <Button
                   type="button"
                   variant="outline"
                   size="icon"
                   className="shrink-0"
-                  onClick={() => setScannerOpen(true)}
+                  onClick={openBarcodeScanner}
                   aria-label="Escanear código de barras"
                 >
                   <ScanBarcode className="size-4" />
@@ -819,7 +812,7 @@ export function AddFoodDialog({
                       </Button>
                     </div>
                   )}
-                  <div className="max-h-52 overflow-y-auto">
+                  <div className="max-h-[60vh] overflow-y-auto">
                     {foodsLoading ? (
                       <p className="px-3 py-4 text-center text-sm text-muted-foreground">
                         Carregando base de alimentos...
@@ -1114,7 +1107,7 @@ export function AddFoodDialog({
       </Dialog>
       <BarcodeScannerDialog
         open={scannerOpen}
-        onClose={() => setScannerOpen(false)}
+        onClose={closeBarcodeScanner}
         onFound={(food) => {
           void cacheFoodInCatalog(food);
           selectFood(food);

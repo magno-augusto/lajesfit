@@ -55,6 +55,16 @@ export function useFitness() {
         );
       } catch (syncError) {
         console.error("Erro ao sincronizar dados de fitness:", syncError);
+
+        // Sessao de usuario que nao existe mais (ex.: conta excluida): desloga
+        // para levar ao /auth em vez de travar na tela de erro. Erros de rede
+        // (status ausente/0) nao deslogam.
+        const { error: userError } = await supabase.auth.getUser();
+        if (userError && (userError.status === 401 || userError.status === 403)) {
+          await supabase.auth.signOut({ scope: "local" });
+          return;
+        }
+
         if (!mounted) return;
         setMeals([]);
         setWorkouts([]);

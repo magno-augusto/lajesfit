@@ -42,15 +42,17 @@ function AppHeader({
 
   return (
     <header className="fixed inset-x-0 top-0 z-30 border-b bg-background">
-      <div className="relative mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
-        <div className="flex items-center gap-1">
+      <div className="mx-auto grid h-14 max-w-3xl grid-cols-[1fr_auto_1fr] items-center gap-2 px-4">
+        <div className="flex items-center gap-1 justify-self-start">
           <NotificationsSheet userId={userId} unreadCount={unreadCount} onOpened={handleOpened} />
           <InstallAppButton header />
         </div>
-        <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 font-display text-2xl tracking-wide">
+        <span className="justify-self-center font-display text-xl tracking-wide sm:text-2xl">
           LAJES FIT
         </span>
-        <NewActionMenu />
+        <div className="justify-self-end">
+          <NewActionMenu />
+        </div>
       </div>
       {showStravaConnect && (
         <div className="mx-auto flex max-w-3xl justify-center px-4 pb-2">

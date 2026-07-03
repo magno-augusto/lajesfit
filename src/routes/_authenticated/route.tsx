@@ -42,13 +42,13 @@ function AppHeader({
 
   return (
     <header className="fixed inset-x-0 top-0 z-30 border-b bg-background">
-      <div className="mx-auto grid h-14 max-w-3xl grid-cols-[1fr_auto_1fr] items-center gap-2 px-4">
+      <div className="mx-auto grid h-14 max-w-3xl grid-cols-[1fr_auto_1fr] items-center gap-2 pl-1 pr-4">
         <div className="flex items-center gap-1 justify-self-start">
           <NotificationsSheet userId={userId} unreadCount={unreadCount} onOpened={handleOpened} />
           <InstallAppButton header />
         </div>
-        <span className="justify-self-center font-display text-xl tracking-wide sm:text-2xl">
-          LAJES FIT
+        <span className="justify-self-center whitespace-nowrap font-display text-xl tracking-wide sm:text-2xl">
+          LAJESFIT
         </span>
         <div className="justify-self-end">
           <NewActionMenu />

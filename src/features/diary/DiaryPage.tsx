@@ -27,7 +27,7 @@ import { AddFoodDialog } from "@/features/diet/AddFoodDialog";
 import { DailySummaryCard } from "@/features/diet/DailySummaryCard";
 import { MEALS, type Meal } from "@/features/diet/constants";
 import { groupMealEntries, type MealGroup } from "@/features/diet/meal-grouping";
-import { removeMeal } from "@/features/diet/meals-api";
+import { removeMeal, type LocalMeal } from "@/features/diet/meals-api";
 import { WeeklyCalorieChart } from "@/features/diet/WeeklyCalorieChart";
 import { WeeklyWorkoutChart } from "@/features/workouts/WeeklyWorkoutChart";
 
@@ -49,6 +49,7 @@ export function DiaryPage() {
   const { meals, workouts, idrProfile, loading } = useFitness();
   const [selectedDate, setSelectedDate] = useState(() => startOfLocalDay(new Date()));
 
+  const [savedMeals, setSavedMeals] = useState<LocalMeal[]>([]);
   const [addMealOpen, setAddMealOpen] = useState(false);
   const [targetMeal, setTargetMeal] = useState<Meal>("lunch");
   const [swipedEntryId, setSwipedEntryId] = useState<string | null>(null);
@@ -68,6 +69,22 @@ export function DiaryPage() {
   );
 
   useEffect(() => {
+    if (savedMeals.length === 0) return;
+    const loadedIds = new Set(meals.map((meal) => meal.id));
+    setSavedMeals((current) => current.filter((meal) => !loadedIds.has(meal.id)));
+  }, [meals, savedMeals.length]);
+
+  const visibleMeals = useMemo(() => {
+    const byId = new Map(meals.map((meal) => [meal.id, meal]));
+    savedMeals.forEach((meal) => {
+      if (!byId.has(meal.id)) byId.set(meal.id, meal);
+    });
+    return Array.from(byId.values()).sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+  }, [meals, savedMeals]);
+
+  useEffect(() => {
     if (consumePendingNewAction("meal")) {
       setTargetMeal("lunch");
       setAddMealOpen(true);
@@ -85,8 +102,8 @@ export function DiaryPage() {
   }, []);
 
   const dayMeals = useMemo(
-    () => meals.filter((meal) => isSameLocalDate(meal.createdAt, selectedDate)),
-    [meals, selectedDate],
+    () => visibleMeals.filter((meal) => isSameLocalDate(meal.createdAt, selectedDate)),
+    [selectedDate, visibleMeals],
   );
 
   const mealTotals = useMemo(() => {
@@ -104,6 +121,7 @@ export function DiaryPage() {
   async function handleRemoveMeal(id: string) {
     try {
       await removeMeal(id);
+      setSavedMeals((current) => current.filter((meal) => meal.id !== id));
       setSwipedEntryId(null);
       toast.success("Refeicao removida");
     } catch (error) {
@@ -158,7 +176,7 @@ export function DiaryPage() {
               }}
             />
             <div className="border-t">
-              <WeeklyCalorieChart meals={meals} dailyTarget={idrProfile?.idrCalories ?? 0} />
+              <WeeklyCalorieChart meals={visibleMeals} dailyTarget={idrProfile?.idrCalories ?? 0} />
             </div>
             <div className="border-t">
               <WeeklyWorkoutChart workouts={workouts} />
@@ -181,9 +199,16 @@ export function DiaryPage() {
         open={addMealOpen}
         onOpenChange={setAddMealOpen}
         selectedDate={selectedDate}
-        meals={meals}
+        meals={visibleMeals}
         initialMeal={targetMeal}
         showTrigger={false}
+        onSaved={(nextMeals) =>
+          setSavedMeals((current) => {
+            const byId = new Map(current.map((meal) => [meal.id, meal]));
+            nextMeals.forEach((meal) => byId.set(meal.id, meal));
+            return Array.from(byId.values());
+          })
+        }
       />
 
       <DailySummaryCard
@@ -271,9 +296,9 @@ export function DiaryPage() {
                     className="rounded-full"
                     aria-label={`Editar ${meal.label}`}
                     onClick={() => {
-                      const editableGroup = groups.find((g) => g.dietMealId);
-                      if (editableGroup) {
-                        setEditingGroup(editableGroup);
+                      const firstGroup = groups[0];
+                      if (firstGroup) {
+                        setEditingGroup(firstGroup);
                         setEditMealOpen(true);
                       }
                     }}
@@ -289,8 +314,27 @@ export function DiaryPage() {
                       Carregando refeicoes...
                     </div>
                   ) : (
-                    groups.map((group) => (
+                    groups.map((group, groupIndex) => (
                       <div key={group.id} className="bg-card">
+                        {groups.length > 1 && (
+                          <div className="flex items-center justify-between bg-muted/30 px-4 py-1.5">
+                            <span className="text-[11px] font-medium text-muted-foreground">
+                              Registro {groupIndex + 1}
+                            </span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-2 text-xs"
+                              onClick={() => {
+                                setEditingGroup(group);
+                                setEditMealOpen(true);
+                              }}
+                            >
+                              <Pencil className="mr-1 size-3" /> Editar
+                            </Button>
+                          </div>
+                        )}
                         <ul className="divide-y">
                           {group.items.map((entry) => (
                             <li
@@ -373,7 +417,7 @@ export function DiaryPage() {
             if (!nextOpen) setEditingGroup(null);
           }}
           selectedDate={selectedDate}
-          meals={meals}
+          meals={visibleMeals}
           editingGroup={editingGroup}
           showTrigger={false}
           disableDraft

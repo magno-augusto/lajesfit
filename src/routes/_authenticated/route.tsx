@@ -18,17 +18,7 @@ export const Route = createFileRoute("/_authenticated")({
   component: AppShell,
 });
 
-function AppHeader({
-  userId,
-  showStravaConnect,
-  stravaBusy,
-  onConnectStrava,
-}: {
-  userId: string;
-  showStravaConnect: boolean;
-  stravaBusy: boolean;
-  onConnectStrava: () => void;
-}) {
+function AppHeader({ userId }: { userId: string }) {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
@@ -57,20 +47,6 @@ function AppHeader({
           <NotificationsSheet userId={userId} unreadCount={unreadCount} onOpened={handleOpened} />
         </div>
       </div>
-      {showStravaConnect && (
-        <div className="mx-auto flex max-w-3xl justify-center px-4 pb-2">
-          <Button
-            type="button"
-            size="sm"
-            className="h-8 rounded-full bg-[#FC4C02] px-4 text-white hover:bg-[#e34402]"
-            onClick={onConnectStrava}
-            disabled={stravaBusy}
-          >
-            <Zap className="mr-1.5 size-3.5" />
-            {stravaBusy ? "Abrindo..." : "Conectar Strava"}
-          </Button>
-        </div>
-      )}
     </header>
   );
 }
@@ -155,16 +131,23 @@ function AppShell() {
 
   return (
     <div className="min-h-screen bg-muted/40">
-      {user && (
-        <AppHeader
-          userId={user.id}
-          showStravaConnect={showStravaConnect}
-          stravaBusy={stravaBusy}
-          onConnectStrava={connectStrava}
-        />
-      )}
+      {user && <AppHeader userId={user.id} />}
 
-      <main className={`mx-auto max-w-3xl px-4 pb-24 ${showStravaConnect ? "pt-27" : "pt-17"}`}>
+      <main className="mx-auto max-w-3xl px-4 pb-24 pt-17">
+        {showStravaConnect && (
+          <div className="mb-2 flex justify-center">
+            <Button
+              type="button"
+              size="sm"
+              className="h-8 w-full rounded-full bg-[#FC4C02] text-white hover:bg-[#e34402]"
+              onClick={connectStrava}
+              disabled={stravaBusy}
+            >
+              <Zap className="mr-1.5 size-3.5" />
+              {stravaBusy ? "Abrindo..." : "Conectar Strava"}
+            </Button>
+          </div>
+        )}
         <Outlet />
       </main>
 

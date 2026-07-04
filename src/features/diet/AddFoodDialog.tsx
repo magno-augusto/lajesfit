@@ -24,6 +24,7 @@ import {
   caloriesFromGrams,
   defaultMeasureForFood,
   defaultQuantityForMeasure,
+  formatFoodName,
   getFoodCatalog,
   normalizeFoodSearch,
   requestFoodSuggestion,
@@ -32,14 +33,16 @@ import {
   type FoodMeasure,
   type TacoFood,
 } from "./food-catalog";
-import { addMealWithItems, updateMealItems, type LocalMeal, type MealFoodInput } from "./meals-api";
+import {
+  addMealWithItems,
+  replaceLegacyMealEntries,
+  updateMealItems,
+  type LocalMeal,
+  type MealFoodInput,
+} from "./meals-api";
 import { BarcodeScannerDialog } from "./BarcodeScannerDialog";
 import type { MealGroup } from "./meal-grouping";
-import {
-  compressImageDataUrl,
-  dataUrlToBlob,
-  readFileAsDataUrl,
-} from "./image-utils";
+import { compressImageDataUrl, dataUrlToBlob, readFileAsDataUrl } from "./image-utils";
 
 const MEAL_DRAFT_KEY = "lajesfit-meal-draft";
 
@@ -153,6 +156,7 @@ export function AddFoodDialog({
   showTrigger = true,
   editingGroup = null,
   disableDraft = false,
+  onSaved,
 }: {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -162,6 +166,7 @@ export function AddFoodDialog({
   showTrigger?: boolean;
   editingGroup?: MealGroup | null;
   disableDraft?: boolean;
+  onSaved?: (meals: LocalMeal[]) => void;
 }) {
   const isEditing = Boolean(editingGroup);
   const [internalOpen, setInternalOpen] = useState(false);
@@ -209,6 +214,11 @@ export function AddFoodDialog({
   useEffect(() => {
     if (open && !editingGroup && mealItems.length === 0) setMeal(initialMeal);
   }, [editingGroup, initialMeal, mealItems.length, open]);
+
+  useEffect(() => {
+    // lista de alimentos so aparece depois que o usuario toca na busca
+    if (open) setFoodListOpen(false);
+  }, [open]);
 
   useEffect(() => {
     if (!open || !editingGroup) return;
@@ -326,14 +336,18 @@ export function AddFoodDialog({
     const timer = setTimeout(async () => {
       setOffLoading(true);
       try {
-        // Busca server-side no banco (todos os 25k+ produtos)
+        // Busca server-side no banco (TACO + TBCA + catalogo)
         const dbResults = await searchFoods(query);
         if (!cancelled) setOffFoods(dbResults);
 
-        // Se não encontrou nada no banco, tenta o OFF em tempo real
-        if (!cancelled && dbResults.length === 0 && query.length >= 3) {
+        // Complementa com o OFF em tempo real quando o banco trouxe poucos
+        // resultados (produtos industrializados vendidos no Brasil)
+        if (!cancelled && dbResults.length < 5 && query.length >= 3) {
           const offResults = await searchOpenFoodFactsFoods(query);
-          if (!cancelled) setOffFoods(offResults);
+          if (!cancelled && offResults.length > 0) {
+            const seen = new Set(dbResults.map((food) => food.id));
+            setOffFoods([...dbResults, ...offResults.filter((food) => !seen.has(food.id))]);
+          }
         }
       } catch {
         if (!cancelled) setOffFoods([]);
@@ -466,17 +480,27 @@ export function AddFoodDialog({
 
     setSaving(true);
     try {
-      if (isEditing && editingGroup?.dietMealId) {
-        await updateMealItems(editingGroup.dietMealId, mealItems);
+      if (isEditing && editingGroup) {
+        if (editingGroup.dietMealId) {
+          await updateMealItems(editingGroup.dietMealId, mealItems, meal);
+        } else {
+          await replaceLegacyMealEntries({
+            entryIds: editingGroup.items.map((item) => item.id),
+            meal,
+            consumedAt: editingGroup.items[0]?.createdAt ?? new Date().toISOString(),
+            items: mealItems,
+          });
+        }
         toast.success("Refeicao atualizada");
       } else {
         const photoBlob = photoDataUrl ? await dataUrlToBlob(photoDataUrl) : null;
-        await addMealWithItems({
+        const savedMeals = await addMealWithItems({
           meal,
           items: mealItems,
           photoFile: photoBlob,
           consumedAt: buildConsumedAtForSelectedDay(selectedDate),
         });
+        onSaved?.(savedMeals);
         toast.success("Refeicao adicionada");
       }
       setOpen(false);
@@ -570,8 +594,8 @@ export function AddFoodDialog({
     setManualFat("");
   }
 
-  async function submitManualFood(e: React.FormEvent) {
-    e.preventDefault();
+  async function submitManualFood(e?: React.FormEvent) {
+    e?.preventDefault();
     const kcal = Number(manualCalories);
     if (!manualName.trim() || !Number.isFinite(kcal) || kcal <= 0) {
       toast.error("Informe nome e calorias para cadastrar o alimento");
@@ -702,6 +726,11 @@ export function AddFoodDialog({
         )}
         <DialogContent
           className="inset-0 h-full max-h-full w-full max-w-full translate-x-0 translate-y-0 overflow-x-hidden overflow-y-auto p-4 sm:rounded-none sm:p-6"
+          onOpenAutoFocus={(event) => {
+            // O autofoco na busca abria a lista de alimentos e o teclado do
+            // celular sozinhos; a lista deve aparecer so ao tocar no campo.
+            event.preventDefault();
+          }}
           onInteractOutside={(event) => {
             if (scannerOpen) event.preventDefault();
             if (!isEditing && (hasDraft || protectDraftRef.current)) event.preventDefault();
@@ -734,7 +763,7 @@ export function AddFoodDialog({
                     <X className="size-4" />
                   </Button>
                 </div>
-              ) : (photoLoading || pickingPhoto) ? (
+              ) : photoLoading || pickingPhoto ? (
                 <div className="flex h-32 items-center justify-center rounded-lg border border-dashed bg-muted/40 text-sm text-muted-foreground">
                   Processando foto...
                 </div>
@@ -792,23 +821,31 @@ export function AddFoodDialog({
                 <div className="overflow-hidden rounded-lg border bg-background">
                   {!foodQuery.trim() && (
                     <div className="flex items-center justify-between gap-2 border-b px-3 py-2">
-                      <p className="text-xs font-medium text-muted-foreground">
-                        {historyMode === "popular"
-                          ? "Mais adicionados"
-                          : "Adicionados recentemente"}
-                      </p>
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="h-7 px-2 text-xs"
-                        onClick={() =>
-                          setHistoryMode((current) =>
-                            current === "popular" ? "recent" : "popular",
-                          )
-                        }
+                        className={`h-7 flex-1 rounded-full px-2 text-xs ${
+                          historyMode === "popular"
+                            ? "bg-primary/10 font-semibold text-primary hover:bg-primary/15 hover:text-primary"
+                            : "text-muted-foreground"
+                        }`}
+                        onClick={() => setHistoryMode("popular")}
                       >
-                        {historyMode === "popular" ? "Ver recentes" : "Ver mais usados"}
+                        Mais adicionados
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className={`h-7 flex-1 rounded-full px-2 text-xs ${
+                          historyMode === "recent"
+                            ? "bg-primary/10 font-semibold text-primary hover:bg-primary/15 hover:text-primary"
+                            : "text-muted-foreground"
+                        }`}
+                        onClick={() => setHistoryMode("recent")}
+                      >
+                        Adicionados recentemente
                       </Button>
                     </div>
                   )}
@@ -824,10 +861,14 @@ export function AddFoodDialog({
                     ) : visibleFoods.length === 0 ? (
                       <div className="space-y-3 px-3 py-4">
                         {!foodQuery.trim() ? (
-                          <p className="text-center text-sm text-muted-foreground">Nenhum alimento usado ainda</p>
+                          <p className="text-center text-sm text-muted-foreground">
+                            Nenhum alimento usado ainda
+                          </p>
                         ) : showManualForm ? (
-                          <form onSubmit={submitManualFood} className="space-y-2">
-                            <p className="text-xs font-medium text-muted-foreground">Cadastrar alimento</p>
+                          <div className="space-y-2">
+                            <p className="text-xs font-medium text-muted-foreground">
+                              Cadastrar alimento
+                            </p>
                             <Input
                               placeholder="Nome do alimento *"
                               value={manualName}
@@ -876,18 +917,37 @@ export function AddFoodDialog({
                               />
                             </div>
                             <div className="flex gap-2">
-                              <Button type="submit" size="sm" className="flex-1">Salvar alimento</Button>
-                              <Button type="button" size="sm" variant="outline" onClick={resetManualForm}>Cancelar</Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                className="flex-1"
+                                onClick={() => void submitManualFood()}
+                              >
+                                Salvar alimento
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={resetManualForm}
+                              >
+                                Cancelar
+                              </Button>
                             </div>
-                          </form>
+                          </div>
                         ) : (
                           <div className="space-y-2 text-center">
-                            <p className="text-sm text-muted-foreground">Nao encontramos esse alimento.</p>
+                            <p className="text-sm text-muted-foreground">
+                              Nao encontramos esse alimento.
+                            </p>
                             <div className="flex flex-col gap-2">
                               <Button
                                 type="button"
                                 size="sm"
-                                onClick={() => { setManualName(foodQuery); setShowManualForm(true); }}
+                                onClick={() => {
+                                  setManualName(foodQuery);
+                                  setShowManualForm(true);
+                                }}
                               >
                                 Cadastrar alimento
                               </Button>
@@ -911,19 +971,23 @@ export function AddFoodDialog({
                               }}
                             >
                               <span className="min-w-0 flex-1">
-                                <span className="block truncate">{food.name}</span>
-                                {food.category && (
+                                <span className="block truncate">{formatFoodName(food.name)}</span>
+                                {(food.category || food.brand) && (
                                   <span className="block truncate text-xs font-normal text-muted-foreground">
-                                    {food.category}
-                                    {food.brand ? ` - ${food.brand}` : ""}
+                                    {[food.brand, food.category].filter(Boolean).join(" · ")}
                                   </span>
                                 )}
                                 <span className="mt-1 inline-flex rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
                                   {foodSourceLabel(food)}
                                 </span>
                               </span>
-                              <span className="shrink-0 text-xs text-muted-foreground">
-                                {Math.round(food.calories)} kcal
+                              <span className="shrink-0 text-right">
+                                <span className="block text-sm font-medium">
+                                  {Math.round(food.calories)} kcal
+                                </span>
+                                <span className="block text-[10px] text-muted-foreground">
+                                  por 100 g
+                                </span>
                               </span>
                             </button>
                           );

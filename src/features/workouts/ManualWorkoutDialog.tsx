@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Activity, Pencil, Plus } from "lucide-react";
+import { Activity, Camera, Pencil, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { parseOptionalNumber } from "@/lib/validation";
-import { type LocalWorkout } from "./workouts-api";
+import { uploadWorkoutPhoto, type LocalWorkout } from "./workouts-api";
 
 const ACTIVITIES = ["Corrida", "Caminhada", "Ciclismo", "Musculacao", "Trilha", "Natacao", "Outro"];
 
@@ -75,7 +75,10 @@ export function ManualWorkoutDialog({
   const defaultMinutes = Math.floor((durationSeconds % 3600) / 60);
   const [hours, setHours] = useState(defaultHours ? String(defaultHours) : "");
   const [minutes, setMinutes] = useState(defaultMinutes ? String(defaultMinutes) : "");
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(initialWorkout?.mediaUrl ?? null);
   const showDistance = !NO_DISTANCE_ACTIVITIES.includes(activityType);
+  const photoPreview = photoFile ? URL.createObjectURL(photoFile) : photoUrl;
 
   useEffect(() => {
     if (!open) return;
@@ -93,6 +96,8 @@ export function ManualWorkoutDialog({
     setCalories(initialWorkout?.calories ? String(initialWorkout.calories) : "");
     setHours(nextHours ? String(nextHours) : "");
     setMinutes(nextMinutes ? String(nextMinutes) : "");
+    setPhotoFile(null);
+    setPhotoUrl(initialWorkout?.mediaUrl ?? null);
   }, [defaultStartedAt, initialWorkout, open]);
 
   function setOpen(nextOpen: boolean) {
@@ -119,6 +124,11 @@ export function ManualWorkoutDialog({
       const parsedCalories = parseOptionalNumber(calories, "Calorias", { min: 0 });
       const duration = parsedHours * 3600 + parsedMinutes * 60;
 
+      let mediaUrl = photoUrl;
+      if (photoFile) {
+        mediaUrl = await uploadWorkoutPhoto(photoFile);
+      }
+
       await onSaved({
         activityType,
         name: name.trim() || null,
@@ -126,6 +136,7 @@ export function ManualWorkoutDialog({
         durationSeconds: duration || null,
         calories: parsedCalories,
         startedAt: startedAt ? new Date(startedAt).toISOString() : new Date().toISOString(),
+        mediaUrl,
       });
 
       toast.success(editing ? "Treino atualizado!" : "Treino registrado!");
@@ -158,7 +169,11 @@ export function ManualWorkoutDialog({
           </DialogTrigger>
         </span>
       )}
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent
+        className="sm:max-w-lg"
+        onClick={(event) => event.stopPropagation()}
+        onKeyDown={(event) => event.stopPropagation()}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Activity className="size-5" /> {editing ? "Editar treino" : "Registrar treino"}
@@ -255,6 +270,51 @@ export function ManualWorkoutDialog({
                 value={minutes}
                 onChange={(event) => setMinutes(event.target.value)}
               />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Foto</Label>
+            <div className="flex items-center gap-3">
+              {photoPreview ? (
+                <div className="relative">
+                  <img
+                    src={photoPreview}
+                    alt="Foto do treino"
+                    className="size-16 rounded-lg object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPhotoFile(null);
+                      setPhotoUrl(null);
+                    }}
+                    className="absolute -right-2 -top-2 grid size-5 place-items-center rounded-full bg-destructive text-destructive-foreground"
+                    aria-label="Remover foto"
+                  >
+                    <X className="size-3" />
+                  </button>
+                </div>
+              ) : (
+                <div className="grid size-16 place-items-center rounded-lg border border-dashed text-muted-foreground">
+                  <Camera className="size-5" />
+                </div>
+              )}
+              <label className="cursor-pointer">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) setPhotoFile(file);
+                    event.target.value = "";
+                  }}
+                />
+                <Button type="button" variant="outline" size="sm" asChild>
+                  <span>{photoPreview ? "Trocar foto" : "Adicionar foto"}</span>
+                </Button>
+              </label>
             </div>
           </div>
 

@@ -4,98 +4,98 @@ import { getUserId } from "@/lib/supabase-user";
 const CATEGORY_TRANSLATIONS: Record<string, string> = {
   // Bebidas
   "beverages and beverages preparations": "Bebidas",
-  "beverages": "Bebidas",
+  beverages: "Bebidas",
   "carbonated drinks": "Bebidas carbonatadas",
-  "sodas": "Refrigerantes",
+  sodas: "Refrigerantes",
   "soft drinks": "Refrigerantes",
-  "waters": "Águas",
+  waters: "Águas",
   "mineral waters": "Águas minerais",
   "juices and nectars": "Sucos e néctares",
   "fruit juices": "Sucos de fruta",
   "plant-based beverages": "Bebidas vegetais",
   "energy drinks": "Bebidas energéticas",
   "alcoholic beverages": "Bebidas alcoólicas",
-  "beers": "Cervejas",
-  "wines": "Vinhos",
+  beers: "Cervejas",
+  wines: "Vinhos",
   "coffee and tea": "Café e chá",
-  "coffees": "Cafés",
-  "teas": "Chás",
+  coffees: "Cafés",
+  teas: "Chás",
   "hot drinks": "Bebidas quentes",
   // Laticínios
   "milk and dairy products": "Laticínios",
   "dairy products": "Laticínios",
-  "milks": "Leites",
-  "yogurts": "Iogurtes",
-  "cheeses": "Queijos",
-  "butters": "Manteigas",
-  "creams": "Cremes",
+  milks: "Leites",
+  yogurts: "Iogurtes",
+  cheeses: "Queijos",
+  butters: "Manteigas",
+  creams: "Cremes",
   "ice creams and sorbets": "Sorvetes",
   "ice creams": "Sorvetes",
   // Carnes e proteínas
-  "meats": "Carnes",
-  "poultry": "Aves",
-  "beef": "Carne bovina",
-  "pork": "Carne suína",
+  meats: "Carnes",
+  poultry: "Aves",
+  beef: "Carne bovina",
+  pork: "Carne suína",
   "processed meats": "Carnes processadas",
-  "sausages": "Salsichas e linguiças",
+  sausages: "Salsichas e linguiças",
   "fish and seafood": "Peixes e frutos do mar",
-  "fish": "Peixes",
-  "seafood": "Frutos do mar",
-  "eggs": "Ovos",
+  fish: "Peixes",
+  seafood: "Frutos do mar",
+  eggs: "Ovos",
   // Cereais e pães
   "cereals and potatoes": "Cereais e tubérculos",
   "cereals and their products": "Cereais",
   "breakfast cereals": "Cereais matinais",
-  "breads": "Pães",
-  "pasta": "Massas",
-  "rice": "Arroz",
-  "flours": "Farinhas",
+  breads: "Pães",
+  pasta: "Massas",
+  rice: "Arroz",
+  flours: "Farinhas",
   // Frutas e vegetais
   "fruits and vegetables based foods": "Frutas e vegetais",
   "fruits and vegetables": "Frutas e vegetais",
-  "vegetables": "Vegetais",
-  "fruits": "Frutas",
-  "legumes": "Leguminosas",
-  "beans": "Feijões",
+  vegetables: "Vegetais",
+  fruits: "Frutas",
+  legumes: "Leguminosas",
+  beans: "Feijões",
   // Snacks e doces
-  "snacks": "Snacks",
+  snacks: "Snacks",
   "sweet snacks": "Snacks doces",
   "salty snacks": "Snacks salgados",
   "biscuits and cakes": "Biscoitos e bolos",
-  "biscuits": "Biscoitos",
-  "cookies": "Biscoitos",
-  "cakes": "Bolos",
-  "candies": "Balas e confeitos",
-  "chocolates": "Chocolates",
+  biscuits: "Biscoitos",
+  cookies: "Biscoitos",
+  cakes: "Bolos",
+  candies: "Balas e confeitos",
+  chocolates: "Chocolates",
   "chocolate products": "Chocolates",
-  "desserts": "Sobremesas",
-  "confectioneries": "Confeitaria",
+  desserts: "Sobremesas",
+  confectioneries: "Confeitaria",
   // Gorduras e condimentos
   "fats and oils": "Gorduras e óleos",
-  "oils": "Óleos",
+  oils: "Óleos",
   "plant oils": "Óleos vegetais",
-  "condiments": "Condimentos",
-  "sauces": "Molhos",
-  "vinegars": "Vinagres",
-  "seasonings": "Temperos",
-  "spices": "Especiarias",
-  "salt": "Sal",
-  "sugars": "Açúcares",
-  "sweeteners": "Adoçantes",
-  "honey": "Mel",
+  condiments: "Condimentos",
+  sauces: "Molhos",
+  vinegars: "Vinagres",
+  seasonings: "Temperos",
+  spices: "Especiarias",
+  salt: "Sal",
+  sugars: "Açúcares",
+  sweeteners: "Adoçantes",
+  honey: "Mel",
   // Refeições e outros
   "prepared meals": "Refeições prontas",
-  "soups": "Sopas",
-  "sandwiches": "Sanduíches",
+  soups: "Sopas",
+  sandwiches: "Sanduíches",
   "baby foods": "Alimentos infantis",
   "dietary supplements": "Suplementos",
   "plant-based foods and beverages": "Alimentos e bebidas vegetais",
   "plant-based foods": "Alimentos vegetais",
   "organic foods": "Alimentos orgânicos",
-  "groceries": "Mercearia",
+  groceries: "Mercearia",
   "nuts and seeds": "Nozes e sementes",
-  "nuts": "Nozes e castanhas",
-  "seeds": "Sementes",
+  nuts: "Nozes e castanhas",
+  seeds: "Sementes",
 };
 
 export function translateFoodCategory(category: string | null): string | null {
@@ -163,8 +163,25 @@ type OpenFoodFactsProduct = {
   code?: unknown;
   nutriments?: Record<string, unknown>;
   product_name?: unknown;
+  product_name_pt?: unknown;
   serving_size?: unknown;
 };
+
+// Prefere o nome em portugues quando o produto o declara
+function openFoodFactsName(product: OpenFoodFactsProduct) {
+  const namePt = String(product.product_name_pt ?? "").trim();
+  return namePt || String(product.product_name ?? "").trim();
+}
+
+// Converte o nome tecnico da TACO ("Feijão, carioca, cozido") para leitura
+// natural ("Feijão carioca cozido") — apenas para exibicao em listas.
+export function formatFoodName(name: string) {
+  return name
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join(" ");
+}
 
 export function normalizeFoodSearch(value: string | null | undefined) {
   return (value ?? "")
@@ -436,9 +453,11 @@ export async function searchOpenFoodFactsFoods(query: string) {
     action: "process",
     json: "1",
     page_size: "16",
-    fields: "code,product_name,brands,categories,serving_size,nutriments",
+    lc: "pt",
+    fields: "code,product_name,product_name_pt,brands,categories,serving_size,nutriments",
   });
-  const response = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?${params}`);
+  // subdominio br: produtos vendidos no Brasil, nomes em portugues
+  const response = await fetch(`https://br.openfoodfacts.org/cgi/search.pl?${params}`);
   if (!response.ok) throw new Error("Nao foi possivel buscar produtos industrializados");
 
   const payload = (await response.json()) as { products?: OpenFoodFactsProduct[] };
@@ -450,7 +469,7 @@ export async function searchOpenFoodFactsFoods(query: string) {
       const calories =
         numberFromOpenFoodFacts(nutriments["energy-kcal_100g"]) ||
         numberFromOpenFoodFacts(nutriments["energy-kcal_value"]);
-      const name = String(product.product_name ?? "").trim();
+      const name = openFoodFactsName(product);
       const code = String(product.code ?? "").trim();
       const servingGrams = parseServingGrams(product.serving_size);
 
@@ -488,7 +507,7 @@ export async function searchOpenFoodFactsFoods(query: string) {
 }
 
 export async function lookupOpenFoodFactsByBarcode(barcode: string): Promise<TacoFood | null> {
-  const fields = "code,product_name,brands,categories,serving_size,nutriments";
+  const fields = "code,product_name,product_name_pt,brands,categories,serving_size,nutriments";
   const response = await fetch(
     `https://world.openfoodfacts.net/api/v2/product/${barcode}.json?fields=${fields}`,
     { headers: { "User-Agent": "LajesFit/1.0 (https://lajesfit.vercel.app)" } },
@@ -503,7 +522,7 @@ export async function lookupOpenFoodFactsByBarcode(barcode: string): Promise<Tac
   const calories =
     numberFromOpenFoodFacts(nutriments["energy-kcal_100g"]) ||
     numberFromOpenFoodFacts(nutriments["energy-kcal_value"]);
-  const name = String(product.product_name ?? "").trim();
+  const name = openFoodFactsName(product);
   const code = String(product.code ?? barcode).trim();
 
   if (!name || calories <= 0) return null;
@@ -526,7 +545,13 @@ export async function lookupOpenFoodFactsByBarcode(barcode: string): Promise<Tac
   };
   const measures = defaultMeasuresForFood(food);
   if (servingGrams) {
-    measures.unshift({ id: "serving", label: "porcao", unit: "serving", grams: servingGrams, isDefault: true });
+    measures.unshift({
+      id: "serving",
+      label: "porcao",
+      unit: "serving",
+      grams: servingGrams,
+      isDefault: true,
+    });
   }
   return { ...food, measures: uniqueMeasures(measures) };
 }

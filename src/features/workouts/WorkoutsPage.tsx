@@ -1,13 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import { Activity, ChevronLeft, ChevronRight, Flame, Trash2 } from "lucide-react";
+import { Activity, Clock, Flame, MapPin, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar as CalendarIcon } from "lucide-react";
-import { addDays, formatSelectedDate, isSameLocalDate, startOfLocalDay } from "@/lib/date";
 import { consumePendingNewAction, NEW_ACTION_EVENT } from "@/components/new-action-menu";
 import { useFitness } from "@/features/fitness/useFitness";
 import { useLocalAuth } from "@/features/auth/auth";
@@ -15,23 +11,33 @@ import { fetchWorkoutPost, type FeedPost } from "@/features/feed/feed-api";
 import { PostCard } from "@/features/feed/PostCard";
 import { formatDistance, formatDuration, timeAgo } from "@/features/feed/format";
 import { ManualWorkoutDialog } from "./ManualWorkoutDialog";
-import { WeeklyWorkoutChart } from "./WeeklyWorkoutChart";
 import { addWorkout, removeWorkout, updateWorkout, type LocalWorkout } from "./workouts-api";
 import { getStravaConnection, syncStravaActivities } from "./strava-api";
 import { CHANGE_EVENT } from "@/features/fitness/change-event";
 
-function buildStartedAtForSelectedDay(day: Date) {
-  const now = new Date();
-  const startedAt = new Date(day);
-  startedAt.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
-  return startedAt.toISOString();
+function MonthStat({
+  icon: Icon,
+  value,
+  label,
+}: {
+  icon: typeof Activity;
+  value: string;
+  label: string;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-1 px-1">
+      <span className="grid size-7 place-items-center rounded-full bg-primary/10 text-primary">
+        <Icon className="size-3.5" />
+      </span>
+      <p className="font-display text-xl leading-none">{value}</p>
+      <p className="text-[11px] leading-none text-muted-foreground">{label}</p>
+    </div>
+  );
 }
 
 export function WorkoutsPage() {
   const { workouts, loading } = useFitness();
   const { user } = useLocalAuth();
-  const [selectedDate, setSelectedDate] = useState(() => startOfLocalDay(new Date()));
-  const swipeStartXRef = useRef<number | null>(null);
   const [addWorkoutOpen, setAddWorkoutOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedPostOpen, setSelectedPostOpen] = useState(false);
@@ -59,14 +65,25 @@ export function WorkoutsPage() {
     return () => window.removeEventListener(NEW_ACTION_EVENT, handleNewAction);
   }, []);
 
-  const dayWorkouts = useMemo(
-    () => workouts.filter((workout) => isSameLocalDate(workout.startedAt, selectedDate)),
-    [selectedDate, workouts],
+  // historico completo, da atividade mais nova para a mais antiga
+  const history = useMemo(
+    () =>
+      [...workouts].sort(
+        (a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime(),
+      ),
+    [workouts],
   );
 
-  const workoutTotals = useMemo(
-    () =>
-      dayWorkouts.reduce(
+  const monthTotals = useMemo(() => {
+    const now = new Date();
+    return history
+      .filter((workout) => {
+        const startedAt = new Date(workout.startedAt);
+        return (
+          startedAt.getMonth() === now.getMonth() && startedAt.getFullYear() === now.getFullYear()
+        );
+      })
+      .reduce(
         (acc, workout) => ({
           distance: acc.distance + (workout.distanceMeters ?? 0),
           duration: acc.duration + (workout.durationSeconds ?? 0),
@@ -74,9 +91,8 @@ export function WorkoutsPage() {
           count: acc.count + 1,
         }),
         { distance: 0, duration: 0, calories: 0, count: 0 },
-      ),
-    [dayWorkouts],
-  );
+      );
+  }, [history]);
 
   async function handleCreateWorkout(workout: Omit<LocalWorkout, "id">) {
     await addWorkout(workout);
@@ -136,174 +152,133 @@ export function WorkoutsPage() {
   }
 
   return (
-    <div
-      className="max-w-3xl mx-auto space-y-2"
-      onTouchStart={(e) => {
-        swipeStartXRef.current = e.touches[0]?.clientX ?? null;
-      }}
-      onTouchEnd={(e) => {
-        const start = swipeStartXRef.current;
-        const end = e.changedTouches[0]?.clientX ?? null;
-        swipeStartXRef.current = null;
-        if (start === null || end === null) return;
-        const delta = end - start;
-        if (Math.abs(delta) < 60) return;
-        setSelectedDate((d) => addDays(d, delta < 0 ? 1 : -1));
-      }}
-    >
-      <div className="flex items-center justify-center gap-1">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="size-7"
-          onClick={() => setSelectedDate((date) => addDays(date, -1))}
-          aria-label="Ver dia anterior"
-        >
-          <ChevronLeft className="size-4" />
-        </Button>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              className="h-7 rounded-full px-3 text-xs capitalize"
-            >
-              <CalendarIcon className="mr-1.5 size-3" />
-              {formatSelectedDate(selectedDate)}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="center">
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={(date) => {
-                if (date) setSelectedDate(startOfLocalDay(date));
-              }}
-            />
-            <div className="border-t">
-              <WeeklyWorkoutChart workouts={workouts} />
-            </div>
-          </PopoverContent>
-        </Popover>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="size-7"
-          onClick={() => setSelectedDate((date) => addDays(date, 1))}
-          aria-label="Ver dia posterior"
-        >
-          <ChevronRight className="size-4" />
-        </Button>
+    <div className="max-w-3xl mx-auto space-y-2">
+      <div className="flex items-center justify-between">
+        <h1 className="font-display text-2xl">MEUS TREINOS</h1>
+        <ManualWorkoutDialog
+          onSaved={handleCreateWorkout}
+          open={addWorkoutOpen}
+          onOpenChange={setAddWorkoutOpen}
+          defaultStartedAt={new Date().toISOString()}
+        />
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
-        <div className="rounded-lg border bg-card p-2 text-center shadow-card">
-          <p className="text-[11px] text-muted-foreground">Treinos</p>
-          <p className="font-display text-lg">{workoutTotals.count}</p>
-        </div>
-        <div className="rounded-lg border bg-card p-2 text-center shadow-card">
-          <p className="text-[11px] text-muted-foreground">Tempo</p>
-          <p className="font-display text-lg">{formatDuration(workoutTotals.duration)}</p>
-        </div>
-        <div className="rounded-lg border bg-card p-2 text-center shadow-card">
-          <p className="text-[11px] text-muted-foreground">Distancia</p>
-          <p className="font-display text-lg">{formatDistance(workoutTotals.distance)}</p>
-        </div>
-      </div>
-
-      <div className="bg-card rounded-lg border shadow-card">
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="font-display text-2xl">MEUS TREINOS</h2>
-          <ManualWorkoutDialog
-            onSaved={handleCreateWorkout}
-            open={addWorkoutOpen}
-            onOpenChange={setAddWorkoutOpen}
-            defaultStartedAt={buildStartedAtForSelectedDay(selectedDate)}
+      <section className="rounded-lg border bg-card p-4 shadow-card">
+        <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+          Este mês
+        </p>
+        <div className="mt-3 grid grid-cols-4 divide-x divide-border">
+          <MonthStat icon={Activity} value={String(monthTotals.count)} label="Treinos" />
+          <MonthStat icon={Clock} value={formatDuration(monthTotals.duration)} label="Tempo" />
+          <MonthStat icon={MapPin} value={formatDistance(monthTotals.distance)} label="Distância" />
+          <MonthStat
+            icon={Flame}
+            value={String(Math.round(monthTotals.calories))}
+            label="Calorias"
           />
         </div>
-        <ul className="divide-y">
-          {loading && (
-            <li className="p-8 text-center text-muted-foreground text-sm">Carregando treinos...</li>
-          )}
-          {!loading && dayWorkouts.length === 0 && (
-            <li className="p-8 text-center text-muted-foreground text-sm">
-              Nenhum treino registrado neste dia
-            </li>
-          )}
-          {dayWorkouts.map((workout) => {
-            const hasCalories = typeof workout.calories === "number" && workout.calories > 0;
-            const durationLabel = formatDuration(workout.durationSeconds);
-            const distanceLabel = formatDistance(workout.distanceMeters);
-            return (
-              <li
-                key={workout.id}
-                className="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-muted/40 focus-within:bg-muted/40 focus:outline-none focus:ring-2 focus:ring-primary"
-                role="button"
-                tabIndex={0}
-                onClick={() => void openWorkoutPost(workout)}
-                onKeyDown={(event) => {
-                  if (event.key !== "Enter" && event.key !== " ") return;
-                  event.preventDefault();
-                  void openWorkoutPost(workout);
+      </section>
+
+      {loading && (
+        <div className="rounded-lg border bg-card p-8 text-center text-sm text-muted-foreground shadow-card">
+          Carregando treinos...
+        </div>
+      )}
+      {!loading && history.length === 0 && (
+        <div className="rounded-lg border bg-card p-8 text-center text-sm text-muted-foreground shadow-card">
+          Nenhum treino registrado ainda
+        </div>
+      )}
+
+      {history.map((workout) => {
+        const hasCalories = typeof workout.calories === "number" && workout.calories > 0;
+        const durationLabel = formatDuration(workout.durationSeconds);
+        const distanceLabel = formatDistance(workout.distanceMeters);
+        const startedAt = new Date(workout.startedAt);
+        const dateLabel = startedAt.toLocaleDateString("pt-BR", {
+          day: "2-digit",
+          month: "2-digit",
+        });
+        const timeLabel = startedAt.toLocaleTimeString("pt-BR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        return (
+          <article
+            key={workout.id}
+            className="cursor-pointer rounded-lg border bg-card p-4 shadow-card hover:bg-muted/40 focus:outline-none focus:ring-2 focus:ring-primary"
+            role="button"
+            tabIndex={0}
+            onClick={() => void openWorkoutPost(workout)}
+            onKeyDown={(event) => {
+              if (event.key !== "Enter" && event.key !== " ") return;
+              event.preventDefault();
+              void openWorkoutPost(workout);
+            }}
+          >
+            <div className="flex items-center gap-3">
+              {workout.mediaUrl ? (
+                <img src={workout.mediaUrl} alt="" className="size-11 rounded-lg object-cover" />
+              ) : (
+                <div className="grid size-11 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+                  <Activity className="size-5" />
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">
+                  {workout.name ?? workout.activityType}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {workout.activityType} · {dateLabel} às {timeLabel} · {timeAgo(workout.startedAt)}
+                </p>
+              </div>
+              <ManualWorkoutDialog
+                initialWorkout={workout}
+                onSaved={(updatedWorkout) => {
+                  void updateWorkout(workout.id, updatedWorkout);
                 }}
+                triggerWrapperClassName="shrink-0"
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  void handleRemoveWorkout(workout.id);
+                }}
+                onKeyDown={(event) => event.stopPropagation()}
+                disabled={deletingId === workout.id}
+                aria-label="Remover treino"
               >
-                {workout.mediaUrl ? (
-                  <img src={workout.mediaUrl} alt="" className="size-10 rounded-lg object-cover" />
-                ) : (
-                  <div className="size-10 rounded-lg bg-primary/10 text-primary grid place-items-center">
-                    <Activity className="size-5" />
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate">
-                    {workout.name ?? workout.activityType}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {workout.activityType} - {timeAgo(workout.startedAt)}
-                  </p>
-                </div>
-                <div className="text-right shrink-0">
-                  {distanceLabel !== "-" && <p className="font-display text-lg">{distanceLabel}</p>}
-                  <div className="mt-0.5 flex items-center justify-end gap-1 text-xs text-muted-foreground">
-                    {durationLabel !== "-" && (
-                      <>
-                        <span>{durationLabel}</span>
-                        <span>-</span>
-                      </>
-                    )}
-                    <Flame className="size-3.5" />
-                    <span>
-                      {hasCalories ? `${Math.round(workout.calories!)} kcal` : "nao informado"}
-                    </span>
-                  </div>
-                </div>
-                <ManualWorkoutDialog
-                  initialWorkout={workout}
-                  onSaved={(updatedWorkout) => {
-                    void updateWorkout(workout.id, updatedWorkout);
-                  }}
-                  triggerWrapperClassName="shrink-0"
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    void handleRemoveWorkout(workout.id);
-                  }}
-                  onKeyDown={(event) => event.stopPropagation()}
-                  disabled={deletingId === workout.id}
-                  aria-label="Remover treino"
-                >
-                  <Trash2 className="size-4" />
-                </Button>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
+                <Trash2 className="size-4" />
+              </Button>
+            </div>
+
+            <div className="mt-3 grid grid-cols-3 gap-2 border-t pt-3 text-center">
+              <div>
+                <p className="flex items-center justify-center gap-1 text-[11px] text-muted-foreground">
+                  <MapPin className="size-3" /> Distância
+                </p>
+                <p className="font-display text-lg">{distanceLabel}</p>
+              </div>
+              <div>
+                <p className="flex items-center justify-center gap-1 text-[11px] text-muted-foreground">
+                  <Clock className="size-3" /> Tempo
+                </p>
+                <p className="font-display text-lg">{durationLabel}</p>
+              </div>
+              <div>
+                <p className="flex items-center justify-center gap-1 text-[11px] text-muted-foreground">
+                  <Flame className="size-3" /> Calorias
+                </p>
+                <p className="font-display text-lg">
+                  {hasCalories ? Math.round(workout.calories!) : "-"}
+                </p>
+              </div>
+            </div>
+          </article>
+        );
+      })}
 
       <Dialog open={selectedPostOpen} onOpenChange={setSelectedPostOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto border-0 bg-transparent p-0 shadow-none sm:max-w-md">

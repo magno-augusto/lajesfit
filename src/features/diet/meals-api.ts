@@ -249,6 +249,15 @@ export async function addMealWithItems({
     throw new Error(error.message);
   }
 
+  const savedMeals = (data ?? []).map(mapMeal);
+  if (savedMeals.length !== items.length) {
+    console.error("Registro de dieta incompleto:", {
+      expected: items.length,
+      received: savedMeals.length,
+    });
+    throw new Error("Nao foi possivel confirmar os itens da refeicao na Dieta");
+  }
+
   const { error: postError } = await supabase.from("posts").insert({
     user_id: userId,
     content: buildMealPostContent(meal, items),
@@ -260,7 +269,7 @@ export async function addMealWithItems({
   }
 
   notifyChange();
-  return (data ?? []).map(mapMeal);
+  return savedMeals;
 }
 
 export async function updateDietMealPhoto(dietMealId: string, photoFile: MealPhotoInput | null) {
@@ -290,7 +299,11 @@ export async function removeMeal(id: string) {
   notifyChange();
 }
 
-export async function updateMealItems(dietMealId: string, items: MealFoodInput[]) {
+export async function updateMealItems(
+  dietMealId: string,
+  items: MealFoodInput[],
+  nextMeal?: LocalMeal["meal"],
+) {
   if (items.length === 0) throw new Error("Adicione pelo menos um alimento");
 
   const userId = await getUserId();
@@ -304,6 +317,19 @@ export async function updateMealItems(dietMealId: string, items: MealFoodInput[]
   if (mealError) {
     console.error("Erro ao buscar refeicao:", mealError);
     throw new Error(mealError.message);
+  }
+
+  const meal = nextMeal ?? (mealRow.meal as LocalMeal["meal"]);
+  if (meal !== mealRow.meal) {
+    const { error: mealUpdateError } = await supabase
+      .from("diet_meals")
+      .update({ meal })
+      .eq("id", dietMealId)
+      .eq("user_id", userId);
+    if (mealUpdateError) {
+      console.error("Erro ao mover refeicao de categoria:", mealUpdateError);
+      throw new Error(mealUpdateError.message);
+    }
   }
 
   const { error: deleteError } = await supabase
@@ -325,7 +351,7 @@ export async function updateMealItems(dietMealId: string, items: MealFoodInput[]
         diet_meal_id: dietMealId,
         food_id: item.foodId ?? null,
         food_name: item.name,
-        meal: mealRow.meal,
+        meal,
         grams: item.grams,
         kcal: item.calories,
         protein_g: item.protein,
@@ -337,6 +363,64 @@ export async function updateMealItems(dietMealId: string, items: MealFoodInput[]
     )
     .select(
       "id, diet_meal_id, food_id, food_name, meal, grams, kcal, protein_g, carbs_g, fat_g, photo_url, consumed_at, diet_meals(photo_url)",
+    );
+
+  if (error) {
+    console.error("Erro ao salvar itens da refeicao:", error);
+    throw new Error(error.message);
+  }
+  notifyChange();
+  return (data ?? []).map(mapMeal);
+}
+
+// Edicao de registros antigos, criados antes de existir diet_meals (sem
+// diet_meal_id): substitui as entradas avulsas mantendo dia/horario originais.
+export async function replaceLegacyMealEntries({
+  entryIds,
+  meal,
+  consumedAt,
+  items,
+}: {
+  entryIds: string[];
+  meal: LocalMeal["meal"];
+  consumedAt: string;
+  items: MealFoodInput[];
+}) {
+  if (items.length === 0) throw new Error("Adicione pelo menos um alimento");
+  if (entryIds.length === 0) throw new Error("Nenhum registro para editar");
+
+  const userId = await getUserId();
+  const { error: deleteError } = await supabase
+    .from("diet_entries")
+    .delete()
+    .in("id", entryIds)
+    .eq("user_id", userId);
+
+  if (deleteError) {
+    console.error("Erro ao substituir itens da refeicao:", deleteError);
+    throw new Error(deleteError.message);
+  }
+
+  const { data, error } = await supabase
+    .from("diet_entries")
+    .insert(
+      items.map((item) => ({
+        user_id: userId,
+        diet_meal_id: null,
+        food_id: item.foodId ?? null,
+        food_name: item.name,
+        meal,
+        grams: item.grams,
+        kcal: item.calories,
+        protein_g: item.protein,
+        carbs_g: item.carbs,
+        fat_g: item.fat,
+        photo_url: null,
+        consumed_at: consumedAt,
+      })),
+    )
+    .select(
+      "id, diet_meal_id, food_id, food_name, meal, grams, kcal, protein_g, carbs_g, fat_g, photo_url, consumed_at",
     );
 
   if (error) {

@@ -3,13 +3,7 @@ import { Bell, Heart, MessageCircle } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { timeAgo } from "@/features/feed/format";
 import {
@@ -68,7 +62,7 @@ export function NotificationsSheet({
           )}
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-full sm:max-w-sm">
+      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-sm">
         <SheetHeader>
           <SheetTitle>Notificacoes</SheetTitle>
         </SheetHeader>
@@ -96,9 +90,7 @@ export function NotificationsSheet({
                 </Avatar>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm">{notificationText(notification)}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {timeAgo(notification.createdAt)}
-                  </p>
+                  <p className="text-xs text-muted-foreground">{timeAgo(notification.createdAt)}</p>
                 </div>
                 {notification.type === "like" ? (
                   <Heart className="size-4 text-primary" />

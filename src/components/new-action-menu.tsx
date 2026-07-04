@@ -41,12 +41,12 @@ export function NewActionMenu({ compact = false }: { compact?: boolean }) {
           className={
             compact
               ? "size-14 rounded-full border-4 border-background shadow-[0_10px_28px_rgba(0,0,0,0.22)]"
-              : "h-9 rounded-full bg-gradient-primary px-4 font-semibold text-primary-foreground shadow-card transition-transform hover:scale-105 active:scale-95"
+              : "h-9 rounded-full bg-gradient-primary px-2.5 font-semibold text-primary-foreground shadow-card transition-transform hover:scale-105 active:scale-95 sm:px-4"
           }
           aria-label="Criar novo registro"
         >
           <Plus className={compact ? "size-7" : "size-4"} />
-          {!compact && "Novo"}
+          {!compact && <span className="hidden sm:inline">Novo</span>}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="center" className="min-w-52">

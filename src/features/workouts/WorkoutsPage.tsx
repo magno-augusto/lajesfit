@@ -281,7 +281,7 @@ export function WorkoutsPage() {
       })}
 
       <Dialog open={selectedPostOpen} onOpenChange={setSelectedPostOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto border-0 bg-transparent p-0 shadow-none sm:max-w-md">
+        <DialogContent className="max-h-[85dvh] overflow-y-auto border-0 bg-transparent p-0 shadow-none sm:max-w-md">
           {selectedPostLoading ? (
             <div className="rounded-lg border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
               Abrindo treino...

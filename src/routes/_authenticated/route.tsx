@@ -34,9 +34,9 @@ function AppHeader({ userId }: { userId: string }) {
   return (
     <header className="fixed inset-x-0 top-0 z-30 border-b bg-background">
       <div className="mx-auto flex h-14 max-w-3xl items-center gap-2 px-3">
-        <Link to="/feed" className="flex min-w-0 flex-1 items-center gap-2">
-          <img src={logoUrl} alt="LajesFit" className="size-9 shrink-0 rounded-md" />
-          <span className="truncate font-display text-2xl leading-none text-secondary">
+        <Link to="/feed" className="flex min-w-0 flex-1 items-center gap-1.5 sm:gap-2">
+          <img src={logoUrl} alt="LajesFit" className="size-8 shrink-0 rounded-md sm:size-9" />
+          <span className="whitespace-nowrap font-display text-xl leading-none text-secondary sm:text-2xl">
             lajesfit
           </span>
         </Link>
@@ -133,7 +133,7 @@ function AppShell() {
     <div className="min-h-screen bg-muted/40">
       {user && <AppHeader userId={user.id} />}
 
-      <main className="mx-auto max-w-3xl px-4 pb-24 pt-17">
+      <main className="mx-auto max-w-3xl px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-17">
         {showStravaConnect && (
           <div className="mb-2 flex justify-center">
             <Button
@@ -151,7 +151,7 @@ function AppShell() {
         <Outlet />
       </main>
 
-      <nav className="fixed bottom-0 inset-x-0 z-30 border-t bg-background">
+      <nav className="fixed bottom-0 inset-x-0 z-30 border-t bg-background pb-[env(safe-area-inset-bottom)]">
         <div className="mx-auto grid max-w-3xl grid-cols-5 items-end">
           {[navItems[0], navItems[1]].map((item) => {
             const active =

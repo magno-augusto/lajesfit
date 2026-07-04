@@ -725,7 +725,7 @@ export function AddFoodDialog({
           </DialogTrigger>
         )}
         <DialogContent
-          className="inset-0 h-full max-h-full w-full max-w-full translate-x-0 translate-y-0 overflow-x-hidden overflow-y-auto p-4 sm:rounded-none sm:p-6"
+          className="inset-0 h-full max-h-full w-full max-w-full translate-x-0 translate-y-0 overflow-x-hidden overflow-y-auto p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:rounded-none sm:p-6"
           onOpenAutoFocus={(event) => {
             // O autofoco na busca abria a lista de alimentos e o teclado do
             // celular sozinhos; a lista deve aparecer so ao tocar no campo.
@@ -800,6 +800,15 @@ export function AddFoodDialog({
                   value={foodQuery}
                   onFocus={openFoodSearch}
                   onClick={openFoodSearch}
+                  onBlur={() => {
+                    // espera o clique num item da lista concluir antes de
+                    // fechar (blur dispara antes do click no mobile)
+                    window.setTimeout(() => {
+                      const section = foodSearchSectionRef.current;
+                      if (section && section.contains(document.activeElement)) return;
+                      setFoodListOpen(false);
+                    }, 250);
+                  }}
                   onChange={(event) => {
                     setFoodQuery(event.target.value);
                     setFoodListOpen(true);
@@ -849,7 +858,7 @@ export function AddFoodDialog({
                       </Button>
                     </div>
                   )}
-                  <div className="max-h-[60vh] overflow-y-auto">
+                  <div className="max-h-[60dvh] overflow-y-auto">
                     {foodsLoading ? (
                       <p className="px-3 py-4 text-center text-sm text-muted-foreground">
                         Carregando base de alimentos...

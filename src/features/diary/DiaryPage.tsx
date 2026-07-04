@@ -404,7 +404,7 @@ export function DiaryPage() {
               <img
                 src={lightboxUrl}
                 alt=""
-                className="w-full rounded-lg object-contain max-h-[80vh]"
+                className="w-full rounded-lg object-contain max-h-[80dvh]"
               />
             )}
           </DialogContent>

@@ -1,0 +1,18 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F08A42"/>
+      <stop offset="100%" stop-color="#C6511C"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <!-- monogram LF -->
+  <g fill="#FFF8EC">
+    <!-- L -->
+    <path d="M 150 150 L 150 340 L 150 372 L 262 372 L 262 340 L 182 340 L 182 150 Z"/>
+    <!-- F -->
+    <path d="M 288 150 L 288 372 L 320 372 L 320 278 L 384 278 L 384 246 L 320 246 L 320 182 L 392 182 L 392 150 Z"/>
+  </g>
+  <!-- flame accent -->
+  <path d="M 373 356 C 373 332 357 318 357 300 C 357 316 345 322 345 338 C 345 352 355 362 371 362 C 387 362 399 350 399 334 C 399 316 387 308 385 294 C 387 316 373 328 373 356 Z" fill="#FFF8EC" opacity="0.92"/>
+</svg>

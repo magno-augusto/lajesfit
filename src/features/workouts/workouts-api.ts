@@ -11,6 +11,8 @@ export type LocalWorkout = {
   calories: number | null;
   startedAt: string;
   mediaUrl?: string | null;
+  // atribuicao exigida pelas diretrizes da API do Strava (link View on Strava)
+  stravaActivityId?: number | null;
 };
 
 function mapWorkout(row: {
@@ -22,6 +24,7 @@ function mapWorkout(row: {
   calories: number | null;
   performed_at: string;
   media_url?: string | null;
+  strava_activity_id?: number | null;
 }): LocalWorkout {
   return {
     id: row.id,
@@ -32,6 +35,7 @@ function mapWorkout(row: {
     calories: row.calories,
     startedAt: row.performed_at,
     mediaUrl: row.media_url ?? null,
+    stravaActivityId: row.strava_activity_id ?? null,
   };
 }
 
@@ -54,7 +58,7 @@ export async function getWorkouts() {
   const { data, error } = await supabase
     .from("workouts")
     .select(
-      "id, activity_type, title, distance_meters, duration_seconds, calories, performed_at, media_url",
+      "id, activity_type, title, distance_meters, duration_seconds, calories, performed_at, media_url, strava_activity_id",
     )
     .eq("user_id", userId)
     .order("performed_at", { ascending: false });

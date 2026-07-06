@@ -344,6 +344,17 @@ export function PostCard({
               </p>
             </div>
           </div>
+          {post.workout.strava_activity_id && (
+            <a
+              href={`https://www.strava.com/activities/${post.workout.strava_activity_id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(event) => event.stopPropagation()}
+              className="mt-3 inline-block text-xs font-bold underline"
+            >
+              View on Strava
+            </a>
+          )}
         </div>
       )}
 

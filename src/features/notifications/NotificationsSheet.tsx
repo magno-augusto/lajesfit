@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, Heart, MessageCircle } from "lucide-react";
+import { Bell, Heart, MessageCircle, Trophy } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -13,9 +13,25 @@ import {
 } from "./notifications-api";
 
 function notificationText(notification: AppNotification) {
-  return notification.type === "like"
-    ? `${notification.actor.displayName} curtiu sua publicacao`
-    : `${notification.actor.displayName} comentou na sua publicacao`;
+  switch (notification.type) {
+    case "like":
+      return `${notification.actor.displayName} curtiu sua publicacao`;
+    case "comment":
+      return `${notification.actor.displayName} comentou na sua publicacao`;
+    case "challenge_join":
+      return `${notification.actor.displayName} entrou no rank do desafio`;
+  }
+}
+
+function notificationIcon(type: AppNotification["type"]) {
+  switch (type) {
+    case "like":
+      return <Heart className="size-4 text-primary" />;
+    case "comment":
+      return <MessageCircle className="size-4 text-primary" />;
+    case "challenge_join":
+      return <Trophy className="size-4 text-primary" />;
+  }
 }
 
 export function NotificationsSheet({
@@ -74,31 +90,47 @@ export function NotificationsSheet({
               Nenhuma notificacao ainda
             </p>
           ) : (
-            notifications.map((notification) => (
-              <Link
-                key={notification.id}
-                to="/profile/$username"
-                params={{ username: notification.actor.username }}
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-3 rounded-lg p-2 hover:bg-muted/60"
-              >
-                <Avatar className="size-9">
-                  <AvatarImage src={notification.actor.avatarUrl ?? undefined} />
-                  <AvatarFallback>
-                    {notification.actor.displayName.slice(0, 1).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm">{notificationText(notification)}</p>
-                  <p className="text-xs text-muted-foreground">{timeAgo(notification.createdAt)}</p>
-                </div>
-                {notification.type === "like" ? (
-                  <Heart className="size-4 text-primary" />
-                ) : (
-                  <MessageCircle className="size-4 text-primary" />
-                )}
-              </Link>
-            ))
+            notifications.map((notification) => {
+              const inner = (
+                <>
+                  <Avatar className="size-9">
+                    <AvatarImage src={notification.actor.avatarUrl ?? undefined} />
+                    <AvatarFallback>
+                      {notification.actor.displayName.slice(0, 1).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm">{notificationText(notification)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {timeAgo(notification.createdAt)}
+                    </p>
+                  </div>
+                  {notificationIcon(notification.type)}
+                </>
+              );
+              const rowClass = "flex items-center gap-3 rounded-lg p-2 hover:bg-muted/60";
+              // entrada no desafio leva ao ranking; as demais, ao perfil de quem agiu
+              return notification.type === "challenge_join" ? (
+                <Link
+                  key={notification.id}
+                  to="/desafio"
+                  onClick={() => setOpen(false)}
+                  className={rowClass}
+                >
+                  {inner}
+                </Link>
+              ) : (
+                <Link
+                  key={notification.id}
+                  to="/profile/$username"
+                  params={{ username: notification.actor.username }}
+                  onClick={() => setOpen(false)}
+                  className={rowClass}
+                >
+                  {inner}
+                </Link>
+              );
+            })
           )}
         </div>
       </SheetContent>

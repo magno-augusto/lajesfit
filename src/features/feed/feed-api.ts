@@ -19,6 +19,8 @@ export type FeedPost = {
     duration_seconds: number | null;
     calories: number | null;
     name: string | null;
+    // atribuicao exigida pelas diretrizes da API do Strava (link View on Strava)
+    strava_activity_id: number | null;
   } | null;
   likes_count: number;
   comments_count: number;
@@ -66,7 +68,9 @@ async function buildFeedPosts(posts: PostRow[], currentUserId: string): Promise<
     workoutIds.length > 0
       ? supabase
           .from("workouts")
-          .select("id, activity_type, distance_meters, duration_seconds, calories, title")
+          .select(
+            "id, activity_type, distance_meters, duration_seconds, calories, title, strava_activity_id",
+          )
           .in("id", workoutIds)
       : Promise.resolve({ data: [] as never[] }),
   ]);
@@ -105,6 +109,7 @@ async function buildFeedPosts(posts: PostRow[], currentUserId: string): Promise<
             duration_seconds: workout.duration_seconds,
             calories: workout.calories,
             name: workout.title,
+            strava_activity_id: workout.strava_activity_id,
           }
         : null,
       likes_count: likesMap.get(p.id) ?? 0,

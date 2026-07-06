@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type AppNotification = {
   id: string;
-  type: "like" | "comment";
+  type: "like" | "comment" | "challenge_join";
   postId: string | null;
   commentId: string | null;
   readAt: string | null;
@@ -16,7 +16,7 @@ export type AppNotification = {
 
 type NotificationRow = {
   id: string;
-  type: "like" | "comment";
+  type: "like" | "comment" | "challenge_join";
   actor_id: string;
   post_id: string | null;
   comment_id: string | null;

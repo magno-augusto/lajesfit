@@ -831,7 +831,7 @@ export type Database = {
     };
     Enums: {
       challenge_status: "active" | "closed";
-      notification_type: "like" | "comment";
+      notification_type: "like" | "comment" | "challenge_join";
       meal_type: "breakfast" | "lunch" | "snack" | "dinner";
       post_type: "general" | "workout" | "diet";
       workout_source: "manual" | "strava";

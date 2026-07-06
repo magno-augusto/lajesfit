@@ -1,9 +1,9 @@
 import { Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { Activity, Apple, Home, LogIn, Trophy, Zap } from "lucide-react";
+import { Activity, Apple, Home, LogIn, Trophy } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { InstallAppButton } from "@/components/install-app-button";
+import { ConnectWithStravaButton } from "@/features/workouts/ConnectWithStravaButton";
 import { NewActionMenu } from "@/components/new-action-menu";
 import { LEGACY_EMAIL_DOMAIN, useLocalAuth } from "@/features/auth/auth";
 import { useFitness } from "@/features/fitness/useFitness";
@@ -133,16 +133,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
       <main className="mx-auto max-w-3xl px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-17">
         {showStravaConnect && (
           <div className="mb-2 flex justify-center">
-            <Button
-              type="button"
-              size="sm"
-              className="h-8 w-full rounded-full bg-[#FC4C02] text-white hover:bg-[#e34402]"
-              onClick={connectStrava}
-              disabled={stravaBusy}
-            >
-              <Zap className="mr-1.5 size-3.5" />
-              {stravaBusy ? "Abrindo..." : "Conectar Strava"}
-            </Button>
+            <ConnectWithStravaButton onClick={connectStrava} disabled={stravaBusy} />
           </div>
         )}
         {children ?? <Outlet />}

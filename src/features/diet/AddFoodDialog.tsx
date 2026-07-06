@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Check, ImageIcon, ListPlus, Pencil, Plus, ScanBarcode, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,9 @@ type MealDraft = {
   foodQuery: string;
   mealItems: MealFoodInput[];
   photoDataUrl: string | null;
+  // seletor de foto aberto: o Android pode matar o app enquanto a camera esta
+  // em uso, e este flag garante que a tela de refeicao reabra apos o reload
+  pendingPhoto?: boolean;
 };
 
 function scale(value: number, grams: number) {
@@ -255,9 +258,13 @@ export function AddFoodDialog({
       if (typeof draft.foodQuery === "string") setFoodQuery(draft.foodQuery);
       if (Array.isArray(draft.mealItems)) setMealItems(draft.mealItems);
       if (typeof draft.photoDataUrl === "string") setPhotoDataUrl(draft.photoDataUrl);
-      if ((draft.mealItems?.length ?? 0) > 0 || draft.photoDataUrl) {
+      if ((draft.mealItems?.length ?? 0) > 0 || draft.photoDataUrl || draft.pendingPhoto) {
         protectDraftRef.current = true;
         setOpen(true);
+      }
+      if (draft.pendingPhoto && !draft.photoDataUrl) {
+        // o sistema encerrou o app com a camera aberta: a foto se perdeu
+        toast.error("Nao foi possivel manter a foto. Adicione a foto novamente.");
       }
     } catch {
       sessionStorage.removeItem(MEAL_DRAFT_KEY);
@@ -266,16 +273,8 @@ export function AddFoodDialog({
     }
   }, []);
 
-  useEffect(() => {
-    if (!draftReady || disableDraft) return;
-
-    const hasPersistentDraft = mealItems.length > 0 || Boolean(photoDataUrl);
-    if (!hasPersistentDraft) {
-      sessionStorage.removeItem(MEAL_DRAFT_KEY);
-      return;
-    }
-
-    const draft: MealDraft = {
+  const buildDraft = useCallback(
+    (pendingPhoto: boolean): MealDraft => ({
       meal,
       grams,
       quantity: Number(quantity) > 0 ? Number(quantity) : undefined,
@@ -283,23 +282,26 @@ export function AddFoodDialog({
       foodQuery,
       mealItems,
       photoDataUrl,
-    };
+      pendingPhoto,
+    }),
+    [foodQuery, grams, meal, mealItems, measureId, photoDataUrl, quantity],
+  );
+
+  useEffect(() => {
+    if (!draftReady || disableDraft) return;
+
+    const hasPersistentDraft = mealItems.length > 0 || Boolean(photoDataUrl) || pickingPhoto;
+    if (!hasPersistentDraft) {
+      sessionStorage.removeItem(MEAL_DRAFT_KEY);
+      return;
+    }
+
     try {
-      sessionStorage.setItem(MEAL_DRAFT_KEY, JSON.stringify(draft));
+      sessionStorage.setItem(MEAL_DRAFT_KEY, JSON.stringify(buildDraft(pickingPhoto)));
     } catch {
       toast.error("A foto ficou grande demais para manter como rascunho. Tente tirar outra foto.");
     }
-  }, [
-    disableDraft,
-    draftReady,
-    foodQuery,
-    grams,
-    meal,
-    mealItems,
-    measureId,
-    photoDataUrl,
-    quantity,
-  ]);
+  }, [buildDraft, disableDraft, draftReady, mealItems.length, photoDataUrl, pickingPhoto]);
 
   useEffect(() => {
     if (!open || foods.length > 0) return;
@@ -654,6 +656,16 @@ export function AddFoodDialog({
   function openPhotoPicker() {
     protectDraftRef.current = true;
     setPickingPhoto(true);
+
+    // grava o rascunho de forma sincrona antes de abrir a camera: se o Android
+    // encerrar o app durante a captura, o reload reabre esta tela
+    if (!disableDraft) {
+      try {
+        sessionStorage.setItem(MEAL_DRAFT_KEY, JSON.stringify(buildDraft(true)));
+      } catch {
+        // melhor esforco: sem rascunho, o fluxo normal segue funcionando
+      }
+    }
 
     const input = galleryInputRef.current;
     if (!input) {

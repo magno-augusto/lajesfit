@@ -22,6 +22,7 @@ import { updateProfilePrivacy } from "@/features/profile/follows-api";
 import { getStravaWebhookStatus, setupStravaWebhook } from "@/features/workouts/strava-api";
 import { timeAgo } from "@/features/feed/format";
 import { useStravaConnection } from "@/features/workouts/useStravaConnection";
+import { ConnectWithStravaButton } from "@/features/workouts/ConnectWithStravaButton";
 import {
   getProfileSettings,
   updateNotificationsEnabled,
@@ -419,15 +420,11 @@ export function SettingsPage() {
           </Button>
         )}
         {stravaConnected === false && (
-          <Button
-            type="button"
-            className="w-full bg-[#FC4C02] text-white hover:bg-[#e34402]"
+          <ConnectWithStravaButton
             onClick={connectStrava}
             disabled={stravaBusy}
-          >
-            <Zap className="mr-2 size-4" />
-            {stravaBusy ? "Abrindo..." : "Conectar Strava"}
-          </Button>
+            className="w-full"
+          />
         )}
       </Card>
 

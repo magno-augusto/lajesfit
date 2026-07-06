@@ -14,6 +14,7 @@ import { ManualWorkoutDialog } from "./ManualWorkoutDialog";
 import { addWorkout, removeWorkout, updateWorkout, type LocalWorkout } from "./workouts-api";
 import { getStravaConnection, syncStravaActivities } from "./strava-api";
 import { CHANGE_EVENT } from "@/features/fitness/change-event";
+import poweredByStravaLogo from "@/assets/strava/api_logo_pwrdBy_strava_horiz_orange.svg";
 
 function MonthStat({
   icon: Icon,
@@ -254,6 +255,19 @@ export function WorkoutsPage() {
               </Button>
             </div>
 
+            {workout.stravaActivityId && (
+              <a
+                href={`https://www.strava.com/activities/${workout.stravaActivityId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(event) => event.stopPropagation()}
+                onKeyDown={(event) => event.stopPropagation()}
+                className="mt-1 inline-block text-xs font-semibold text-[#FC5200]"
+              >
+                View on Strava
+              </a>
+            )}
+
             <div className="mt-3 grid grid-cols-3 gap-2 border-t pt-3 text-center">
               <div>
                 <p className="flex items-center justify-center gap-1 text-[11px] text-muted-foreground">
@@ -279,6 +293,12 @@ export function WorkoutsPage() {
           </article>
         );
       })}
+
+      {history.some((workout) => workout.stravaActivityId) && (
+        <div className="flex justify-center pb-1 pt-2">
+          <img src={poweredByStravaLogo} alt="Powered by Strava" className="h-5 w-auto" />
+        </div>
+      )}
 
       <Dialog open={selectedPostOpen} onOpenChange={setSelectedPostOpen}>
         <DialogContent className="max-h-[85dvh] overflow-y-auto border-0 bg-transparent p-0 shadow-none sm:max-w-md">

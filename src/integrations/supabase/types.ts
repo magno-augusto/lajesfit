@@ -755,6 +755,18 @@ export type Database = {
           username: string;
         }[];
       };
+      get_activity_count_leaderboard: {
+        Args: {
+          p_limit?: number;
+        };
+        Returns: {
+          avatar_url: string | null;
+          display_name: string;
+          total_activities: number;
+          user_id: string;
+          username: string;
+        }[];
+      };
       get_diet_days_leaderboard: {
         Args: {
           p_limit?: number;

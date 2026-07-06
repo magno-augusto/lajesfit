@@ -25,6 +25,15 @@ export type ActivityDaysEntry = {
   rank: number;
 };
 
+export type ActivityCountEntry = {
+  userId: string;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+  activities: number;
+  rank: number;
+};
+
 export type DistanceEntry = {
   userId: string;
   username: string;
@@ -144,6 +153,19 @@ export async function getCaloriesLeaderboard(): Promise<CaloriesEntry[]> {
     displayName: row.display_name,
     avatarUrl: row.avatar_url,
     calories: Number(row.total_calories),
+    rank: index + 1,
+  }));
+}
+
+export async function getActivityCountLeaderboard(): Promise<ActivityCountEntry[]> {
+  const { data, error } = await supabase.rpc("get_activity_count_leaderboard", { p_limit: 100 });
+  if (error) throw error;
+  return (data ?? []).map((row, index) => ({
+    userId: row.user_id,
+    username: row.username,
+    displayName: row.display_name,
+    avatarUrl: row.avatar_url,
+    activities: row.total_activities,
     rank: index + 1,
   }));
 }

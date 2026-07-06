@@ -1,17 +1,16 @@
 import { useEffect, useState } from "react";
-import { CalendarCheck, Flame, Footprints, Scale, UtensilsCrossed } from "lucide-react";
+import { CalendarCheck, Flame, Footprints, Scale, Trophy, UtensilsCrossed } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLocalAuth } from "@/features/auth/auth";
 import { CHANGE_EVENT } from "@/features/fitness/change-event";
-import { supabase } from "@/integrations/supabase/client";
-import { AdminParticipantsCard } from "./AdminParticipantsCard";
 import { ChallengeCard } from "./ChallengeCard";
 import { PodiumCard } from "./PodiumCard";
 import {
   ensureChallengeLifecycle,
   getActiveChallenge,
+  getActivityCountLeaderboard,
   getCaloriesLeaderboard,
   getDietDaysLeaderboard,
   getDistanceLeaderboard,
@@ -19,12 +18,34 @@ import {
   getLeaderboard,
   getTopThree,
   getWorkoutDaysLeaderboard,
+  type ActivityCountEntry,
   type ActivityDaysEntry,
   type CaloriesEntry,
   type Challenge,
   type DistanceEntry,
   type LeaderboardEntry,
 } from "./challenges-api";
+
+// lucide nao tem icone de tenis: SVG proprio seguindo o estilo da biblioteca
+function RunningShoeIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <path d="M2 17v-5a2 2 0 0 1 2-2h4.6a1 1 0 0 1 .8.4l1.3 1.7a4 4 0 0 0 2.1 1.4l4.9 1.2a3 3 0 0 1 3.3 2.3" />
+      <path d="M2 17a2 2 0 0 0 2 2h15a2 2 0 0 0 2-2" />
+      <path d="m10.5 12.5 1.5-1.5" />
+      <path d="m12.5 14 1.5-1.5" />
+    </svg>
+  );
+}
 
 function formatDistance(meters: number) {
   const km = meters / 1000;
@@ -34,31 +55,17 @@ function formatDistance(meters: number) {
 export function ChallengePage() {
   const { user, loading: authLoading } = useLocalAuth();
   const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [topThree, setTopThree] = useState<LeaderboardEntry[]>([]);
+  const [activityCount, setActivityCount] = useState<ActivityCountEntry[]>([]);
   const [workoutDays, setWorkoutDays] = useState<ActivityDaysEntry[]>([]);
   const [distance, setDistance] = useState<DistanceEntry[]>([]);
   const [caloriesBurned, setCaloriesBurned] = useState<CaloriesEntry[]>([]);
   const [dietDays, setDietDays] = useState<ActivityDaysEntry[]>([]);
 
   useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("profiles")
-      .select("is_admin")
-      .eq("id", user.id)
-      .maybeSingle()
-      .then(({ data }) => setIsAdmin(data?.is_admin ?? false));
-  }, [user]);
-
-  useEffect(() => {
     if (authLoading) return;
-    if (!user) {
-      setLoading(false);
-      return;
-    }
 
     let mounted = true;
     setLoading(true);
@@ -69,19 +76,29 @@ export function ChallengePage() {
 
     async function load() {
       try {
-        await ensureChallengeLifecycle();
+        // lifecycle cria/fecha desafios: exige login; visitante apenas le os rankings
+        if (user) await ensureChallengeLifecycle();
         // allSettled: a falha de um ranking nao pode esvaziar os demais cards
-        const [active, lastClosed, workoutDaysBoard, distanceBoard, caloriesBoard, dietDaysBoard] =
-          await Promise.allSettled([
-            getActiveChallenge(),
-            getLastClosedChallenge(),
-            getWorkoutDaysLeaderboard(),
-            getDistanceLeaderboard(),
-            getCaloriesLeaderboard(),
-            getDietDaysLeaderboard(),
-          ]);
+        const [
+          active,
+          lastClosed,
+          activityCountBoard,
+          workoutDaysBoard,
+          distanceBoard,
+          caloriesBoard,
+          dietDaysBoard,
+        ] = await Promise.allSettled([
+          getActiveChallenge(),
+          getLastClosedChallenge(),
+          getActivityCountLeaderboard(),
+          getWorkoutDaysLeaderboard(),
+          getDistanceLeaderboard(),
+          getCaloriesLeaderboard(),
+          getDietDaysLeaderboard(),
+        ]);
         if (!mounted) return;
         setChallenge(active.status === "fulfilled" ? active.value : null);
+        setActivityCount(activityCountBoard.status === "fulfilled" ? activityCountBoard.value : []);
         setWorkoutDays(workoutDaysBoard.status === "fulfilled" ? workoutDaysBoard.value : []);
         setDistance(distanceBoard.status === "fulfilled" ? distanceBoard.value : []);
         setCaloriesBurned(caloriesBoard.status === "fulfilled" ? caloriesBoard.value : []);
@@ -116,13 +133,15 @@ export function ChallengePage() {
     }
 
     async function refreshRankings() {
-      const [workoutDaysBoard, distanceBoard, caloriesBoard, dietDaysBoard] =
+      const [activityCountBoard, workoutDaysBoard, distanceBoard, caloriesBoard, dietDaysBoard] =
         await Promise.allSettled([
+          getActivityCountLeaderboard(),
           getWorkoutDaysLeaderboard(),
           getDistanceLeaderboard(),
           getCaloriesLeaderboard(),
           getDietDaysLeaderboard(),
         ]);
+      if (activityCountBoard.status === "fulfilled") setActivityCount(activityCountBoard.value);
       if (workoutDaysBoard.status === "fulfilled") setWorkoutDays(workoutDaysBoard.value);
       if (distanceBoard.status === "fulfilled") setDistance(distanceBoard.value);
       if (caloriesBoard.status === "fulfilled") setCaloriesBurned(caloriesBoard.value);
@@ -150,15 +169,37 @@ export function ChallengePage() {
     );
   }
 
+  const monthName = new Date().toLocaleDateString("pt-BR", { month: "long" });
+
   return (
-    <div className="space-y-6">
-      {isAdmin && challenge && (
-        <AdminParticipantsCard
-          challengeId={challenge.id}
-          currentUserId={user?.id ?? ""}
-          onSaved={refreshLeaderboard}
-        />
-      )}
+    <div className="space-y-4">
+      <section className="flex items-center gap-3 rounded-xl bg-gradient-hero p-5 text-primary-foreground shadow-glow">
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-white/15">
+          <Trophy className="size-5.5" />
+        </span>
+        <div className="min-w-0">
+          <h1 className="font-display text-2xl leading-none">Desafios do mes</h1>
+          <p className="mt-1 text-sm text-primary-foreground/85">
+            Rankings de {monthName} entre os participantes.
+          </p>
+        </div>
+      </section>
+
+      {/* Definicao de peso pelo admin oculta temporariamente (AdminParticipantsCard) */}
+
+      <ChallengeCard
+        title="Atividades"
+        description="Quem registrou mais atividades fisicas neste mes."
+        icon={<RunningShoeIcon className="size-4 text-primary" />}
+        entries={activityCount}
+        currentUserId={user?.id ?? ""}
+        emptyMessage="Ninguem registrou atividade este mes ainda."
+        renderValue={(entry) => (
+          <Badge variant="default">
+            {entry.activities} treino{entry.activities === 1 ? "" : "s"}
+          </Badge>
+        )}
+      />
 
       <ChallengeCard
         title="Dias ativos"

@@ -77,7 +77,7 @@ export function AdminParticipantsCard({
   }
 
   return (
-    <Card>
+    <Card className="border-primary/10 bg-gradient-to-b from-card to-primary/5">
       <CardHeader>
         <CardTitle>Definir peso de participante (admin)</CardTitle>
       </CardHeader>

@@ -40,6 +40,9 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-medal-gold: var(--medal-gold);
+  --color-medal-silver: var(--medal-silver);
+  --color-medal-bronze: var(--medal-bronze);
   --font-display: "Bebas Neue", "Archivo Black", system-ui, sans-serif;
 }
 
@@ -93,6 +96,14 @@
   --gradient-primary: linear-gradient(135deg, oklch(0.68 0.21 42), oklch(0.76 0.19 55));
   --gradient-ember: linear-gradient(135deg, oklch(0.55 0.18 35), oklch(0.38 0.12 30));
   --gradient-hero: linear-gradient(135deg, oklch(0.68 0.21 42) 0%, oklch(0.45 0.16 32) 100%);
+
+  /* Podio: ouro, prata e bronze */
+  --medal-gold: oklch(0.76 0.15 85);
+  --medal-silver: oklch(0.74 0.015 250);
+  --medal-bronze: oklch(0.58 0.1 55);
+  --gradient-gold: linear-gradient(165deg, oklch(0.88 0.13 92) 0%, oklch(0.74 0.15 82) 45%, oklch(0.56 0.13 72) 100%);
+  --gradient-silver: linear-gradient(165deg, oklch(0.88 0.008 250) 0%, oklch(0.72 0.015 250) 45%, oklch(0.53 0.025 255) 100%);
+  --gradient-bronze: linear-gradient(165deg, oklch(0.72 0.11 62) 0%, oklch(0.57 0.1 52) 45%, oklch(0.42 0.08 44) 100%);
 
   --shadow-glow: 0 10px 40px -10px color-mix(in oklab, oklch(0.68 0.21 42) 40%, transparent);
   --shadow-card: 0 2px 12px -4px color-mix(in oklab, oklch(0.22 0.04 35) 12%, transparent);
@@ -151,6 +162,15 @@
   }
   .bg-gradient-hero {
     background: var(--gradient-hero);
+  }
+  .bg-gradient-gold {
+    background: var(--gradient-gold);
+  }
+  .bg-gradient-silver {
+    background: var(--gradient-silver);
+  }
+  .bg-gradient-bronze {
+    background: var(--gradient-bronze);
   }
   .shadow-glow {
     box-shadow: var(--shadow-glow);

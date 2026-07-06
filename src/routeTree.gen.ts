@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SetupRouteImport } from './routes/setup'
 import { Route as RequireEmailRouteImport } from './routes/require-email'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
+import { Route as DesafioRouteImport } from './routes/desafio'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
@@ -22,7 +23,6 @@ import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedSearchRouteImport } from './routes/_authenticated/search'
 import { Route as AuthenticatedFeedRouteImport } from './routes/_authenticated/feed'
 import { Route as AuthenticatedDietaRouteImport } from './routes/_authenticated/dieta'
-import { Route as AuthenticatedDesafioRouteImport } from './routes/_authenticated/desafio'
 import { Route as ApiStravaWebhookRouteImport } from './routes/api/strava/webhook'
 import { Route as AuthenticatedProfileUsernameRouteImport } from './routes/_authenticated/profile.$username'
 
@@ -39,6 +39,11 @@ const RequireEmailRoute = RequireEmailRouteImport.update({
 const PrivacidadeRoute = PrivacidadeRouteImport.update({
   id: '/privacidade',
   path: '/privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DesafioRoute = DesafioRouteImport.update({
+  id: '/desafio',
+  path: '/desafio',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -90,11 +95,6 @@ const AuthenticatedDietaRoute = AuthenticatedDietaRouteImport.update({
   path: '/dieta',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedDesafioRoute = AuthenticatedDesafioRouteImport.update({
-  id: '/desafio',
-  path: '/desafio',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const ApiStravaWebhookRoute = ApiStravaWebhookRouteImport.update({
   id: '/api/strava/webhook',
   path: '/api/strava/webhook',
@@ -110,10 +110,10 @@ const AuthenticatedProfileUsernameRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
+  '/desafio': typeof DesafioRoute
   '/privacidade': typeof PrivacidadeRoute
   '/require-email': typeof RequireEmailRoute
   '/setup': typeof SetupRoute
-  '/desafio': typeof AuthenticatedDesafioRoute
   '/dieta': typeof AuthenticatedDietaRoute
   '/feed': typeof AuthenticatedFeedRoute
   '/search': typeof AuthenticatedSearchRoute
@@ -127,10 +127,10 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
+  '/desafio': typeof DesafioRoute
   '/privacidade': typeof PrivacidadeRoute
   '/require-email': typeof RequireEmailRoute
   '/setup': typeof SetupRoute
-  '/desafio': typeof AuthenticatedDesafioRoute
   '/dieta': typeof AuthenticatedDietaRoute
   '/feed': typeof AuthenticatedFeedRoute
   '/search': typeof AuthenticatedSearchRoute
@@ -146,10 +146,10 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
+  '/desafio': typeof DesafioRoute
   '/privacidade': typeof PrivacidadeRoute
   '/require-email': typeof RequireEmailRoute
   '/setup': typeof SetupRoute
-  '/_authenticated/desafio': typeof AuthenticatedDesafioRoute
   '/_authenticated/dieta': typeof AuthenticatedDietaRoute
   '/_authenticated/feed': typeof AuthenticatedFeedRoute
   '/_authenticated/search': typeof AuthenticatedSearchRoute
@@ -165,10 +165,10 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/desafio'
     | '/privacidade'
     | '/require-email'
     | '/setup'
-    | '/desafio'
     | '/dieta'
     | '/feed'
     | '/search'
@@ -182,10 +182,10 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/desafio'
     | '/privacidade'
     | '/require-email'
     | '/setup'
-    | '/desafio'
     | '/dieta'
     | '/feed'
     | '/search'
@@ -200,10 +200,10 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/desafio'
     | '/privacidade'
     | '/require-email'
     | '/setup'
-    | '/_authenticated/desafio'
     | '/_authenticated/dieta'
     | '/_authenticated/feed'
     | '/_authenticated/search'
@@ -219,6 +219,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
+  DesafioRoute: typeof DesafioRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
   RequireEmailRoute: typeof RequireEmailRoute
   SetupRoute: typeof SetupRoute
@@ -247,6 +248,13 @@ declare module '@tanstack/react-router' {
       path: '/privacidade'
       fullPath: '/privacidade'
       preLoaderRoute: typeof PrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/desafio': {
+      id: '/desafio'
+      path: '/desafio'
+      fullPath: '/desafio'
+      preLoaderRoute: typeof DesafioRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -319,13 +327,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDietaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/desafio': {
-      id: '/_authenticated/desafio'
-      path: '/desafio'
-      fullPath: '/desafio'
-      preLoaderRoute: typeof AuthenticatedDesafioRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/api/strava/webhook': {
       id: '/api/strava/webhook'
       path: '/api/strava/webhook'
@@ -344,7 +345,6 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedDesafioRoute: typeof AuthenticatedDesafioRoute
   AuthenticatedDietaRoute: typeof AuthenticatedDietaRoute
   AuthenticatedFeedRoute: typeof AuthenticatedFeedRoute
   AuthenticatedSearchRoute: typeof AuthenticatedSearchRoute
@@ -354,7 +354,6 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedDesafioRoute: AuthenticatedDesafioRoute,
   AuthenticatedDietaRoute: AuthenticatedDietaRoute,
   AuthenticatedFeedRoute: AuthenticatedFeedRoute,
   AuthenticatedSearchRoute: AuthenticatedSearchRoute,
@@ -380,6 +379,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
+  DesafioRoute: DesafioRoute,
   PrivacidadeRoute: PrivacidadeRoute,
   RequireEmailRoute: RequireEmailRoute,
   SetupRoute: SetupRoute,

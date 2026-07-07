@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Calendar as CalendarIcon,
+  Camera,
   ChevronLeft,
   ChevronRight,
   Coffee,
   Cookie,
+  Loader2,
   Moon,
   Pencil,
   Plus,
@@ -26,8 +28,18 @@ import { useFitness } from "@/features/fitness/useFitness";
 import { AddFoodDialog } from "@/features/diet/AddFoodDialog";
 import { DailySummaryCard } from "@/features/diet/DailySummaryCard";
 import { MEALS, type Meal } from "@/features/diet/constants";
+import {
+  compressImageDataUrl,
+  dataUrlToBlob,
+  readFileAsDataUrl,
+} from "@/features/diet/image-utils";
 import { groupMealEntries, type MealGroup } from "@/features/diet/meal-grouping";
-import { removeMeal, type LocalMeal } from "@/features/diet/meals-api";
+import {
+  addMealWithItems,
+  removeMeal,
+  updateDietMealPhoto,
+  type LocalMeal,
+} from "@/features/diet/meals-api";
 import { WeeklyCalorieChart } from "@/features/diet/WeeklyCalorieChart";
 import { WeeklyWorkoutChart } from "@/features/workouts/WeeklyWorkoutChart";
 
@@ -57,6 +69,11 @@ export function DiaryPage() {
   const [editMealOpen, setEditMealOpen] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [expandedMeals, setExpandedMeals] = useState<Set<string>>(new Set());
+  const [photoSavingMeal, setPhotoSavingMeal] = useState<Meal | null>(null);
+  // foto recem-salva por refeicao, para aparecer antes do refetch do useFitness
+  const [photoOverrides, setPhotoOverrides] = useState<Record<string, string>>({});
+  const photoInputRef = useRef<HTMLInputElement | null>(null);
+  const photoTargetRef = useRef<{ meal: Meal; dietMealId: string | null } | null>(null);
   const touchStartXRef = useRef<number | null>(null);
   const swipeStartXRef = useRef<number | null>(null);
 
@@ -117,6 +134,63 @@ export function DiaryPage() {
       { kcal: 0, p: 0, c: 0, g: 0 },
     );
   }, [dayMeals]);
+
+  // Toque no icone da refeicao: escolhe uma foto para a refeicao do dia.
+  // Com registros existentes a foto vai para o primeiro; sem registros,
+  // cria uma refeicao so com a foto (mesmo fluxo do registro rapido).
+  function requestMealPhoto(mealKey: Meal, groups: MealGroup[]) {
+    const targetGroup = groups.find((group) => group.dietMealId);
+    if (groups.length > 0 && !targetGroup) {
+      toast.error("Este registro antigo nao suporta foto");
+      return;
+    }
+    photoTargetRef.current = { meal: mealKey, dietMealId: targetGroup?.dietMealId ?? null };
+    photoInputRef.current?.click();
+  }
+
+  async function handleMealPhotoPicked(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    const target = photoTargetRef.current;
+    photoTargetRef.current = null;
+    if (!file || !target) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Selecione uma imagem valida");
+      return;
+    }
+
+    setPhotoSavingMeal(target.meal);
+    try {
+      const dataUrl = await compressImageDataUrl(await readFileAsDataUrl(file));
+      const photoBlob = await dataUrlToBlob(dataUrl);
+      const dietMealId = target.dietMealId;
+
+      if (dietMealId) {
+        const nextPhotoUrl = await updateDietMealPhoto(dietMealId, photoBlob);
+        if (nextPhotoUrl) {
+          setPhotoOverrides((current) => ({ ...current, [dietMealId]: nextPhotoUrl }));
+        }
+      } else {
+        const saved = await addMealWithItems({
+          meal: target.meal,
+          items: [],
+          photoFile: photoBlob,
+          consumedAt: buildStartedAtForSelectedDay(selectedDate),
+        });
+        setSavedMeals((current) => {
+          const byId = new Map(current.map((meal) => [meal.id, meal]));
+          saved.forEach((meal) => byId.set(meal.id, meal));
+          return Array.from(byId.values());
+        });
+      }
+      toast.success("Foto da refeicao salva");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel salvar a foto");
+    } finally {
+      setPhotoSavingMeal(null);
+    }
+  }
 
   async function handleRemoveMeal(id: string) {
     try {
@@ -195,6 +269,14 @@ export function DiaryPage() {
         </Button>
       </div>
 
+      <input
+        ref={photoInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleMealPhotoPicked}
+      />
+
       <AddFoodDialog
         open={addMealOpen}
         onOpenChange={setAddMealOpen}
@@ -226,28 +308,49 @@ export function DiaryPage() {
           const groups = groupMealEntries(items);
           const kcal = items.reduce((sum, entry) => sum + entry.calories, 0);
           const MealIcon = MEAL_ICONS[meal.key];
+          const headerPhotoUrl =
+            groups
+              .map((group) => (group.dietMealId ? photoOverrides[group.dietMealId] : undefined))
+              .find(Boolean) ??
+            groups.find((group) => group.photoUrl)?.photoUrl ??
+            null;
           return (
             <section
               key={meal.key}
               className="bg-card rounded-lg border shadow-card overflow-hidden"
             >
               <header className="flex items-center gap-3 p-4 border-b">
-                {groups.find((g) => g.photoUrl) ? (
+                {headerPhotoUrl ? (
                   <button
                     type="button"
                     className="shrink-0"
-                    onClick={() => setLightboxUrl(groups.find((g) => g.photoUrl)!.photoUrl!)}
+                    onClick={() => setLightboxUrl(headerPhotoUrl)}
                   >
                     <img
-                      src={groups.find((g) => g.photoUrl)!.photoUrl!}
+                      src={headerPhotoUrl}
                       alt=""
                       className="size-10 rounded-full object-cover"
                     />
                   </button>
                 ) : (
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <MealIcon className="size-5" />
-                  </div>
+                  <button
+                    type="button"
+                    className="relative flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary disabled:opacity-60"
+                    onClick={() => requestMealPhoto(meal.key, groups)}
+                    disabled={photoSavingMeal === meal.key}
+                    aria-label={`Adicionar foto em ${meal.label}`}
+                  >
+                    {photoSavingMeal === meal.key ? (
+                      <Loader2 className="size-5 animate-spin" />
+                    ) : (
+                      <>
+                        <MealIcon className="size-5" />
+                        <span className="absolute -bottom-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full border border-background bg-primary text-primary-foreground">
+                          <Camera className="size-2.5" />
+                        </span>
+                      </>
+                    )}
+                  </button>
                 )}
                 <button
                   type="button"

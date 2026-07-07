@@ -3,11 +3,9 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Activity, Apple, Home, LogIn, Trophy } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { InstallAppButton } from "@/components/install-app-button";
-import { ConnectWithStravaButton } from "@/features/workouts/ConnectWithStravaButton";
 import { NewActionMenu } from "@/components/new-action-menu";
 import { LEGACY_EMAIL_DOMAIN, useLocalAuth } from "@/features/auth/auth";
 import { useFitness } from "@/features/fitness/useFitness";
-import { useStravaConnection } from "@/features/workouts/useStravaConnection";
 import { NotificationsSheet } from "@/features/notifications/NotificationsSheet";
 import { getUnreadNotificationCount } from "@/features/notifications/notifications-api";
 import { EnablePushBanner } from "@/features/notifications/EnablePushBanner";
@@ -55,7 +53,6 @@ function AppHeader({
 
         <div className="flex shrink-0 items-center justify-end gap-1">
           <InstallAppButton header />
-          <NewActionMenu />
           <NotificationsSheet userId={userId} unreadCount={unreadCount} onOpened={handleOpened} />
           <Link to="/profile/$username" params={{ username }} aria-label="Meu perfil">
             <Avatar className="size-8 border border-primary/30">
@@ -78,11 +75,6 @@ export function AppShell({ children }: { children?: ReactNode }) {
   const navigate = useNavigate();
   const { user, session, loading: authLoading } = useLocalAuth();
   const { idrProfile, loading: fitnessLoading } = useFitness();
-  const {
-    connected: stravaConnected,
-    busy: stravaBusy,
-    connect: connectStrava,
-  } = useStravaConnection();
   const [profile, setProfile] = useState<{
     username: string;
     display_name: string;
@@ -151,12 +143,6 @@ export function AppShell({ children }: { children?: ReactNode }) {
 
   const needsRealEmail = user?.email?.endsWith(LEGACY_EMAIL_DOMAIN) && !user?.new_email;
 
-  // Botao "Conectar Strava" abaixo do nome do app, apenas nestas telas e enquanto desconectado
-  const stravaConnectRoutes = ["/feed", "/dieta", "/treinos", "/desafio"];
-  const showStravaConnect =
-    stravaConnected === false &&
-    stravaConnectRoutes.some((route) => location.pathname.startsWith(route));
-
   if (authLoading || fitnessLoading || !session || needsRealEmail || !idrProfile) {
     return <div className="min-h-screen bg-muted/40" />;
   }
@@ -174,11 +160,6 @@ export function AppShell({ children }: { children?: ReactNode }) {
 
       <main className="mx-auto max-w-3xl px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-17">
         {user && <EnablePushBanner userId={user.id} />}
-        {showStravaConnect && (
-          <div className="mb-2 flex justify-center">
-            <ConnectWithStravaButton onClick={connectStrava} disabled={stravaBusy} />
-          </div>
-        )}
         {children ?? <Outlet />}
       </main>
 
@@ -211,6 +192,24 @@ export function AppShell({ children }: { children?: ReactNode }) {
               </Link>
             );
           })}
+          {user ? (
+            // botao "Novo" central, saltando acima da barra
+            <div className="relative self-stretch">
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                <NewActionMenu compact />
+              </div>
+            </div>
+          ) : (
+            <Link
+              to="/auth"
+              className="flex flex-col items-center gap-1 py-3 text-xs text-muted-foreground"
+            >
+              <span className="flex size-8 items-center justify-center">
+                <LogIn className="size-5" />
+              </span>
+              <span>Login</span>
+            </Link>
+          )}
           <Link
             to="/treinos"
             className={`flex flex-col items-center gap-1 py-3 text-xs ${
@@ -233,37 +232,6 @@ export function AppShell({ children }: { children?: ReactNode }) {
             </span>
             <span>Desafio</span>
           </Link>
-          {user ? (
-            <Link
-              to="/profile/$username"
-              params={{ username: profile?.username ?? user.user_metadata?.username ?? "user" }}
-              className={`flex flex-col items-center gap-1 py-3 text-xs ${
-                location.pathname.startsWith("/profile") ? "text-primary" : "text-muted-foreground"
-              }`}
-            >
-              <span className="flex size-8 items-center justify-center">
-                <Avatar className="size-7 border border-primary/30">
-                  <AvatarImage src={profile?.avatar_url ?? undefined} />
-                  <AvatarFallback className="bg-gradient-primary text-[11px] font-semibold text-primary-foreground">
-                    {(profile?.display_name ?? user.user_metadata?.username ?? "U")
-                      .slice(0, 1)
-                      .toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-              </span>
-              <span>Perfil</span>
-            </Link>
-          ) : (
-            <Link
-              to="/auth"
-              className="flex flex-col items-center gap-1 py-3 text-xs text-muted-foreground"
-            >
-              <span className="flex size-8 items-center justify-center">
-                <LogIn className="size-5" />
-              </span>
-              <span>Login</span>
-            </Link>
-          )}
         </div>
       </nav>
     </div>

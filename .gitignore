@@ -8,6 +8,11 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+# npm e' o gerenciador do projeto; locks de outros gerenciadores nao entram
+bun.lock
+bun.lockb
+yarn.lock
+pnpm-lock.yaml
 dist
 dist-ssr
 .output

@@ -24,12 +24,30 @@ export function useFitness() {
 
   useEffect(() => {
     let mounted = true;
+    let syncInFlight = false;
+    let syncQueued = false;
+    // undefined = nunca sincronizou; null = sincronizou sem sessao; string = user carregado.
+    // Enquanto o usuario carregado nao muda, re-syncs rodam em silencio (sem
+    // setLoading), para o AppShell nao desmontar as telas a cada foco/refresh
+    // de token e perder o estado dos formularios.
+    let loadedUserId: string | null | undefined = undefined;
+    let lastSyncAt = 0;
 
     async function sync() {
+      if (syncInFlight) {
+        syncQueued = true;
+        return;
+      }
+      syncInFlight = true;
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user?.id ?? null;
+      const isInitial = loadedUserId === undefined || loadedUserId !== userId;
+      if (isInitial && mounted) setLoading(true);
+
       try {
-        setLoading(true);
-        const { data: sessionData } = await supabase.auth.getSession();
-        if (!sessionData.session) {
+        if (!userId) {
+          loadedUserId = null;
           if (!mounted) return;
           setMeals([]);
           setWorkouts([]);
@@ -44,6 +62,8 @@ export function useFitness() {
           getIdrProfile(),
         ]);
         if (profileResult.status === "rejected") throw profileResult.reason;
+        loadedUserId = userId;
+        lastSyncAt = Date.now();
         if (!mounted) return;
         setMeals(mealsResult.status === "fulfilled" ? mealsResult.value : []);
         setWorkouts(workoutsResult.status === "fulfilled" ? workoutsResult.value : []);
@@ -66,29 +86,51 @@ export function useFitness() {
         }
 
         if (!mounted) return;
-        setMeals([]);
-        setWorkouts([]);
-        setIdrProfile(null);
-        setError(
-          "Nao foi possivel carregar seus dados. Verifique a configuracao do Supabase e tente novamente.",
-        );
+        if (isInitial) {
+          setMeals([]);
+          setWorkouts([]);
+          setIdrProfile(null);
+          setError(
+            "Nao foi possivel carregar seus dados. Verifique a configuracao do Supabase e tente novamente.",
+          );
+        }
+        // Re-sync em background falhou (ex.: rede instavel ao voltar o foco):
+        // mantem os dados atuais em vez de zerar, senao o guard do AppShell
+        // redirecionaria para /setup com idrProfile null.
       } finally {
-        if (mounted) setLoading(false);
+        syncInFlight = false;
+        if (mounted && isInitial) setLoading(false);
+        if (syncQueued) {
+          syncQueued = false;
+          void sync();
+        }
       }
     }
 
-    sync();
+    void sync();
+
+    const BACKGROUND_MIN_INTERVAL_MS = 15_000;
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
-      sync();
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      const nextUserId = session?.user?.id ?? null;
+      const redundant =
+        (event === "TOKEN_REFRESHED" ||
+          event === "SIGNED_IN" ||
+          event === "INITIAL_SESSION" ||
+          event === "USER_UPDATED") &&
+        nextUserId !== null &&
+        nextUserId === loadedUserId;
+      if (redundant && Date.now() - lastSyncAt < BACKGROUND_MIN_INTERVAL_MS) return;
+      void sync();
     });
 
-    window.addEventListener(CHANGE_EVENT, sync);
+    const handleChange = () => void sync();
+    window.addEventListener(CHANGE_EVENT, handleChange);
     return () => {
       mounted = false;
       subscription.unsubscribe();
-      window.removeEventListener(CHANGE_EVENT, sync);
+      window.removeEventListener(CHANGE_EVENT, handleChange);
     };
   }, []);
 

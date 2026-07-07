@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Activity, Camera, Pencil, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -19,12 +19,35 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { parseOptionalNumber } from "@/lib/validation";
+import { clearDraft, readDraft, writeDraft } from "@/lib/session-draft";
+import {
+  compressImageDataUrl,
+  dataUrlToBlob,
+  readFileAsDataUrl,
+} from "@/features/diet/image-utils";
 import { uploadWorkoutPhoto, type LocalWorkout } from "./workouts-api";
 
 const ACTIVITIES = ["Corrida", "Caminhada", "Ciclismo", "Musculacao", "Trilha", "Natacao", "Outro"];
 
 // Modalidades sem nocao de distancia percorrida
 const NO_DISTANCE_ACTIVITIES = ["Musculacao"];
+
+const WORKOUT_DRAFT_KEY = "lajesfit-workout-draft";
+const WORKOUT_DRAFT_VERSION = 1;
+const WORKOUT_DRAFT_TTL_MS = 12 * 60 * 60 * 1000;
+
+type WorkoutDraft = {
+  // modal estava aberto: reabrir e restaurar os campos apos um reload
+  open: boolean;
+  activityType: string;
+  name: string;
+  startedAt: string;
+  distanceKm: string;
+  calories: string;
+  hours: string;
+  minutes: string;
+  photoDataUrl: string | null;
+};
 
 function formatDateTimeLocal(value?: string) {
   if (!value) return "";
@@ -75,13 +98,29 @@ export function ManualWorkoutDialog({
   const defaultMinutes = Math.floor((durationSeconds % 3600) / 60);
   const [hours, setHours] = useState(defaultHours ? String(defaultHours) : "");
   const [minutes, setMinutes] = useState(defaultMinutes ? String(defaultMinutes) : "");
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(initialWorkout?.mediaUrl ?? null);
+  const [draftReady, setDraftReady] = useState(false);
+  const skipOpenResetRef = useRef(false);
+  const wasOpenRef = useRef(false);
+  const photoDraftWarnedRef = useRef(false);
   const showDistance = !NO_DISTANCE_ACTIVITIES.includes(activityType);
-  const photoPreview = photoFile ? URL.createObjectURL(photoFile) : photoUrl;
+  const photoPreview = photoDataUrl ?? photoUrl;
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      wasOpenRef.current = false;
+      return;
+    }
+    // reset apenas na transicao fechado -> aberto: `defaultStartedAt` muda de
+    // identidade a cada render da pagina e nao pode apagar o formulario em uso
+    if (wasOpenRef.current) return;
+    wasOpenRef.current = true;
+    if (skipOpenResetRef.current) {
+      // rascunho restaurado: nao sobrescrever os campos restaurados
+      skipOpenResetRef.current = false;
+      return;
+    }
 
     const nextDurationSeconds = initialWorkout?.durationSeconds ?? 0;
     const nextHours = Math.floor(nextDurationSeconds / 3600);
@@ -96,13 +135,104 @@ export function ManualWorkoutDialog({
     setCalories(initialWorkout?.calories ? String(initialWorkout.calories) : "");
     setHours(nextHours ? String(nextHours) : "");
     setMinutes(nextMinutes ? String(nextMinutes) : "");
-    setPhotoFile(null);
+    setPhotoDataUrl(null);
     setPhotoUrl(initialWorkout?.mediaUrl ?? null);
   }, [defaultStartedAt, initialWorkout, open]);
 
   function setOpen(nextOpen: boolean) {
     if (onOpenChange) onOpenChange(nextOpen);
     else setInternalOpen(nextOpen);
+  }
+
+  // Restaura o rascunho apos um reload (ex.: Android descartou o app em
+  // background). Instancias de edicao nao usam rascunho.
+  useEffect(() => {
+    if (editing) {
+      setDraftReady(true);
+      return;
+    }
+    const draft = readDraft<Partial<WorkoutDraft>>(
+      WORKOUT_DRAFT_KEY,
+      WORKOUT_DRAFT_VERSION,
+      WORKOUT_DRAFT_TTL_MS,
+    );
+    if (!draft) {
+      setDraftReady(true);
+      return;
+    }
+
+    if (typeof draft.activityType === "string" && ACTIVITIES.includes(draft.activityType)) {
+      setActivityType(draft.activityType);
+    }
+    if (typeof draft.name === "string") setName(draft.name);
+    if (typeof draft.startedAt === "string") setStartedAt(draft.startedAt);
+    if (typeof draft.distanceKm === "string") setDistanceKm(draft.distanceKm);
+    if (typeof draft.calories === "string") setCalories(draft.calories);
+    if (typeof draft.hours === "string") setHours(draft.hours);
+    if (typeof draft.minutes === "string") setMinutes(draft.minutes);
+    if (typeof draft.photoDataUrl === "string") setPhotoDataUrl(draft.photoDataUrl);
+    if (draft.open) {
+      skipOpenResetRef.current = true;
+      setOpen(true);
+    }
+    setDraftReady(true);
+    // restauracao do rascunho roda apenas no mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const buildDraft = useCallback(
+    (): WorkoutDraft => ({
+      open,
+      activityType,
+      name,
+      startedAt,
+      distanceKm,
+      calories,
+      hours,
+      minutes,
+      photoDataUrl,
+    }),
+    [activityType, calories, distanceKm, hours, minutes, name, open, photoDataUrl, startedAt],
+  );
+
+  useEffect(() => {
+    if (!draftReady || editing) return;
+
+    // invariante: rascunho existe <=> modal de registro esta aberto
+    if (!open) {
+      clearDraft(WORKOUT_DRAFT_KEY);
+      return;
+    }
+
+    if (writeDraft(WORKOUT_DRAFT_KEY, WORKOUT_DRAFT_VERSION, buildDraft())) {
+      photoDraftWarnedRef.current = false;
+      return;
+    }
+
+    // quota estourada (foto grande): mantem ao menos os campos sem a foto
+    writeDraft(WORKOUT_DRAFT_KEY, WORKOUT_DRAFT_VERSION, { ...buildDraft(), photoDataUrl: null });
+    if (photoDataUrl && !photoDraftWarnedRef.current) {
+      photoDraftWarnedRef.current = true;
+      toast.error("A foto ficou grande demais para manter como rascunho. Tente tirar outra foto.");
+    }
+  }, [buildDraft, draftReady, editing, open, photoDataUrl]);
+
+  async function pickPhoto(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Selecione uma imagem valida");
+      return;
+    }
+
+    try {
+      // data URL comprimido: persiste no rascunho e sobrevive a um reload
+      const rawDataUrl = await readFileAsDataUrl(file);
+      setPhotoDataUrl(await compressImageDataUrl(rawDataUrl));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel carregar a foto");
+    }
   }
 
   // Ao trocar a modalidade, acompanha o nome padrao — mas preserva nome customizado
@@ -125,8 +255,11 @@ export function ManualWorkoutDialog({
       const duration = parsedHours * 3600 + parsedMinutes * 60;
 
       let mediaUrl = photoUrl;
-      if (photoFile) {
-        mediaUrl = await uploadWorkoutPhoto(photoFile);
+      if (photoDataUrl) {
+        const blob = await dataUrlToBlob(photoDataUrl);
+        mediaUrl = await uploadWorkoutPhoto(
+          new File([blob], "treino.jpg", { type: blob.type || "image/jpeg" }),
+        );
       }
 
       await onSaved({
@@ -286,7 +419,7 @@ export function ManualWorkoutDialog({
                   <button
                     type="button"
                     onClick={() => {
-                      setPhotoFile(null);
+                      setPhotoDataUrl(null);
                       setPhotoUrl(null);
                     }}
                     className="absolute -right-2 -top-2 grid size-5 place-items-center rounded-full bg-destructive text-destructive-foreground"
@@ -301,16 +434,7 @@ export function ManualWorkoutDialog({
                 </div>
               )}
               <label className="cursor-pointer">
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) setPhotoFile(file);
-                    event.target.value = "";
-                  }}
-                />
+                <input type="file" accept="image/*" className="hidden" onChange={pickPhoto} />
                 <Button type="button" variant="outline" size="sm" asChild>
                   <span>{photoPreview ? "Trocar foto" : "Adicionar foto"}</span>
                 </Button>

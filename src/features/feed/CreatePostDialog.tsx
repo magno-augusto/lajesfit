@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ImageIcon, Plus, Video, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,26 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { getVideoDuration } from "@/lib/validation";
+import { clearDraft, readDraft, writeDraft } from "@/lib/session-draft";
+import {
+  compressImageDataUrl,
+  dataUrlToBlob,
+  readFileAsDataUrl,
+} from "@/features/diet/image-utils";
 import { createPost, uploadPostMedia } from "./posts-api";
+
+const POST_DRAFT_KEY = "lajesfit-post-draft";
+const POST_DRAFT_VERSION = 1;
+const POST_DRAFT_TTL_MS = 12 * 60 * 60 * 1000;
+
+type PostDraft = {
+  // modal estava aberto: reabrir e restaurar os campos apos um reload
+  open: boolean;
+  content: string;
+  imageDataUrl: string | null;
+  // video nao cabe no sessionStorage: so avisa que se perdeu
+  hadVideo: boolean;
+};
 
 export function CreatePostDialog({
   userId,
@@ -28,11 +47,17 @@ export function CreatePostDialog({
 }) {
   const [internalOpen, setInternalOpen] = useState(false);
   const [content, setContent] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  // imagem vira data URL comprimido: persiste no rascunho e sobrevive a um
+  // reload; video fica como File/blob em memoria (nao cabe no sessionStorage)
+  const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoPreview, setVideoPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [draftReady, setDraftReady] = useState(false);
+  const imageDraftWarnedRef = useRef(false);
   const open = controlledOpen ?? internalOpen;
-  const mediaIsVideo = file?.type.startsWith("video/") ?? false;
+  const mediaIsVideo = Boolean(videoFile);
+  const preview = imageDataUrl ?? videoPreview;
 
   function setOpen(nextOpen: boolean) {
     if (onOpenChange) onOpenChange(nextOpen);
@@ -40,10 +65,66 @@ export function CreatePostDialog({
   }
 
   function clearFile() {
-    setFile(null);
-    if (preview) URL.revokeObjectURL(preview);
-    setPreview(null);
+    setImageDataUrl(null);
+    setVideoFile(null);
+    if (videoPreview) URL.revokeObjectURL(videoPreview);
+    setVideoPreview(null);
   }
+
+  // Restaura o rascunho apos um reload (ex.: Android descartou o app em background)
+  useEffect(() => {
+    const draft = readDraft<Partial<PostDraft>>(
+      POST_DRAFT_KEY,
+      POST_DRAFT_VERSION,
+      POST_DRAFT_TTL_MS,
+    );
+    if (!draft) {
+      setDraftReady(true);
+      return;
+    }
+
+    if (typeof draft.content === "string") setContent(draft.content);
+    if (typeof draft.imageDataUrl === "string") setImageDataUrl(draft.imageDataUrl);
+    if (draft.open) setOpen(true);
+    if (draft.hadVideo) {
+      toast.error("Nao foi possivel manter o video. Adicione o video novamente.");
+    }
+    setDraftReady(true);
+    // restauracao do rascunho roda apenas no mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const buildDraft = useCallback(
+    (): PostDraft => ({
+      open,
+      content,
+      imageDataUrl,
+      hadVideo: Boolean(videoFile),
+    }),
+    [content, imageDataUrl, open, videoFile],
+  );
+
+  useEffect(() => {
+    if (!draftReady) return;
+
+    // invariante: rascunho existe <=> modal de post esta aberto
+    if (!open) {
+      clearDraft(POST_DRAFT_KEY);
+      return;
+    }
+
+    if (writeDraft(POST_DRAFT_KEY, POST_DRAFT_VERSION, buildDraft())) {
+      imageDraftWarnedRef.current = false;
+      return;
+    }
+
+    // quota estourada (imagem grande): mantem ao menos o texto
+    writeDraft(POST_DRAFT_KEY, POST_DRAFT_VERSION, { ...buildDraft(), imageDataUrl: null });
+    if (imageDataUrl && !imageDraftWarnedRef.current) {
+      imageDraftWarnedRef.current = true;
+      toast.error("A foto ficou grande demais para manter como rascunho. Tente tirar outra foto.");
+    }
+  }, [buildDraft, draftReady, imageDataUrl, open]);
 
   async function pickFile(e: React.ChangeEvent<HTMLInputElement>) {
     const nextFile = e.target.files?.[0];
@@ -59,27 +140,46 @@ export function CreatePostDialog({
       const durationUrl = URL.createObjectURL(nextFile);
       const duration = await getVideoDuration(durationUrl);
       if (duration > 15.5) {
+        URL.revokeObjectURL(durationUrl);
         toast.error("O video deve ter ate 15 segundos");
         return;
       }
+      clearFile();
+      setVideoFile(nextFile);
+      setVideoPreview(durationUrl);
+      return;
     }
 
-    clearFile();
-    setFile(nextFile);
-    setPreview(URL.createObjectURL(nextFile));
+    try {
+      const rawDataUrl = await readFileAsDataUrl(nextFile);
+      const dataUrl = await compressImageDataUrl(rawDataUrl);
+      clearFile();
+      setImageDataUrl(dataUrl);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel carregar a foto");
+    }
   }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const text = content.trim();
-    if (!text && !file) {
+    if (!text && !videoFile && !imageDataUrl) {
       toast.error("Adicione um texto, foto ou video");
       return;
     }
 
     setLoading(true);
     try {
-      const mediaUrl = file ? await uploadPostMedia(userId, file) : null;
+      let mediaUrl: string | null = null;
+      if (videoFile) {
+        mediaUrl = await uploadPostMedia(userId, videoFile);
+      } else if (imageDataUrl) {
+        const blob = await dataUrlToBlob(imageDataUrl);
+        mediaUrl = await uploadPostMedia(
+          userId,
+          new File([blob], "post.jpg", { type: blob.type || "image/jpeg" }),
+        );
+      }
       await createPost({ userId, content: text, mediaUrl });
 
       toast.success("Post publicado");

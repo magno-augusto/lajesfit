@@ -108,22 +108,12 @@ export function CreatePostDialog({
           <DialogTitle>Novo post no feed</DialogTitle>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
-          <Textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="Escreva algo para o feed..."
-            rows={4}
-          />
-          {preview && (
-            <div className="relative">
+          {preview ? (
+            <div className="relative overflow-hidden rounded-xl border shadow-card">
               {mediaIsVideo ? (
-                <video
-                  src={preview}
-                  controls
-                  className="max-h-60 w-full rounded-lg bg-black object-cover"
-                />
+                <video src={preview} controls className="max-h-64 w-full bg-black object-cover" />
               ) : (
-                <img src={preview} alt="" className="max-h-60 w-full rounded-lg object-cover" />
+                <img src={preview} alt="" className="max-h-64 w-full object-cover" />
               )}
               <Button
                 type="button"
@@ -131,30 +121,50 @@ export function CreatePostDialog({
                 variant="secondary"
                 className="absolute right-2 top-2"
                 onClick={clearFile}
+                aria-label="Remover midia"
               >
                 <X className="size-4" />
               </Button>
-            </div>
-          )}
-          <div className="flex items-center gap-2">
-            <label className="cursor-pointer">
-              <input type="file" accept="image/*,video/*" className="hidden" onChange={pickFile} />
-              <Button type="button" variant="outline" size="sm" asChild>
-                <span>
+              <label className="absolute bottom-2 right-2 cursor-pointer">
+                <input
+                  type="file"
+                  accept="image/*,video/*"
+                  className="hidden"
+                  onChange={pickFile}
+                />
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs font-medium text-white backdrop-blur">
                   {mediaIsVideo ? (
-                    <Video className="mr-2 size-4" />
+                    <Video className="size-3.5" />
                   ) : (
-                    <ImageIcon className="mr-2 size-4" />
+                    <ImageIcon className="size-3.5" />
                   )}
-                  Foto ou video
+                  Trocar
                 </span>
-              </Button>
+              </label>
+            </div>
+          ) : (
+            <label className="block cursor-pointer">
+              <input type="file" accept="image/*,video/*" className="hidden" onChange={pickFile} />
+              <div className="flex h-44 flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-primary/30 bg-gradient-to-b from-primary/5 to-primary/10 px-4 text-center transition-colors hover:border-primary/50 hover:bg-primary/10">
+                <span className="flex size-12 items-center justify-center rounded-full bg-gradient-primary text-primary-foreground shadow-glow">
+                  <ImageIcon className="size-5" />
+                </span>
+                <span className="text-sm font-semibold">Adicionar foto ou video</span>
+                <span className="text-xs text-muted-foreground">
+                  Toque para escolher · videos de ate 15 segundos
+                </span>
+              </div>
             </label>
-            <Button type="submit" disabled={loading} className="ml-auto">
-              {loading ? "Publicando..." : "Publicar"}
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground">Videos devem ter no maximo 15 segundos.</p>
+          )}
+          <Textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="Escreva algo para o feed..."
+            rows={3}
+          />
+          <Button type="submit" disabled={loading} className="w-full">
+            {loading ? "Publicando..." : "Publicar"}
+          </Button>
         </form>
       </DialogContent>
     </Dialog>

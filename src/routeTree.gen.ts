@@ -24,6 +24,7 @@ import { Route as AuthenticatedSearchRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedFeedRouteImport } from './routes/_authenticated/feed'
 import { Route as AuthenticatedDietaRouteImport } from './routes/_authenticated/dieta'
 import { Route as ApiStravaWebhookRouteImport } from './routes/api/strava/webhook'
+import { Route as ApiPushSendRouteImport } from './routes/api/push/send'
 import { Route as AuthenticatedProfileUsernameRouteImport } from './routes/_authenticated/profile.$username'
 
 const SetupRoute = SetupRouteImport.update({
@@ -100,6 +101,11 @@ const ApiStravaWebhookRoute = ApiStravaWebhookRouteImport.update({
   path: '/api/strava/webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPushSendRoute = ApiPushSendRouteImport.update({
+  id: '/api/push/send',
+  path: '/api/push/send',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedProfileUsernameRoute =
   AuthenticatedProfileUsernameRouteImport.update({
     id: '/profile/$username',
@@ -122,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/strava/callback': typeof StravaCallbackRoute
   '/profile/$username': typeof AuthenticatedProfileUsernameRoute
+  '/api/push/send': typeof ApiPushSendRoute
   '/api/strava/webhook': typeof ApiStravaWebhookRoute
 }
 export interface FileRoutesByTo {
@@ -139,6 +146,7 @@ export interface FileRoutesByTo {
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/strava/callback': typeof StravaCallbackRoute
   '/profile/$username': typeof AuthenticatedProfileUsernameRoute
+  '/api/push/send': typeof ApiPushSendRoute
   '/api/strava/webhook': typeof ApiStravaWebhookRoute
 }
 export interface FileRoutesById {
@@ -158,6 +166,7 @@ export interface FileRoutesById {
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/strava/callback': typeof StravaCallbackRoute
   '/_authenticated/profile/$username': typeof AuthenticatedProfileUsernameRoute
+  '/api/push/send': typeof ApiPushSendRoute
   '/api/strava/webhook': typeof ApiStravaWebhookRoute
 }
 export interface FileRouteTypes {
@@ -177,6 +186,7 @@ export interface FileRouteTypes {
     | '/auth/reset-password'
     | '/strava/callback'
     | '/profile/$username'
+    | '/api/push/send'
     | '/api/strava/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -194,6 +204,7 @@ export interface FileRouteTypes {
     | '/auth/reset-password'
     | '/strava/callback'
     | '/profile/$username'
+    | '/api/push/send'
     | '/api/strava/webhook'
   id:
     | '__root__'
@@ -212,6 +223,7 @@ export interface FileRouteTypes {
     | '/auth/reset-password'
     | '/strava/callback'
     | '/_authenticated/profile/$username'
+    | '/api/push/send'
     | '/api/strava/webhook'
   fileRoutesById: FileRoutesById
 }
@@ -224,6 +236,7 @@ export interface RootRouteChildren {
   RequireEmailRoute: typeof RequireEmailRoute
   SetupRoute: typeof SetupRoute
   StravaCallbackRoute: typeof StravaCallbackRoute
+  ApiPushSendRoute: typeof ApiPushSendRoute
   ApiStravaWebhookRoute: typeof ApiStravaWebhookRoute
 }
 
@@ -334,6 +347,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiStravaWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/push/send': {
+      id: '/api/push/send'
+      path: '/api/push/send'
+      fullPath: '/api/push/send'
+      preLoaderRoute: typeof ApiPushSendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/profile/$username': {
       id: '/_authenticated/profile/$username'
       path: '/profile/$username'
@@ -384,6 +404,7 @@ const rootRouteChildren: RootRouteChildren = {
   RequireEmailRoute: RequireEmailRoute,
   SetupRoute: SetupRoute,
   StravaCallbackRoute: StravaCallbackRoute,
+  ApiPushSendRoute: ApiPushSendRoute,
   ApiStravaWebhookRoute: ApiStravaWebhookRoute,
 }
 export const routeTree = rootRouteImport

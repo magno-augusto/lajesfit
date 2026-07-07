@@ -475,7 +475,9 @@ export function AddFoodDialog({
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (mealItems.length === 0) {
+    // ao adicionar, a refeicao pode ser salva sem alimentos (ex.: so a foto);
+    // na edicao os itens substituem os atuais, entao pelo menos um e' preciso
+    if (isEditing && mealItems.length === 0) {
       toast.error("Adicione pelo menos um alimento");
       return;
     }
@@ -1183,7 +1185,7 @@ export function AddFoodDialog({
               <Button type="button" variant="outline" onClick={cancelMealDraft} disabled={saving}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={saving || mealItems.length === 0}>
+              <Button type="submit" disabled={saving || (isEditing && mealItems.length === 0)}>
                 {saving ? "Salvando..." : isEditing ? "Salvar alteracoes" : "Salvar refeicao"}
               </Button>
             </div>

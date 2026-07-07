@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { CreatePostDialog } from "./CreatePostDialog";
 import { PostCard } from "./PostCard";
 import { deletePost, fetchFeed, FEED_PAGE_SIZE, markPostsViewed, type FeedPost } from "./feed-api";
+import { readFeedCache, writeFeedCache } from "./feed-cache";
 import { useLocalAuth } from "@/features/auth/auth";
 import { consumePendingNewAction, NEW_ACTION_EVENT } from "@/components/new-action-menu";
 import { CHANGE_EVENT } from "@/features/fitness/change-event";
@@ -31,7 +32,18 @@ export function FeedPage() {
     }
 
     let mounted = true;
-    setLoading(true);
+
+    // stale-while-revalidate: mostra o snapshot da ultima visita na hora e
+    // atualiza em background, em vez da tela "Carregando feed..."
+    const cached = readFeedCache(user.id);
+    if (cached && cached.length > 0) {
+      setPosts(cached);
+      setHasMore(cached.length === FEED_PAGE_SIZE);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
     loadFeed(user.id).finally(() => {
       if (mounted) setLoading(false);
     });
@@ -52,6 +64,11 @@ export function FeedPage() {
       mounted = false;
     };
   }, [authLoading, user]);
+
+  useEffect(() => {
+    if (!user || posts.length === 0) return;
+    writeFeedCache(user.id, posts);
+  }, [posts, user]);
 
   useEffect(() => {
     if (consumePendingNewAction("post")) setCreatePostOpen(true);

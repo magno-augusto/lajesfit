@@ -1,5 +1,12 @@
 import { supabase } from "@/integrations/supabase/client";
 
+export type NotificationPreferences = {
+  notify_likes: boolean;
+  notify_comments: boolean;
+  notify_follows: boolean;
+  notify_challenges: boolean;
+};
+
 export type ProfileSettings = {
   username: string;
   display_name: string;
@@ -9,18 +16,26 @@ export type ProfileSettings = {
   is_admin: boolean;
   is_private: boolean;
   notifications_enabled: boolean;
-};
+} & NotificationPreferences;
 
 export async function getProfileSettings(userId: string): Promise<ProfileSettings | null> {
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "username, display_name, bio, avatar_url, recovery_email, is_admin, is_private, notifications_enabled",
+      "username, display_name, bio, avatar_url, recovery_email, is_admin, is_private, notifications_enabled, notify_likes, notify_comments, notify_follows, notify_challenges",
     )
     .eq("id", userId)
     .maybeSingle();
   if (error) throw error;
   return data ?? null;
+}
+
+export async function updateNotificationPreference(
+  userId: string,
+  updates: Partial<NotificationPreferences>,
+) {
+  const { error } = await supabase.from("profiles").update(updates).eq("id", userId);
+  if (error) throw error;
 }
 
 export async function updateNotificationsEnabled(userId: string, enabled: boolean) {

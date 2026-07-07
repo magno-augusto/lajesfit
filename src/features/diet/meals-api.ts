@@ -116,6 +116,10 @@ function mealLabel(meal: LocalMeal["meal"]) {
 }
 
 function buildMealPostContent(meal: LocalMeal["meal"], items: MealFoodInput[]) {
+  if (items.length === 0) {
+    return `${mealLabel(meal)} registrado na dieta.`;
+  }
+
   const totals = items.reduce(
     (acc, item) => ({
       calories: acc.calories + item.calories,
@@ -201,7 +205,22 @@ export async function addMealWithItems({
   photoFile?: MealPhotoInput | null;
   consumedAt?: string;
 }) {
-  if (items.length === 0) throw new Error("Adicione pelo menos um alimento");
+  // refeicao pode ser salva sem alimentos (ex.: registro rapido so com foto);
+  // uma entrada de 0 kcal mantem a refeicao visivel no diario e nos rankings
+  const entryInputs: MealFoodInput[] =
+    items.length > 0
+      ? items
+      : [
+          {
+            name: "Refeicao registrada",
+            foodId: null,
+            grams: 0,
+            calories: 0,
+            protein: 0,
+            carbs: 0,
+            fat: 0,
+          },
+        ];
 
   const userId = await getUserId();
   const photoUrl = photoFile ? await uploadMealPhoto(userId, photoFile) : null;
@@ -225,7 +244,7 @@ export async function addMealWithItems({
   const { data, error } = await supabase
     .from("diet_entries")
     .insert(
-      items.map((item) => ({
+      entryInputs.map((item) => ({
         user_id: userId,
         diet_meal_id: mealData.id,
         food_id: item.foodId ?? null,
@@ -250,9 +269,9 @@ export async function addMealWithItems({
   }
 
   const savedMeals = (data ?? []).map(mapMeal);
-  if (savedMeals.length !== items.length) {
+  if (savedMeals.length !== entryInputs.length) {
     console.error("Registro de dieta incompleto:", {
-      expected: items.length,
+      expected: entryInputs.length,
       received: savedMeals.length,
     });
     throw new Error("Nao foi possivel confirmar os itens da refeicao na Dieta");

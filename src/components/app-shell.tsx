@@ -10,10 +10,27 @@ import { useFitness } from "@/features/fitness/useFitness";
 import { useStravaConnection } from "@/features/workouts/useStravaConnection";
 import { NotificationsSheet } from "@/features/notifications/NotificationsSheet";
 import { getUnreadNotificationCount } from "@/features/notifications/notifications-api";
+import { EnablePushBanner } from "@/features/notifications/EnablePushBanner";
+import {
+  getPushPermission,
+  isPushSupported,
+  subscribeToPush,
+} from "@/features/notifications/push-api";
+import { CHANGE_EVENT } from "@/features/fitness/change-event";
 import { supabase } from "@/integrations/supabase/client";
 import logoUrl from "@/assets/logo.png";
 
-function AppHeader({ userId }: { userId: string }) {
+function AppHeader({
+  userId,
+  username,
+  displayName,
+  avatarUrl,
+}: {
+  userId: string;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+}) {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
@@ -40,6 +57,14 @@ function AppHeader({ userId }: { userId: string }) {
           <InstallAppButton header />
           <NewActionMenu />
           <NotificationsSheet userId={userId} unreadCount={unreadCount} onOpened={handleOpened} />
+          <Link to="/profile/$username" params={{ username }} aria-label="Meu perfil">
+            <Avatar className="size-8 border border-primary/30">
+              <AvatarImage src={avatarUrl ?? undefined} />
+              <AvatarFallback className="bg-gradient-primary text-[11px] font-semibold text-primary-foreground">
+                {displayName.slice(0, 1).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          </Link>
         </div>
       </div>
     </header>
@@ -114,6 +139,16 @@ export function AppShell({ children }: { children?: ReactNode }) {
     { to: "/treinos", icon: Activity, label: "Treinos" },
   ] as const;
 
+  // dispositivo com permissao ja concedida: renova a inscricao push em
+  // silencio (sem prompt) para manter o endpoint atualizado no banco
+  useEffect(() => {
+    if (!user) return;
+    if (!isPushSupported() || getPushPermission() !== "granted") return;
+    subscribeToPush(user.id).catch(() => {
+      // melhor esforco: falha aqui nao deve afetar a navegacao
+    });
+  }, [user]);
+
   const needsRealEmail = user?.email?.endsWith(LEGACY_EMAIL_DOMAIN) && !user?.new_email;
 
   // Botao "Conectar Strava" abaixo do nome do app, apenas nestas telas e enquanto desconectado
@@ -128,9 +163,17 @@ export function AppShell({ children }: { children?: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-muted/40">
-      {user && <AppHeader userId={user.id} />}
+      {user && (
+        <AppHeader
+          userId={user.id}
+          username={profile?.username ?? user.user_metadata?.username ?? "user"}
+          displayName={profile?.display_name ?? user.user_metadata?.username ?? "U"}
+          avatarUrl={profile?.avatar_url ?? null}
+        />
+      )}
 
       <main className="mx-auto max-w-3xl px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-17">
+        {user && <EnablePushBanner userId={user.id} />}
         {showStravaConnect && (
           <div className="mb-2 flex justify-center">
             <ConnectWithStravaButton onClick={connectStrava} disabled={stravaBusy} />
@@ -149,9 +192,12 @@ export function AppShell({ children }: { children?: ReactNode }) {
                 key={item.to}
                 to={item.to}
                 onClick={(event) => {
+                  // refresh suave: volta ao topo e rebusca os posts em vez de
+                  // recarregar o app inteiro (o FeedPage escuta CHANGE_EVENT)
                   if (item.to === "/feed" && location.pathname.startsWith("/feed")) {
                     event.preventDefault();
-                    window.location.reload();
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                    window.dispatchEvent(new Event(CHANGE_EVENT));
                   }
                 }}
                 className={`flex flex-col items-center gap-1 py-3 text-xs ${

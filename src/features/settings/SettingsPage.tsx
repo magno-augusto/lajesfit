@@ -24,10 +24,19 @@ import { timeAgo } from "@/features/feed/format";
 import { useStravaConnection } from "@/features/workouts/useStravaConnection";
 import { ConnectWithStravaButton } from "@/features/workouts/ConnectWithStravaButton";
 import {
+  getPushPermission,
+  hasActivePushSubscription,
+  isPushSupported,
+  subscribeToPush,
+  unsubscribeFromPush,
+} from "@/features/notifications/push-api";
+import {
   getProfileSettings,
+  updateNotificationPreference,
   updateNotificationsEnabled,
   updateProfileSettings,
   uploadAvatar,
+  type NotificationPreferences,
 } from "./settings-api";
 
 export function SettingsPage() {
@@ -76,6 +85,28 @@ export function SettingsPage() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [savingNotifications, setSavingNotifications] = useState(false);
 
+  const [notifyPrefs, setNotifyPrefs] = useState<NotificationPreferences>({
+    notify_likes: true,
+    notify_comments: true,
+    notify_follows: true,
+    notify_challenges: true,
+  });
+  const [savingPrefKey, setSavingPrefKey] = useState<keyof NotificationPreferences | null>(null);
+
+  const pushSupported = isPushSupported();
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushPermissionDenied, setPushPermissionDenied] = useState(
+    () => getPushPermission() === "denied",
+  );
+
+  useEffect(() => {
+    if (!pushSupported) return;
+    hasActivePushSubscription()
+      .then(setPushEnabled)
+      .catch(() => setPushEnabled(false));
+  }, [pushSupported]);
+
   useEffect(() => {
     if (!user) return;
     getProfileSettings(user.id).then((data) => {
@@ -87,6 +118,12 @@ export function SettingsPage() {
       setIsAdmin(data.is_admin);
       setIsPrivate(data.is_private);
       setNotificationsEnabled(data.notifications_enabled);
+      setNotifyPrefs({
+        notify_likes: data.notify_likes,
+        notify_comments: data.notify_comments,
+        notify_follows: data.notify_follows,
+        notify_challenges: data.notify_challenges,
+      });
     });
     setRecoveryEmail(hasRealEmail ? (user.email ?? "") : "");
   }, [hasRealEmail, user]);
@@ -116,6 +153,45 @@ export function SettingsPage() {
       toast.error(error instanceof Error ? error.message : "Nao foi possivel alterar notificacoes");
     } finally {
       setSavingNotifications(false);
+    }
+  }
+
+  async function togglePreference(key: keyof NotificationPreferences, nextEnabled: boolean) {
+    if (!user) return;
+    const previous = notifyPrefs[key];
+    setSavingPrefKey(key);
+    setNotifyPrefs((current) => ({ ...current, [key]: nextEnabled }));
+    try {
+      await updateNotificationPreference(user.id, { [key]: nextEnabled });
+    } catch (error) {
+      setNotifyPrefs((current) => ({ ...current, [key]: previous }));
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel salvar a preferencia");
+    } finally {
+      setSavingPrefKey(null);
+    }
+  }
+
+  async function togglePush(nextEnabled: boolean) {
+    if (!user) return;
+    setPushBusy(true);
+    try {
+      if (nextEnabled) {
+        const granted = await subscribeToPush(user.id);
+        setPushEnabled(granted);
+        setPushPermissionDenied(getPushPermission() === "denied");
+        if (granted) toast.success("Notificacoes push ativadas neste dispositivo");
+        else toast.error("Permissao negada pelo navegador");
+      } else {
+        await unsubscribeFromPush();
+        setPushEnabled(false);
+        toast.success("Notificacoes push desativadas neste dispositivo");
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Nao foi possivel alterar notificacoes push",
+      );
+    } finally {
+      setPushBusy(false);
     }
   }
 
@@ -309,8 +385,8 @@ export function SettingsPage() {
               <h2 className="font-display text-2xl">NOTIFICAÇÕES</h2>
               <p className="text-sm text-muted-foreground">
                 {notificationsEnabled
-                  ? "Voce recebe notificacoes de curtidas e comentarios nas suas publicacoes."
-                  : "Notificacoes silenciadas: voce nao recebera avisos de curtidas e comentarios."}
+                  ? "Voce recebe notificacoes conforme os tipos escolhidos abaixo."
+                  : "Notificacoes silenciadas: nenhum aviso sera gerado para voce."}
               </p>
             </div>
           </div>
@@ -319,6 +395,63 @@ export function SettingsPage() {
             onCheckedChange={updateNotifications}
             disabled={savingNotifications}
             aria-label="Receber notificacoes"
+          />
+        </div>
+        <div className="mt-4 space-y-3 border-t pt-4">
+          {(
+            [
+              {
+                key: "notify_likes",
+                label: "Curtidas",
+                description: "Quando curtirem suas publicacoes",
+              },
+              {
+                key: "notify_comments",
+                label: "Comentarios",
+                description: "Quando comentarem nas suas publicacoes",
+              },
+              {
+                key: "notify_follows",
+                label: "Novos seguidores",
+                description: "Quando alguem comecar a seguir voce",
+              },
+              {
+                key: "notify_challenges",
+                label: "Rank do desafio",
+                description: "Novatos no rank e quando roubarem sua coroa",
+              },
+            ] as const
+          ).map((pref) => (
+            <div key={pref.key} className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium">{pref.label}</p>
+                <p className="text-sm text-muted-foreground">{pref.description}</p>
+              </div>
+              <Switch
+                checked={notifyPrefs[pref.key]}
+                onCheckedChange={(value) => togglePreference(pref.key, value)}
+                disabled={!notificationsEnabled || savingPrefKey === pref.key}
+                aria-label={`Notificacoes de ${pref.label}`}
+              />
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 flex items-center justify-between gap-4 border-t pt-4">
+          <div>
+            <p className="text-sm font-medium">Notificacoes no celular (push)</p>
+            <p className="text-sm text-muted-foreground">
+              {!pushSupported
+                ? "Este dispositivo ou navegador nao suporta notificacoes push."
+                : pushPermissionDenied
+                  ? "Permissao bloqueada no navegador. Libere nas configuracoes do sistema para ativar."
+                  : "Receba avisos neste dispositivo mesmo com o app fechado."}
+            </p>
+          </div>
+          <Switch
+            checked={pushEnabled}
+            onCheckedChange={togglePush}
+            disabled={pushBusy || !pushSupported || pushPermissionDenied}
+            aria-label="Receber notificacoes push neste dispositivo"
           />
         </div>
       </Card>

@@ -1,10 +1,18 @@
 import { supabase } from "@/integrations/supabase/client";
 
+export type NotificationType =
+  | "like"
+  | "comment"
+  | "challenge_join"
+  | "follow"
+  | "challenge_dethroned";
+
 export type AppNotification = {
   id: string;
-  type: "like" | "comment" | "challenge_join";
+  type: NotificationType;
   postId: string | null;
   commentId: string | null;
+  board: string | null;
   readAt: string | null;
   createdAt: string;
   actor: {
@@ -16,10 +24,11 @@ export type AppNotification = {
 
 type NotificationRow = {
   id: string;
-  type: "like" | "comment" | "challenge_join";
+  type: NotificationType;
   actor_id: string;
   post_id: string | null;
   comment_id: string | null;
+  board: string | null;
   read_at: string | null;
   created_at: string;
 };
@@ -27,7 +36,7 @@ type NotificationRow = {
 export async function fetchNotifications(userId: string, limit = 30): Promise<AppNotification[]> {
   const { data: rows, error } = await supabase
     .from("notifications")
-    .select("id, type, actor_id, post_id, comment_id, read_at, created_at")
+    .select("id, type, actor_id, post_id, comment_id, board, read_at, created_at")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -50,6 +59,7 @@ export async function fetchNotifications(userId: string, limit = 30): Promise<Ap
       type: row.type,
       postId: row.post_id,
       commentId: row.comment_id,
+      board: row.board,
       readAt: row.read_at,
       createdAt: row.created_at,
       actor: {

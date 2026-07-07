@@ -405,30 +405,36 @@ export type Database = {
       notifications: {
         Row: {
           actor_id: string;
+          board: string | null;
           comment_id: string | null;
           created_at: string;
           id: string;
           post_id: string | null;
+          pushed_at: string | null;
           read_at: string | null;
           type: string;
           user_id: string;
         };
         Insert: {
           actor_id: string;
+          board?: string | null;
           comment_id?: string | null;
           created_at?: string;
           id?: string;
           post_id?: string | null;
+          pushed_at?: string | null;
           read_at?: string | null;
           type: string;
           user_id: string;
         };
         Update: {
           actor_id?: string;
+          board?: string | null;
           comment_id?: string | null;
           created_at?: string;
           id?: string;
           post_id?: string | null;
+          pushed_at?: string | null;
           read_at?: string | null;
           type?: string;
           user_id?: string;
@@ -534,6 +540,33 @@ export type Database = {
           },
         ];
       };
+      push_subscriptions: {
+        Row: {
+          auth: string;
+          created_at: string;
+          endpoint: string;
+          id: string;
+          p256dh: string;
+          user_id: string;
+        };
+        Insert: {
+          auth: string;
+          created_at?: string;
+          endpoint: string;
+          id?: string;
+          p256dh: string;
+          user_id: string;
+        };
+        Update: {
+          auth?: string;
+          created_at?: string;
+          endpoint?: string;
+          id?: string;
+          p256dh?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       posts: {
         Row: {
           content: string;
@@ -580,6 +613,10 @@ export type Database = {
           is_admin: boolean;
           is_private: boolean;
           notifications_enabled: boolean;
+          notify_likes: boolean;
+          notify_comments: boolean;
+          notify_follows: boolean;
+          notify_challenges: boolean;
           recovery_email: string | null;
           updated_at: string;
           username: string;
@@ -599,6 +636,10 @@ export type Database = {
           is_admin?: boolean;
           is_private?: boolean;
           notifications_enabled?: boolean;
+          notify_likes?: boolean;
+          notify_comments?: boolean;
+          notify_follows?: boolean;
+          notify_challenges?: boolean;
           recovery_email?: string | null;
           updated_at?: string;
           username: string;
@@ -618,6 +659,10 @@ export type Database = {
           is_admin?: boolean;
           is_private?: boolean;
           notifications_enabled?: boolean;
+          notify_likes?: boolean;
+          notify_comments?: boolean;
+          notify_follows?: boolean;
+          notify_challenges?: boolean;
           recovery_email?: string | null;
           updated_at?: string;
           username?: string;

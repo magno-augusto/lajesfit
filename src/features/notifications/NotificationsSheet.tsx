@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, Heart, MessageCircle, Trophy } from "lucide-react";
+import { Bell, Crown, Heart, MessageCircle, Trophy, UserPlus } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,14 @@ import {
   type AppNotification,
 } from "./notifications-api";
 
+const BOARD_LABELS: Record<string, string> = {
+  activities: "Atividades",
+  workout_days: "Dias ativos",
+  distance: "Distancia",
+  calories: "Calorias queimadas",
+  diet_days: "Refeicoes",
+};
+
 function notificationText(notification: AppNotification) {
   switch (notification.type) {
     case "like":
@@ -20,6 +28,12 @@ function notificationText(notification: AppNotification) {
       return `${notification.actor.displayName} comentou na sua publicacao`;
     case "challenge_join":
       return `${notification.actor.displayName} entrou no rank do desafio`;
+    case "follow":
+      return `${notification.actor.displayName} comecou a seguir voce`;
+    case "challenge_dethroned": {
+      const label = (notification.board && BOARD_LABELS[notification.board]) || "do mes";
+      return `${notification.actor.displayName} roubou sua coroa no desafio ${label}`;
+    }
   }
 }
 
@@ -31,6 +45,10 @@ function notificationIcon(type: AppNotification["type"]) {
       return <MessageCircle className="size-4 text-primary" />;
     case "challenge_join":
       return <Trophy className="size-4 text-primary" />;
+    case "follow":
+      return <UserPlus className="size-4 text-primary" />;
+    case "challenge_dethroned":
+      return <Crown className="size-4 fill-medal-gold text-medal-gold" />;
   }
 }
 
@@ -109,8 +127,9 @@ export function NotificationsSheet({
                 </>
               );
               const rowClass = "flex items-center gap-3 rounded-lg p-2 hover:bg-muted/60";
-              // entrada no desafio leva ao ranking; as demais, ao perfil de quem agiu
-              return notification.type === "challenge_join" ? (
+              // eventos de desafio levam ao ranking; os demais, ao perfil de quem agiu
+              return notification.type === "challenge_join" ||
+                notification.type === "challenge_dethroned" ? (
                 <Link
                   key={notification.id}
                   to="/desafio"

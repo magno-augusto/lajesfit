@@ -1,6 +1,6 @@
 # M0 — Scaffolding e branding
 
-Status: **implementado nesta sessão** (branch `android-native-m0-scaffolding`).
+Status: **implementado e verificado** (branch `android-native-m0-scaffolding`, mergeada em `main`).
 
 ## Objetivo
 
@@ -50,12 +50,11 @@ completa para preencher, em vez de ter que desenhar o grafo de novo a cada marco
 ## Feito quando
 
 - [x] Estrutura de arquivos criada e revisada (este commit).
-- [ ] **Pendente de verificação pelo usuário** (exige Android Studio local, indisponível nesta
-      sessão): projeto sincroniza sem erro, app builda e abre no emulador/device mostrando as 4
-      abas vazias com bottom-nav e FAB, cores da marca aplicadas; tocar no FAB abre o menu com as 3
-      ações e cada uma navega para a tela "pop over" correspondente (com botão de fechar
-      funcionando); alternar entre as 4 abas preserva estado de scroll/posição (comportamento
-      padrão do `NavigationBar` + `saveState`/`restoreState`).
+- [x] **Verificado pelo usuário** em Android Studio local: projeto sincroniza sem erro, app builda
+      e abre no emulador/device mostrando as 4 abas vazias com bottom-nav e FAB, cores da marca
+      aplicadas; tocar no FAB abre o menu com as 3 ações e cada uma navega para a tela "pop over"
+      correspondente (com botão de fechar funcionando); alternar entre as 4 abas preserva estado de
+      scroll/posição (comportamento padrão do `NavigationBar` + `saveState`/`restoreState`).
 
 ## Notas para o próximo marco (M1)
 

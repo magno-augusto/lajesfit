@@ -1,9 +1,7 @@
 # M1 — Supabase + Auth
 
-Status: **implementado nesta sessão, pendente de build/teste real em Android Studio** (sessão sem
-Android SDK/Gradle — ver `CLAUDE.md` "Verificação"). Login com Google implementado de ponta a ponta
-no código, mas o botão só funciona de fato depois que `GOOGLE_WEB_CLIENT_ID` for preenchido em
-`local.properties` (pré-requisito externo, não bloqueia o resto do marco).
+Status: **concluído e validado de ponta a ponta contra o Supabase real em 2026-07-08** — todos os
+itens do checklist ("Feito quando") passaram, incluindo login com Google. Marco fechado.
 
 ## Objetivo
 
@@ -98,14 +96,29 @@ Tudo abaixo é o comportamento **real hoje**, lido em `src/features/auth/auth.ts
   `ResetPasswordScreen` só para o caso de recovery. App Link verificado por domínio fica de fora
   desta fase (ver "Fora do escopo").
 
-## Pré-requisito manual e externo (só para o botão Google, não bloqueia o resto do M1)
+## Pré-requisito manual e externo (botão Google) — resolvido em 2026-07-08
 
 Igual ao padrão já registrado em `specs/PLANO.md` para o Firebase Console (M8): o Credential
 Manager exige um **OAuth Client ID do Google Cloud Console tipo "Android"** registrado com
 `applicationId` (`com.lajesfit.android`) + SHA-1 do keystore de debug/release, **no mesmo projeto
-GCP** já usado pelo provedor Google do Supabase Auth do web. Sem isso, o botão "Entrar com Google"
-não pode ser implementado de verdade — o resto do marco (login/cadastro por senha, esqueci-senha,
-require-email, sessão em DataStore) não depende disso e pode ser implementado e testado primeiro.
+GCP** já usado pelo provedor Google do Supabase Auth do web. Feito: client Android criado com
+pacote `com.lajesfit.android` + SHA-1 do keystore de debug (`7E:41:32:59:F0:D7:F2:C5:61:EA:BE:7B:
+AF:45:6A:B6:05:84:F7:A9`, obtido via `./gradlew signingReport`); `GOOGLE_WEB_CLIENT_ID` (o Client ID
+tipo Web já existente, reusado do provedor Google do Supabase) preenchido em `local.properties`.
+Login com Google validado de ponta a ponta contra o Supabase real. **Pendência para produção**:
+esse client Android só cobre o keystore de **debug** — quando existir keystore de release, repetir
+o cadastro (novo client Android ou adicionar o SHA-1 de release) com o SHA-1 correspondente.
+
+## Pré-requisito manual e externo (deep link de recovery — bloqueia o passo 2 do "esqueci a senha")
+
+Descoberto testando contra o Supabase real em 2026-07-08: o link do e-mail de recovery levava para
+o **feed do app web**, não para o app Android. Causa: `resetPasswordForEmail()` usa `lajesfit://auth`
+como redirect padrão (scheme/host de `SupabaseModule.kt`), mas o Supabase valida `redirect_to`
+contra a allowlist do projeto e, não encontrando `lajesfit://auth` nela, cai silenciosamente no
+`site_url` (o app web). `supabase/config.toml` foi atualizado com `"lajesfit://**"` em
+`additional_redirect_urls`, mas **isso não basta** — é preciso também adicionar `lajesfit://**` em
+**Supabase Dashboard → Authentication → URL Configuration → Redirect URLs** do projeto hospedado
+(`lmqzjmxtlecbwqpoumux`, o mesmo do web) para o link do e-mail passar a abrir o app de verdade.
 
 ## Fora do escopo deste marco (propositalmente)
 
@@ -124,21 +137,28 @@ supabase-kt 3.6.0 e do androidx.credentials via GitHub, já que não há SDK/Gra
 compilar — ver `CLAUDE.md`). Falta o usuário abrir em Android Studio, preencher
 `SUPABASE_ANON_KEY` em `local.properties` e testar de ponta a ponta:
 
-- [ ] `SupabaseClient` injetado via Hilt, sessão persistida em DataStore e restaurada no cold start
-      (matando o processo e reabrindo o app, a sessão continua logada).
-- [ ] Criar conta com usuário+e-mail+senha grava no Supabase (`auth.signUp`) e volta para a tela de
-      login (não loga automaticamente), igual ao web.
-- [ ] Logar com **usuário** e logar com **e-mail** (mesma senha) ambos funcionam contra o Supabase
-      real, incluindo a resolução via RPC `get_login_email`.
-- [ ] Esqueci-a-senha: pedir por username envia e-mail de recovery real; tocar no link (deep link
-      custom scheme) abre `ResetPasswordScreen` com sessão de recovery válida; definir nova senha
-      funciona e permite logar com ela em seguida.
-- [ ] Conta legada com e-mail `@lajesfit.local` é redirecionada para `RequireEmailScreen` ao logar;
-      cadastrar e-mail real dispara o e-mail de confirmação; "Continuar por agora" não trava a
-      navegação.
-- [ ] (Se o pré-requisito do Google Cloud Console já estiver disponível) Logar com Google via
-      Credential Manager funciona de ponta a ponta contra o Supabase real. Caso contrário, este item
-      fica documentado como pendente e o marco é considerado feito sem ele.
+- [x] `SupabaseClient` injetado via Hilt, sessão persistida em DataStore e restaurada no cold start
+      (matando o processo e reabrindo o app, a sessão continua logada) — validado em 2026-07-08.
+- [x] Criar conta com usuário+e-mail+senha grava no Supabase (`auth.signUp`) e volta para a tela de
+      login (não loga automaticamente), igual ao web (validado em 2026-07-08).
+- [x] Logar com **e-mail** funciona contra o Supabase real (validado em 2026-07-08 com o usuário de
+      teste `teste@lajesfit.app`).
+- [x] Logar com **usuário** (resolução via RPC `get_login_email`) funciona contra o Supabase real
+      (validado em 2026-07-08, login pós-cadastro com usuário+senha).
+- [x] Esqueci-a-senha: pedir por username envia e-mail de recovery real (validado em 2026-07-08 com
+      o usuário `magnoagustoss`, e-mail recebido).
+- [x] Esqueci-a-senha (parte 2): tocar no link do e-mail (deep link custom scheme, aberto no
+      celular com o app instalado) abre `ResetPasswordScreen` com sessão de recovery válida
+      (validado em 2026-07-08). Requer `lajesfit://**` na allowlist do Supabase Dashboard (ver
+      pré-requisito externo acima) e abrir o link no celular, não no e-mail visto pelo computador.
+- [x] Conta legada com e-mail `@lajesfit.local` é redirecionada para `RequireEmailScreen` ao logar;
+      cadastrar e-mail real (`setRealEmail`) funciona sem travar; "Continuar por agora" navega pro
+      grafo principal (Feed) sem bloquear (validado em 2026-07-08 com `testelegado@lajesfit.local`
+      + alias `magnoaugustoss+legado@gmail.com`, contornando a exigência de e-mail único do
+      Supabase).
+- [x] Logar com Google via Credential Manager funciona de ponta a ponta contra o Supabase real
+      (validado em 2026-07-08, após criar o client Android no Google Cloud Console — ver
+      pré-requisito externo acima).
 
 ## Notas para o próximo marco (M2)
 

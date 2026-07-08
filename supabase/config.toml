@@ -8,6 +8,11 @@ additional_redirect_urls = [
   "http://localhost:8081/**",
   "http://192.168.0.155:8080/**",
   "http://192.168.0.155:8081/**",
+  # App Android nativo (android/specs/M1-supabase-auth.md) - deep link de recovery/signup-confirm/
+  # magic-link (scheme/host em SupabaseModule.kt). Precisa tambem ser adicionado manualmente em
+  # Authentication > URL Configuration > Redirect URLs no dashboard do projeto hospedado - este
+  # arquivo por si só não afeta o projeto em produção.
+  "lajesfit://**",
 ]
 
 [auth.mfa.totp]

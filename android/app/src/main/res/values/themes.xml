@@ -1,0 +1,8 @@
+<resources>
+    <!-- Tema de janela minimo: cores/tipografia reais vivem no Compose (ui/theme/Theme.kt).
+         Isso so evita o flash branco/preto padrao antes do primeiro frame do Compose. -->
+    <style name="Theme.LajesFit" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+        <item name="android:statusBarColor">@color/window_background</item>
+    </style>
+</resources>

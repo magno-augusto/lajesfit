@@ -1,6 +1,7 @@
 package com.lajesfit.android
 
 import android.app.Application
+import dagger.hilt.android.HiltAndroidApp
 
-// A anotacao @HiltAndroidApp e o grafo de DI chegam no marco M1, junto com o SupabaseClient.
+@HiltAndroidApp
 class LajesFitApp : Application()

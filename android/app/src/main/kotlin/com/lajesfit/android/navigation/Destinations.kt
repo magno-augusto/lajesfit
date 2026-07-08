@@ -27,3 +27,19 @@ object PopOverRoutes {
     const val AddMeal = "meal/add"
     const val AddWorkout = "workout/add"
 }
+
+/**
+ * Grafo raiz nao-autenticado (M1) - mesmo NavHost do M0, nao uma Activity/grafo separado (ver
+ * android/specs/M1-supabase-auth.md). MainActivity escolhe o startDestination uma unica vez, a
+ * partir da sessao atual; transicoes durante a sessao (login bem-sucedido, logout, deep link de
+ * recovery) navegam explicitamente entre estas rotas e o grafo principal.
+ */
+object AuthRoutes {
+    const val Login = "auth/login"
+    const val SignUp = "auth/signup"
+    const val ForgotPassword = "auth/forgot-password"
+    const val ResetPassword = "auth/reset-password"
+    const val RequireEmail = "auth/require-email"
+
+    val all = setOf(Login, SignUp, ForgotPassword, ResetPassword, RequireEmail)
+}

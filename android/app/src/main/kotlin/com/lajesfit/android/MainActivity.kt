@@ -83,11 +83,16 @@ class MainActivity : ComponentActivity() {
     // vem em UserSession.type - so o "recovery" precisa forcar ResetPasswordScreen; os demais
     // apenas atualizam sessionStatus e o NavGraph reage normalmente.
     private fun handleAuthDeepLink(intent: Intent) {
-        supabaseClient.handleDeeplinks(intent) { session ->
-            if (session.type == "recovery") {
-                recoverySession = session
-            }
-        }
+        // Named arg de proposito: handleDeeplinks(intent, onSessionSuccess, onError) tem 2
+        // parametros de funcao - uma lambda trailing sem nome se ligaria ao ultimo (onError).
+        supabaseClient.handleDeeplinks(
+            intent = intent,
+            onSessionSuccess = { session ->
+                if (session.type == "recovery") {
+                    recoverySession = session
+                }
+            },
+        )
     }
 }
 

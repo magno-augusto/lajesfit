@@ -6,7 +6,6 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.jan.supabase.auth.SessionManager
-import io.github.jan.supabase.auth.exception.NoSessionFoundException
 import io.github.jan.supabase.auth.user.UserSession
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
@@ -32,8 +31,10 @@ class AuthSessionStore @Inject constructor(
     }
 
     override suspend fun loadSession(): UserSession {
+        // supabase-kt 3.6.0 nao expoe uma excecao dedicada para "sem sessao" (a checagem via
+        // loadSessionOrNull() do proprio SessionManager captura Exception generica).
         val encoded = context.authDataStore.data.first()[sessionKey]
-            ?: throw NoSessionFoundException()
+            ?: throw NoSuchElementException("Nenhuma sessao salva")
         return Json.decodeFromString(UserSession.serializer(), encoded)
     }
 

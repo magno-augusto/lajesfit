@@ -24,6 +24,7 @@ data class WorkoutMonthTotals(
 
 data class WorkoutsUiState(
     val workouts: List<LocalWorkout> = emptyList(),
+    val healthConnectStatus: HealthConnectStatus = HealthConnectStatus.UNAVAILABLE,
     val isLoading: Boolean = true,
     val errorMessage: String? = null,
 ) {
@@ -34,6 +35,7 @@ data class WorkoutsUiState(
 class WorkoutsViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val workoutRepository: WorkoutRepository,
+    private val healthConnectSync: HealthConnectSync,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(WorkoutsUiState())
@@ -41,6 +43,7 @@ class WorkoutsViewModel @Inject constructor(
 
     init {
         load()
+        refreshHealthConnectStatus()
         viewModelScope.launch {
             savedStateHandle.getStateFlow(REFRESH_KEY, false).collect { shouldRefresh ->
                 if (shouldRefresh) {
@@ -53,6 +56,29 @@ class WorkoutsViewModel @Inject constructor(
 
     fun refresh() {
         load()
+    }
+
+    val healthConnectPermissions: Set<String>
+        get() = healthConnectSync.permissions
+
+    fun refreshHealthConnectStatus() {
+        viewModelScope.launch {
+            val status = runCatching { healthConnectSync.status() }
+                .getOrDefault(HealthConnectStatus.UNAVAILABLE)
+            _uiState.update { it.copy(healthConnectStatus = status) }
+        }
+    }
+
+    fun onHealthPermissionsResult(grantedPermissions: Set<String>) {
+        _uiState.update {
+            it.copy(
+                healthConnectStatus = if (grantedPermissions.containsAll(healthConnectSync.permissions)) {
+                    HealthConnectStatus.READY
+                } else {
+                    HealthConnectStatus.NEEDS_PERMISSION
+                },
+            )
+        }
     }
 
     private fun load() {

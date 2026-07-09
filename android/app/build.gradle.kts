@@ -113,6 +113,7 @@ dependencies {
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
     implementation(libs.mlkit.barcode.scanning)
+    implementation(libs.androidx.health.connect.client)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
 }

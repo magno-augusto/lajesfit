@@ -1,5 +1,8 @@
 package com.lajesfit.android.feature.workouts
 
+import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -29,12 +32,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.health.connect.client.PermissionController
 import coil3.compose.AsyncImage
 import com.lajesfit.android.feature.feed.timeAgo
 import com.lajesfit.android.ui.theme.LajesFitTheme
@@ -50,11 +55,26 @@ fun WorkoutsScreen(
     viewModel: WorkoutsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = PermissionController.createRequestPermissionResultContract(),
+    ) { grantedPermissions ->
+        viewModel.onHealthPermissionsResult(grantedPermissions)
+    }
     WorkoutsScreenContent(
         uiState = uiState,
         onAddWorkout = onAddWorkout,
         onEditWorkout = onEditWorkout,
         onRemoveWorkout = viewModel::removeWorkout,
+        onRequestHealthPermission = { permissionLauncher.launch(viewModel.healthConnectPermissions) },
+        onInstallHealthConnect = {
+            context.startActivity(
+                Intent(Intent.ACTION_VIEW).apply {
+                    data = Uri.parse("market://details?id=${HealthConnectSync.HEALTH_CONNECT_PROVIDER_PACKAGE}")
+                    setPackage("com.android.vending")
+                },
+            )
+        },
     )
 }
 
@@ -64,6 +84,8 @@ private fun WorkoutsScreenContent(
     onAddWorkout: () -> Unit,
     onEditWorkout: (String) -> Unit,
     onRemoveWorkout: (String) -> Unit,
+    onRequestHealthPermission: () -> Unit,
+    onInstallHealthConnect: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -85,6 +107,14 @@ private fun WorkoutsScreenContent(
         }
         item {
             MonthTotalsCard(totals = uiState.monthTotals, modifier = Modifier.fillMaxWidth())
+        }
+        item {
+            HealthConnectCard(
+                status = uiState.healthConnectStatus,
+                onRequestPermission = onRequestHealthPermission,
+                onInstallHealthConnect = onInstallHealthConnect,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
         if (uiState.isLoading) {
             item {
@@ -117,6 +147,52 @@ private fun WorkoutsScreenContent(
                         onEdit = { onEditWorkout(workout.id) },
                         onRemove = { onRemoveWorkout(workout.id) },
                         modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HealthConnectCard(
+    status: HealthConnectStatus,
+    onRequestPermission: () -> Unit,
+    onInstallHealthConnect: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(modifier = modifier) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Health Connect", style = MaterialTheme.typography.titleMedium)
+            when (status) {
+                HealthConnectStatus.UNAVAILABLE -> {
+                    Text(
+                        "Health Connect nao esta disponivel neste aparelho.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                HealthConnectStatus.NEEDS_INSTALL_OR_UPDATE -> {
+                    Text(
+                        "Instale ou atualize o Health Connect para importar treinos automaticamente.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Button(onClick = onInstallHealthConnect) {
+                        Text("Abrir Play Store")
+                    }
+                }
+                HealthConnectStatus.NEEDS_PERMISSION -> {
+                    Text(
+                        "Autorize a leitura de sessoes de exercicio para sincronizar treinos.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Button(onClick = onRequestPermission) {
+                        Text("Autorizar")
+                    }
+                }
+                HealthConnectStatus.READY -> {
+                    Text(
+                        "Pronto para sincronizar. A importacao entra na proxima etapa.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -263,6 +339,8 @@ private fun WorkoutsScreenPreview() {
             onAddWorkout = {},
             onEditWorkout = {},
             onRemoveWorkout = {},
+            onRequestHealthPermission = {},
+            onInstallHealthConnect = {},
         )
     }
 }

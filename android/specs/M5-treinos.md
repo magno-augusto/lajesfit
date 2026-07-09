@@ -1,8 +1,8 @@
 # M5 - Treinos
 
-Status: **aprovado em 2026-07-09; sub-partes 1-2 Android concluidas** (historico/totais e treino
-manual com foto). A migration de Health Connect continua pendente porque fica em `../supabase`,
-fora do writable root atual desta sessao.
+Status: **aprovado em 2026-07-09; sub-partes 1-3 Android concluidas** (historico/totais, treino
+manual com foto e base Health Connect). A migration de Health Connect continua pendente porque fica
+em `../supabase`, fora do writable root atual desta sessao.
 
 ## Objetivo
 
@@ -179,12 +179,12 @@ No Android, Health Connect substitui Strava neste marco.
       historico.
 - [x] Editar um treino manual atualiza `workouts` e o post relacionado.
 - [x] Excluir treino remove o registro e o post relacionado deixa de aparecer por cascade.
-- [ ] Health Connect mostra estado correto quando indisponivel, quando falta permissao e quando esta
+- [x] Health Connect mostra estado correto quando indisponivel, quando falta permissao e quando esta
       pronto para sincronizar.
 - [ ] Conceder permissao e sincronizar importa sessoes reais do dispositivo para `workouts`.
 - [ ] Rodar a sincronizacao duas vezes nao duplica sessoes ja importadas.
 - [ ] Treinos importados do Health Connect tambem geram posts no feed.
-- [ ] `HealthPermissionRationaleActivity` esta declarada no manifest com o intent-filter correto.
+- [x] `HealthPermissionRationaleActivity` esta declarada no manifest com o intent-filter correto.
 - [ ] Todas as telas novas tem `@Preview(showBackground = true)`.
 
 ## Notas de execucao
@@ -198,7 +198,7 @@ commit pequeno:
 2. **Treino manual**: `AddWorkoutScreen`, upload de foto, criar/editar/excluir treino e manter post
    do feed em sincronia. **Concluido no Android**.
 3. **Health Connect base**: dependencia, manifest, rationale Activity, disponibilidade e fluxo de
-   permissao.
+   permissao. **Concluido no Android**.
 4. **Importacao Health Connect**: leitura/agregacao de sessoes, dedupe, upsert em `workouts`,
    criacao/atualizacao de posts e teste de reimportacao.
 5. **Ligacao com Dieta**: se couber sem abrir demais o escopo, somar calorias de treinos do dia no

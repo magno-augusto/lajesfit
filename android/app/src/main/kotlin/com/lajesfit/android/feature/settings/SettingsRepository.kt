@@ -8,6 +8,8 @@ import io.github.jan.supabase.storage.storage
 import java.time.Instant
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Duration.Companion.seconds
@@ -54,6 +56,11 @@ private data class ProfileSettingsUpdate(
 private data class PrivacyUpdate(@SerialName("is_private") val isPrivate: Boolean)
 
 @Serializable
+private data class NotificationsEnabledUpdate(
+    @SerialName("notifications_enabled") val notificationsEnabled: Boolean,
+)
+
+@Serializable
 private data class AvatarUpdate(@SerialName("avatar_url") val avatarUrl: String?)
 
 @Singleton
@@ -85,6 +92,23 @@ class SettingsRepository @Inject constructor(
         val userId = currentUserId() ?: throw SettingsException("Sem sessao ativa")
         supabaseClient.postgrest.from("profiles")
             .update(PrivacyUpdate(isPrivate = isPrivate)) {
+                filter { eq("id", userId) }
+            }
+    }
+
+    suspend fun updateNotificationsEnabled(enabled: Boolean) {
+        val userId = currentUserId() ?: throw SettingsException("Sem sessao ativa")
+        supabaseClient.postgrest.from("profiles")
+            .update(NotificationsEnabledUpdate(notificationsEnabled = enabled)) {
+                filter { eq("id", userId) }
+            }
+    }
+
+    suspend fun updateNotificationPreference(preference: NotificationPreference, enabled: Boolean) {
+        val userId = currentUserId() ?: throw SettingsException("Sem sessao ativa")
+        val update = buildJsonObject { put(preference.columnName, enabled) }
+        supabaseClient.postgrest.from("profiles")
+            .update(update) {
                 filter { eq("id", userId) }
             }
     }

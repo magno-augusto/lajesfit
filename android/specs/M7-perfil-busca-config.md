@@ -1,7 +1,6 @@
 # M7 - Perfil, busca e configuracoes
 
-Status: **aprovado em 2026-07-09; sub-parte 1 concluida**. Implementar as proximas sub-partes
-conforme as notas de execucao; nao empilhar mais de uma sub-parte na mesma sessao.
+Status: **concluido em 2026-07-09**.
 
 ## Objetivo
 
@@ -280,12 +279,12 @@ Estender `AuthRepository.kt` quando necessario:
 - [x] Perfil proprio privado mostra solicitacoes recebidas e permite aceitar/recusar.
 - [x] Posts do perfil usam dados reais, respeitam privacidade e permitem apagar post proprio.
 - [x] Busca de pessoas replica sanitizacao, debounce, limite 20 e abre o perfil selecionado.
-- [ ] Configuracoes carregam e salvam nome, bio, avatar, privacidade e preferencias de notificacao.
+- [x] Configuracoes carregam e salvam nome, bio, avatar, privacidade e preferencias de notificacao.
 - [x] Avatar sobe para o bucket `media`, gera signed URL de 5 anos e atualiza `profiles.avatar_url`.
-- [ ] Trocar/definir senha, atualizar e-mail real e sair da conta funcionam contra Supabase Auth.
-- [ ] Nenhum fluxo de Strava ou FCM e implementado em M7.
-- [ ] Telas novas tem `@Preview(showBackground = true)`.
-- [ ] `:app:assembleDebug` passa com `GRADLE_USER_HOME=.gradle-user-home`.
+- [x] Trocar/definir senha, atualizar e-mail real e sair da conta funcionam contra Supabase Auth.
+- [x] Nenhum fluxo de Strava ou FCM e implementado em M7.
+- [x] Telas novas tem `@Preview(showBackground = true)`.
+- [x] `:app:assembleDebug` passa com `GRADLE_USER_HOME=.gradle-user-home`.
 
 ## Notas de execucao
 
@@ -316,7 +315,11 @@ M7 e grande; dividir em sub-partes pequenas, uma por sessao/commit, deixando o a
    `media` com signed URL de 5 anos e atualizam privacidade. A tela usa Photo Picker nativo, sem
    permissao de armazenamento, e nao porta Strava. Build `:app:assembleDebug` confirmado em
    2026-07-09.
-6. **Seguranca e preferencias**: notificacoes por tipo, e-mail, senha, logout e polimento final.
+6. **Seguranca e preferencias**: **Concluido**. Configuracoes agora editam
+   `notifications_enabled` e preferencias por tipo, trocam/definem senha via Supabase Auth,
+   atualizam o e-mail real da conta por `auth.updateUser(email = ...)`, fazem logout limpando o
+   back stack para `auth/login`, mantem Strava/FCM fora do M7 e compilam com `:app:assembleDebug`
+   em 2026-07-09.
 
 Nao iniciar uma sub-parte nova enquanto a anterior nao estiver validada e commitada. Como a M6
 sub-parte 2 esta pausada em validacao, concluir/commitar a M6 antes de implementar M7 evita misturar

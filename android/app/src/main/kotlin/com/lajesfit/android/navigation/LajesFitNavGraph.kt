@@ -68,7 +68,13 @@ fun LajesFitNavGraph(
             )
         }
         composable(ProfileRoutes.Settings) {
-            SettingsScreen()
+            SettingsScreen(
+                onLoggedOut = {
+                    navController.navigate(AuthRoutes.Login) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+            )
         }
         composable(
             route = ProfileRoutes.Profile,

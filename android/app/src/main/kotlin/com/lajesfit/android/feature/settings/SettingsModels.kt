@@ -14,3 +14,10 @@ data class ProfileSettings(
     val notifyFollows: Boolean,
     val notifyChallenges: Boolean,
 )
+
+enum class NotificationPreference(val columnName: String) {
+    Likes("notify_likes"),
+    Comments("notify_comments"),
+    Follows("notify_follows"),
+    Challenges("notify_challenges"),
+}

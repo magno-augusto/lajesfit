@@ -36,18 +36,15 @@ editar, porque concentram integração e geram conflito com facilidade:
 
 ## Tarefas abertas
 
-| # | Tarefa | Spec | Dono | Arquivos reservados | Status | Notas |
-|---|--------|------|------|---------------------|--------|-------|
-| 6 | M7 restante - perfil, busca, configuracoes e seguranca | `specs/M7-perfil-busca-config.md` | Codex | `app/src/main/kotlin/com/lajesfit/android/feature/profile/*`, `app/src/main/kotlin/com/lajesfit/android/feature/settings/*`, `app/src/main/kotlin/com/lajesfit/android/feature/feed/FeedRepository.kt`, `app/src/main/kotlin/com/lajesfit/android/feature/feed/FeedScreen.kt`, `app/src/main/kotlin/com/lajesfit/android/feature/auth/AuthRepository.kt`, `app/src/main/kotlin/com/lajesfit/android/MainActivity.kt`, `app/src/main/kotlin/com/lajesfit/android/navigation/*`, `specs/COORDENACAO.md`, `specs/M7-perfil-busca-config.md` | em execução | Usuario liberou implementar todas as proximas sub-partes sem pedir aprovacao intermediaria; sub-partes 2-5 validadas com `:app:assembleDebug`, seguir para seguranca e preferencias. |
+Nenhuma tarefa aberta.
 
 ## Próximo trabalho previsto (não iniciado — não começar sem o usuário liberar)
 
 - **Verificação de M5 em device**: sync real do Health Connect nunca rodou num aparelho físico.
   Atenção: o device de dev atual (J7 Prime, Android 8.1) **não roda Health Connect** (exige
   Android 9+) — a sync real precisa de outro device ou emulador API 28+.
-- **M7 — Perfil, busca e configuracoes** (`specs/M7-perfil-busca-config.md`): sub-parte 1
-  concluida; proximo passo e sub-parte 2 (perfil read-only + posts), sem comecar sem nova
-  liberacao do usuario.
+- **M8 - Notificacoes + FCM**: escrever `specs/M8-notificacoes-fcm.md` e aguardar aprovacao do
+  usuario antes de implementar, conforme gate de spec-driven development.
 
 ## Histórico
 
@@ -60,5 +57,6 @@ editar, porque concentram integração e geram conflito com facilidade:
 | 2026-07-09 | M7 sub-parte 3 - follow requests | Codex | concluída | Seguir, solicitar, cancelar, deixar de seguir, aceitar/recusar solicitacoes e atualizar contadores/status; `:app:assembleDebug` passou. |
 | 2026-07-09 | M7 sub-parte 4 - busca de pessoas | Codex | concluída | Busca real com sanitizacao, debounce de 300 ms, limite 20, estados de loading/vazio/erro e navegacao para perfil; `:app:assembleDebug` passou. |
 | 2026-07-09 | M7 sub-parte 5 - configuracoes de perfil | Codex | concluída | Settings reais para nome, bio, avatar via Photo Picker/Storage signed URL e privacidade; `:app:assembleDebug` passou. |
+| 2026-07-09 | M7 sub-parte 6 - seguranca e preferencias | Codex | concluída | Preferencias de notificacao por tipo, troca/definicao de senha, atualizacao de e-mail real e logout; `:app:assembleDebug` passou. Commit: `Implementa M7: seguranca e preferencias`. |
 | 2026-07-09 | Escrever spec do M6 - Desafios | Codex | concluída | Spec aprovada pelo usuário; próxima etapa é sub-parte 1 (modelos, repository e ViewModel). |
 | 2026-07-09 | Somar calorias de treino do dia no resumo da Dieta (burned) | Codex | concluída | Failover por tokens do Claude; build `:app:assembleDebug` confirmado com cache repo-local. Commit: `Implementa M5: calorias de treino na dieta`. |

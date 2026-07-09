@@ -10,7 +10,10 @@ import io.github.jan.supabase.auth.user.UserInfo
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -33,6 +36,12 @@ class AuthRepository @Inject constructor(
     /** Espelha app-shell.tsx:91-92: conta legada sem e-mail real, sem troca pendente. */
     fun needsRealEmail(user: UserInfo): Boolean =
         user.email?.endsWith(LEGACY_EMAIL_DOMAIN) == true && user.newEmail == null
+
+    fun hasPasswordLogin(user: UserInfo? = currentUser()): Boolean {
+        val providers = user?.appMetadata?.get("providers") as? JsonArray
+        return providers?.any { it.jsonPrimitive.contentOrNull == "email" } == true ||
+            user?.identities?.any { it.provider == "email" } == true
+    }
 
     fun normalizeUsername(username: String): String =
         username.trim().lowercase().replace(NON_USERNAME_CHARS, "")
@@ -106,10 +115,36 @@ class AuthRepository @Inject constructor(
         supabaseClient.auth.updateUser { password = cleanPassword }
     }
 
+    suspend fun setPassword(newPassword: String) {
+        val cleanPassword = newPassword.trim()
+        require(cleanPassword.length >= 6) { "A senha precisa ter pelo menos 6 caracteres" }
+        supabaseClient.auth.updateUser { password = cleanPassword }
+    }
+
+    suspend fun changePassword(currentPassword: String, newPassword: String) {
+        val cleanCurrentPassword = currentPassword.trim()
+        val cleanNewPassword = newPassword.trim()
+        require(cleanCurrentPassword.isNotEmpty()) { "Informe a senha atual" }
+        require(cleanNewPassword.length >= 6) { "A nova senha precisa ter pelo menos 6 caracteres" }
+
+        val email = currentUser()?.email ?: throw AuthException("Sessao expirada. Entre novamente.")
+        try {
+            supabaseClient.auth.signInWith(Email) {
+                this.email = email
+                this.password = cleanCurrentPassword
+            }
+        } catch (e: Exception) {
+            throw AuthException("Senha atual incorreta")
+        }
+        supabaseClient.auth.updateUser { password = cleanNewPassword }
+    }
+
     /** Espelha RequireEmail.tsx: troca de e-mail (nao cadastro novo), envia link de confirmacao. */
-    suspend fun setRealEmail(email: String) {
+    suspend fun setRealEmail(email: String): UserInfo {
         val cleanEmail = email.trim().lowercase()
-        supabaseClient.auth.updateUser { this.email = cleanEmail }
+        require(cleanEmail.isNotEmpty()) { "Informe o e-mail" }
+        require(isValidEmail(cleanEmail)) { "Informe um e-mail valido" }
+        return supabaseClient.auth.updateUser { this.email = cleanEmail }
     }
 
     suspend fun loginWithGoogleIdToken(googleIdToken: String, rawNonce: String?) {

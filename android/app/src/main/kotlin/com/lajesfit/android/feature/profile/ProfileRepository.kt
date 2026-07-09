@@ -69,6 +69,21 @@ private data class FollowRequestInsert(
     @SerialName("requested_id") val requestedId: String,
 )
 
+@Serializable
+private data class ProfileSearchRow(
+    val id: String,
+    val username: String,
+    @SerialName("display_name") val displayName: String? = null,
+    @SerialName("avatar_url") val avatarUrl: String? = null,
+) {
+    fun toSearchResult() = ProfileSearchResult(
+        id = id,
+        username = username,
+        displayName = displayName ?: username,
+        avatarUrl = avatarUrl,
+    )
+}
+
 @Singleton
 class ProfileRepository @Inject constructor(
     private val supabaseClient: SupabaseClient,
@@ -201,6 +216,17 @@ class ProfileRepository @Inject constructor(
         }
     }
 
+    suspend fun searchProfiles(query: String, excludeUserId: String? = currentUserId()): List<ProfileSearchResult> {
+        val safeQuery = query.trim().replace(SEARCH_UNSAFE_CHARS, "")
+        if (safeQuery.length < MIN_SEARCH_LENGTH) return emptyList()
+
+        val usernameMatches = searchProfilesByColumn("username", safeQuery, excludeUserId)
+        val nameMatches = searchProfilesByColumn("display_name", safeQuery, excludeUserId)
+        return (usernameMatches + nameMatches)
+            .distinctBy { it.id }
+            .take(SEARCH_LIMIT)
+    }
+
     private suspend fun countRows(table: String, column: String, value: String): Int {
         return supabaseClient.postgrest.from(table)
             .select(columns = Columns.list(column)) {
@@ -210,7 +236,28 @@ class ProfileRepository @Inject constructor(
             .size
     }
 
+    private suspend fun searchProfilesByColumn(
+        column: String,
+        safeQuery: String,
+        excludeUserId: String?,
+    ): List<ProfileSearchResult> {
+        return supabaseClient.postgrest.from("profiles")
+            .select(columns = SEARCH_COLUMNS) {
+                filter {
+                    ilike(column, "%$safeQuery%")
+                    excludeUserId?.let { neq("id", it) }
+                }
+                limit(SEARCH_LIMIT.toLong())
+            }
+            .decodeList<ProfileSearchRow>()
+            .map { it.toSearchResult() }
+    }
+
     companion object {
+        private const val MIN_SEARCH_LENGTH = 2
+        private const val SEARCH_LIMIT = 20
+        private val SEARCH_UNSAFE_CHARS = Regex("[,()%*]")
         private val PROFILE_COLUMNS = Columns.list("id", "username", "display_name", "avatar_url", "bio", "is_private")
+        private val SEARCH_COLUMNS = Columns.list("id", "username", "display_name", "avatar_url")
     }
 }

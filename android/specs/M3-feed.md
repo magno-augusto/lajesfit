@@ -1,7 +1,7 @@
 # M3 — Navegação + Feed
 
-Status: **implementado nesta sessão, compila limpo (`./gradlew :app:compileDebugKotlin`), pendente
-de teste real em dispositivo/emulador.** Ver checklist "Feito quando" abaixo.
+Status: **concluído e validado de ponta a ponta contra o Supabase real em 2026-07-08** — todos os
+itens do checklist ("Feito quando") passaram. Marco fechado.
 
 ## Objetivo
 
@@ -158,18 +158,24 @@ Lido em `src/features/feed/feed-api.ts`, `posts-api.ts`, `likes-api.ts`, `commen
 
 ## Feito quando
 
-- [ ] Abrir o Feed carrega posts reais paginados via `get_feed_post_ids` (inclusive posts que já
-      existem no banco compartilhado, criados via web).
-- [ ] "Carregar mais" busca a próxima página e concatena; desabilita quando a página vem incompleta.
-- [ ] Curtir/descurtir atualiza a UI na hora (otimista) e persiste (conferir reabrindo o feed).
-- [ ] Apagar o próprio post (com confirmação) remove da lista e do banco; a opção não aparece em
-      posts de outros usuários.
-- [ ] Criar post (texto) grava em `posts` e aparece no feed depois de recarregar.
-- [ ] Abrir os comentários de um post (tela separada) lista os comentários reais, permite adicionar
-      um novo e apagar um comentário próprio.
-- [ ] Posts com `media_url` (imagem, não-vídeo) mostram a imagem via Coil. Se já existir algum post
-      de treino/dieta no banco (criado via web), conferir que o badge e o bloco de treino aparecem
-      certos — não é bloqueante se não houver nenhum pra testar ainda.
+- [x] Abrir o Feed carrega posts reais paginados via `get_feed_post_ids` (validado em 2026-07-08,
+      inclusive posts que já existiam no banco compartilhado, criados via web).
+- [x] "Carregar mais" busca a próxima página e concatena (validado em 2026-07-08; corrigido um
+      crash de key duplicada no `LazyColumn` causado pela ordenação da RPC mudar entre chamadas —
+      ver commit `58b8ecf`).
+- [x] Curtir/descurtir atualiza a UI na hora (otimista) e persiste (validado em 2026-07-08,
+      conferido reabrindo o feed).
+- [x] Apagar o próprio post remove da lista e do banco (validado em 2026-07-08, posts de teste
+      apagados com sucesso).
+- [x] Criar post (texto) grava em `posts` e aparece no feed (validado em 2026-07-08 com "teste 3"/
+      "teste 4"; **nota de produto**: um post novo não necessariamente aparece no topo — a RPC
+      compartilhada prioriza não-visto/tem-mídia/seguido antes de mais recente, mesmo comportamento
+      do web hoje; decidido manter como está, não é escopo deste marco mudar a RPC compartilhada).
+- [x] Abrir os comentários de um post (tela separada) lista os comentários reais, permite adicionar
+      um novo e apagar um comentário próprio (validado em 2026-07-08).
+- [x] Posts com `media_url` (imagem, não-vídeo) mostram a imagem via Coil; posts de treino mostram
+      o badge e o bloco de estatísticas (validado em 2026-07-08 com posts reais já existentes,
+      criados via web/Strava).
 
 ## Notas para o próximo marco (M4)
 

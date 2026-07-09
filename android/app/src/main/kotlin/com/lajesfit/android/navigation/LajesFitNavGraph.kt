@@ -46,6 +46,7 @@ fun LajesFitNavGraph(
         composable(BottomNavDestination.Feed.route) {
             FeedScreen(
                 onOpenComments = { postId -> navController.navigate(PopOverRoutes.commentsRoute(postId)) },
+                onOpenProfile = { username -> navController.navigate(ProfileRoutes.profileRoute(username)) },
             )
         }
         composable(BottomNavDestination.Diet.route) {
@@ -73,10 +74,10 @@ fun LajesFitNavGraph(
             route = ProfileRoutes.Profile,
             arguments = listOf(navArgument(ProfileRoutes.UsernameArg) { type = NavType.StringType }),
         ) { backStackEntry ->
-            val username = backStackEntry.arguments?.getString(ProfileRoutes.UsernameArg).orEmpty()
             ProfileScreen(
-                username = username,
                 onOpenSettings = { navController.navigate(ProfileRoutes.Settings) },
+                onOpenComments = { postId -> navController.navigate(PopOverRoutes.commentsRoute(postId)) },
+                onOpenProfile = { username -> navController.navigate(ProfileRoutes.profileRoute(username)) },
             )
         }
 

@@ -178,6 +178,7 @@ class FeedViewModel @Inject constructor(
 @Composable
 fun FeedScreen(
     onOpenComments: (String) -> Unit,
+    onOpenProfile: (String) -> Unit,
     viewModel: FeedViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -191,6 +192,7 @@ fun FeedScreen(
         onRequestDelete = { post -> postPendingDelete = post },
         onLoadMore = viewModel::loadMore,
         onOpenComments = onOpenComments,
+        onOpenProfile = onOpenProfile,
     )
 
     val pending = postPendingDelete
@@ -220,6 +222,7 @@ private fun FeedScreenContent(
     onRequestDelete: (FeedPost) -> Unit,
     onLoadMore: () -> Unit,
     onOpenComments: (String) -> Unit,
+    onOpenProfile: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when {
@@ -252,6 +255,7 @@ private fun FeedScreenContent(
                         onLike = { onLike(post) },
                         onDelete = { onRequestDelete(post) },
                         onOpenComments = { onOpenComments(post.id) },
+                        onOpenProfile = { onOpenProfile(post.profile.username) },
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                     )
                     HorizontalDivider()
@@ -276,12 +280,13 @@ private fun FeedScreenContent(
 }
 
 @Composable
-private fun PostCard(
+fun PostCard(
     post: FeedPost,
     canDelete: Boolean,
-    onLike: () -> Unit,
-    onDelete: () -> Unit,
-    onOpenComments: () -> Unit,
+    onLike: (() -> Unit)?,
+    onDelete: (() -> Unit)?,
+    onOpenComments: (() -> Unit)?,
+    onOpenProfile: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     Card(modifier = modifier) {
@@ -292,7 +297,16 @@ private fun PostCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 PostAvatar(post.profile.avatarUrl, post.profile.displayName ?: post.profile.username)
-                Column(modifier = Modifier.weight(1f)) {
+                Column(
+                    modifier = Modifier.weight(1f)
+                        .then(
+                            if (onOpenProfile != null) {
+                                Modifier.clickable { onOpenProfile() }
+                            } else {
+                                Modifier
+                            },
+                        ),
+                ) {
                     Text(
                         text = post.profile.displayName ?: post.profile.username,
                         style = MaterialTheme.typography.titleSmall,
@@ -308,8 +322,8 @@ private fun PostCard(
                     PostType.DIET -> PostTypeBadge("Dieta")
                     PostType.GENERAL -> {}
                 }
-                if (canDelete) {
-                    IconButton(onClick = onDelete) {
+                if (canDelete && onDelete != null) {
+                    IconButton(onClick = { onDelete() }) {
                         Icon(Icons.Filled.Delete, contentDescription = "Apagar post")
                     }
                 }
@@ -329,7 +343,7 @@ private fun PostCard(
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable(onClick = onLike),
+                    modifier = if (onLike != null) Modifier.clickable { onLike() } else Modifier,
                 ) {
                     Icon(
                         imageVector = if (post.likedByMe) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
@@ -340,7 +354,11 @@ private fun PostCard(
                 }
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable(onClick = onOpenComments),
+                    modifier = if (onOpenComments != null) {
+                        Modifier.clickable { onOpenComments() }
+                    } else {
+                        Modifier
+                    },
                 ) {
                     Icon(Icons.Filled.ChatBubbleOutline, contentDescription = "Comentarios")
                     Text(text = post.commentsCount.toString(), modifier = Modifier.padding(start = 4.dp))
@@ -449,6 +467,7 @@ private fun FeedScreenPreview() {
             onRequestDelete = {},
             onLoadMore = {},
             onOpenComments = {},
+            onOpenProfile = {},
         )
     }
 }

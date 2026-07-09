@@ -273,12 +273,12 @@ Estender `AuthRepository.kt` quando necessario:
 ## Feito quando
 
 - [x] App tem acesso visivel a busca e ao proprio perfil pelo chrome autenticado.
-- [ ] Rota `profile/{username}` carrega perfil real por username, com avatar/nome/bio/contadores.
+- [x] Rota `profile/{username}` carrega perfil real por username, com avatar/nome/bio/contadores.
 - [ ] Perfil publico de terceiro mostra posts e permite seguir/deixar de seguir.
 - [ ] Perfil privado de terceiro mostra estado bloqueado, permite solicitar/cancelar solicitacao e
       mostra posts apenas apos follow aceito.
 - [ ] Perfil proprio privado mostra solicitacoes recebidas e permite aceitar/recusar.
-- [ ] Posts do perfil usam dados reais, respeitam privacidade e permitem apagar post proprio.
+- [x] Posts do perfil usam dados reais, respeitam privacidade e permitem apagar post proprio.
 - [ ] Busca de pessoas replica sanitizacao, debounce, limite 20 e abre o perfil selecionado.
 - [ ] Configuracoes carregam e salvam nome, bio, avatar, privacidade e preferencias de notificacao.
 - [ ] Avatar sobe para o bucket `media`, gera signed URL de 5 anos e atualiza `profiles.avatar_url`.
@@ -296,8 +296,11 @@ M7 e grande; dividir em sub-partes pequenas, uma por sessao/commit, deixando o a
    atual, helper `ProfileRoutes.profileRoute(username)`, repository/ViewModel minimo para o resumo
    do topo e placeholders compilaveis para perfil/busca/configuracoes. Build `:app:assembleDebug`,
    `installDebug`, abertura do app e logcat sem crash confirmados em 2026-07-09.
-2. **Perfil read-only + posts**: modelos/repository/ViewModel, tela de perfil com dados,
-   contadores, posts permitidos e estado de perfil privado bloqueado.
+2. **Perfil read-only + posts**: **Concluido**. `ProfileRepository`, `ProfileViewModel` e
+   `ProfileScreen` carregam perfil real por username, contadores, status de follow para decidir
+   privacidade e posts do perfil via `FeedRepository.fetchProfilePosts()`. `PostCard` foi
+   reutilizado pelo perfil e o feed agora navega para o perfil do autor. Build `:app:assembleDebug`
+   confirmado em 2026-07-09.
 3. **Follow requests**: seguir, solicitar, cancelar, deixar de seguir, aceitar/recusar solicitacoes
    e atualizar estados/contadores.
 4. **Busca de pessoas**: tela de busca com debounce, resultados reais e navegacao para perfil.

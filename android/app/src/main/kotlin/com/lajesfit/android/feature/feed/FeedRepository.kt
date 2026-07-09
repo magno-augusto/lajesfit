@@ -5,6 +5,7 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.exception.PostgrestRestException
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
+import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.SerialName
@@ -162,6 +163,21 @@ class FeedRepository @Inject constructor(
         return hydrate(sortedRows, userId)
     }
 
+    suspend fun fetchProfilePosts(profileUserId: String, limit: Int = PROFILE_POST_LIMIT): List<FeedPost> {
+        val userId = currentUserId() ?: return emptyList()
+        val rows = supabaseClient.postgrest.from("posts")
+            .select(
+                columns = Columns.list("id", "content", "media_url", "created_at", "user_id", "workout_id"),
+            ) {
+                filter { eq("user_id", profileUserId) }
+                order("created_at", Order.DESCENDING)
+                limit(limit.toLong())
+            }
+            .decodeList<PostRow>()
+
+        return hydrate(rows, userId)
+    }
+
     suspend fun markPostsViewed(postIds: List<String>) {
         val userId = currentUserId() ?: return
         if (postIds.isEmpty()) return
@@ -302,6 +318,7 @@ class FeedRepository @Inject constructor(
 
     companion object {
         const val FEED_PAGE_SIZE = 20
+        const val PROFILE_POST_LIMIT = 50
         private const val POSTGRES_UNIQUE_VIOLATION = "23505"
     }
 }

@@ -36,6 +36,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.lajesfit.android.feature.auth.AuthGateViewModel
+import com.lajesfit.android.feature.auth.GateState
 import com.lajesfit.android.navigation.AuthRoutes
 import com.lajesfit.android.navigation.BottomNavDestination
 import com.lajesfit.android.navigation.LajesFitNavGraph
@@ -44,7 +45,6 @@ import com.lajesfit.android.ui.theme.LajesFitTheme
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.handleDeeplinks
-import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.auth.user.UserSession
 import javax.inject.Inject
 
@@ -102,24 +102,25 @@ private fun LajesFitAppRoot(
     onRecoveryHandled: () -> Unit,
 ) {
     val authGateViewModel: AuthGateViewModel = hiltViewModel()
-    val sessionStatus by authGateViewModel.sessionStatus.collectAsState()
+    val gateState by authGateViewModel.gateState.collectAsState()
 
-    if (sessionStatus is SessionStatus.Initializing) {
+    if (gateState is GateState.Loading) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
         return
     }
 
-    // Decidido uma unica vez, na primeira composicao apos sair de Initializing (ver
-    // android/specs/M1-supabase-auth.md) - transicoes durante a sessao (login, logout, recovery)
-    // navegam explicitamente, nao recalculam o startDestination do NavHost.
+    // Decidido uma unica vez, na primeira composicao apos sair de Loading (ver
+    // android/specs/M2-onboarding.md) - transicoes durante a sessao (login, logout, recovery,
+    // onboarding concluido) navegam explicitamente, nao recalculam o startDestination do NavHost.
     val startDestination = remember {
-        val user = (sessionStatus as? SessionStatus.Authenticated)?.session?.user
-        when {
-            user != null && authGateViewModel.needsRealEmail(user) -> AuthRoutes.RequireEmail
-            user != null -> BottomNavDestination.Feed.route
-            else -> AuthRoutes.Login
+        when (gateState) {
+            GateState.NeedsRealEmail -> AuthRoutes.RequireEmail
+            GateState.NeedsOnboarding -> AuthRoutes.Setup
+            GateState.Ready -> BottomNavDestination.Feed.route
+            GateState.Unauthenticated -> AuthRoutes.Login
+            GateState.Loading -> error("GateState.Loading ja foi tratado acima")
         }
     }
 

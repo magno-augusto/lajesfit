@@ -1,6 +1,7 @@
 package com.lajesfit.android.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
@@ -17,8 +18,10 @@ import com.lajesfit.android.feature.diet.AddEditMealScreen
 import com.lajesfit.android.feature.diet.DietScreen
 import com.lajesfit.android.feature.feed.CreatePostScreen
 import com.lajesfit.android.feature.feed.FeedScreen
+import com.lajesfit.android.feature.goals.SetupScreen
 import com.lajesfit.android.feature.workouts.AddWorkoutScreen
 import com.lajesfit.android.feature.workouts.WorkoutsScreen
+import kotlinx.coroutines.launch
 
 @Composable
 fun LajesFitNavGraph(
@@ -51,10 +54,13 @@ fun LajesFitNavGraph(
         // Grafo raiz nao-autenticado (M1) - mesmo NavHost, ver android/specs/M1-supabase-auth.md.
         composable(AuthRoutes.Login) {
             val authGateViewModel: AuthGateViewModel = hiltViewModel()
+            val scope = rememberCoroutineScope()
             LoginScreen(
                 onLoginSuccess = {
-                    navController.navigate(postLoginDestination(authGateViewModel)) {
-                        popUpTo(0) { inclusive = true }
+                    scope.launch {
+                        navController.navigate(postLoginDestination(authGateViewModel)) {
+                            popUpTo(0) { inclusive = true }
+                        }
                     }
                 },
                 onNavigateToSignUp = { navController.navigate(AuthRoutes.SignUp) },
@@ -74,19 +80,29 @@ fun LajesFitNavGraph(
         }
         composable(AuthRoutes.ResetPassword) {
             val authGateViewModel: AuthGateViewModel = hiltViewModel()
+            val scope = rememberCoroutineScope()
             ResetPasswordScreen(
                 onDone = {
-                    navController.navigate(postLoginDestination(authGateViewModel)) {
-                        popUpTo(0) { inclusive = true }
+                    scope.launch {
+                        navController.navigate(postLoginDestination(authGateViewModel)) {
+                            popUpTo(0) { inclusive = true }
+                        }
                     }
                 },
             )
         }
         composable(AuthRoutes.RequireEmail) {
+            val authGateViewModel: AuthGateViewModel = hiltViewModel()
+            val scope = rememberCoroutineScope()
             RequireEmailScreen(
                 onSkip = {
-                    navController.navigate(BottomNavDestination.Feed.route) {
-                        popUpTo(0) { inclusive = true }
+                    scope.launch {
+                        val destination = if (authGateViewModel.hasIdrProfile()) {
+                            BottomNavDestination.Feed.route
+                        } else {
+                            AuthRoutes.Setup
+                        }
+                        navController.navigate(destination) { popUpTo(0) { inclusive = true } }
                     }
                 },
                 onLoggedOut = {
@@ -94,15 +110,25 @@ fun LajesFitNavGraph(
                 },
             )
         }
+        composable(AuthRoutes.Setup) {
+            SetupScreen(
+                onDone = {
+                    navController.navigate(BottomNavDestination.Feed.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+            )
+        }
     }
 }
 
-/** Depois de login/recovery: Feed direto, ou RequireEmail se a conta ainda for legada. */
-private fun postLoginDestination(authGateViewModel: AuthGateViewModel): String {
+/** Depois de login/recovery: RequireEmail p/ conta legada, Setup se falta o objetivo calorico,
+ * senao Feed direto. */
+private suspend fun postLoginDestination(authGateViewModel: AuthGateViewModel): String {
     val user = authGateViewModel.currentUser()
-    return if (user != null && authGateViewModel.needsRealEmail(user)) {
-        AuthRoutes.RequireEmail
-    } else {
-        BottomNavDestination.Feed.route
+    return when {
+        user != null && authGateViewModel.needsRealEmail(user) -> AuthRoutes.RequireEmail
+        authGateViewModel.hasIdrProfile() -> BottomNavDestination.Feed.route
+        else -> AuthRoutes.Setup
     }
 }

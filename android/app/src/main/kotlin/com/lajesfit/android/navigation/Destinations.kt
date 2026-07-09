@@ -40,6 +40,7 @@ object AuthRoutes {
     const val ForgotPassword = "auth/forgot-password"
     const val ResetPassword = "auth/reset-password"
     const val RequireEmail = "auth/require-email"
+    const val Setup = "auth/setup"
 
-    val all = setOf(Login, SignUp, ForgotPassword, ResetPassword, RequireEmail)
+    val all = setOf(Login, SignUp, ForgotPassword, ResetPassword, RequireEmail, Setup)
 }

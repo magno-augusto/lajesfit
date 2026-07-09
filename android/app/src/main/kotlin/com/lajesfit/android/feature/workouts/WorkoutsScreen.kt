@@ -67,6 +67,7 @@ fun WorkoutsScreen(
         onEditWorkout = onEditWorkout,
         onRemoveWorkout = viewModel::removeWorkout,
         onRequestHealthPermission = { permissionLauncher.launch(viewModel.healthConnectPermissions) },
+        onSyncHealthConnect = viewModel::syncHealthConnect,
         onInstallHealthConnect = {
             context.startActivity(
                 Intent(Intent.ACTION_VIEW).apply {
@@ -85,6 +86,7 @@ private fun WorkoutsScreenContent(
     onEditWorkout: (String) -> Unit,
     onRemoveWorkout: (String) -> Unit,
     onRequestHealthPermission: () -> Unit,
+    onSyncHealthConnect: () -> Unit,
     onInstallHealthConnect: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -111,7 +113,10 @@ private fun WorkoutsScreenContent(
         item {
             HealthConnectCard(
                 status = uiState.healthConnectStatus,
+                isSyncing = uiState.isSyncingHealthConnect,
+                syncMessage = uiState.healthConnectSyncMessage,
                 onRequestPermission = onRequestHealthPermission,
+                onSync = onSyncHealthConnect,
                 onInstallHealthConnect = onInstallHealthConnect,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -157,7 +162,10 @@ private fun WorkoutsScreenContent(
 @Composable
 private fun HealthConnectCard(
     status: HealthConnectStatus,
+    isSyncing: Boolean,
+    syncMessage: String?,
     onRequestPermission: () -> Unit,
+    onSync: () -> Unit,
     onInstallHealthConnect: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -191,9 +199,16 @@ private fun HealthConnectCard(
                 }
                 HealthConnectStatus.READY -> {
                     Text(
-                        "Pronto para sincronizar. A importacao entra na proxima etapa.",
+                        text = when {
+                            isSyncing -> "Sincronizando sessoes do mes..."
+                            syncMessage != null -> syncMessage
+                            else -> "Importa as sessoes de exercicio do mes atual do Health Connect."
+                        },
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    Button(onClick = onSync, enabled = !isSyncing) {
+                        Text(if (isSyncing) "Sincronizando..." else "Sincronizar")
+                    }
                 }
             }
         }
@@ -340,6 +355,7 @@ private fun WorkoutsScreenPreview() {
             onEditWorkout = {},
             onRemoveWorkout = {},
             onRequestHealthPermission = {},
+            onSyncHealthConnect = {},
             onInstallHealthConnect = {},
         )
     }

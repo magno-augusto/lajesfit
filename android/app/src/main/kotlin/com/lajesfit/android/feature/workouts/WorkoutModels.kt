@@ -33,3 +33,18 @@ data class WorkoutInput(
     val performedAt: String,
     val mediaUrl: String?,
 )
+
+data class HealthConnectWorkoutInput(
+    val healthConnectRecordId: String,
+    val activityType: String,
+    val title: String,
+    val distanceMeters: Double?,
+    val durationSeconds: Int?,
+    val calories: Double?,
+    val performedAt: String,
+)
+
+data class HealthConnectSyncResult(
+    val imported: Int,
+    val updated: Int,
+)

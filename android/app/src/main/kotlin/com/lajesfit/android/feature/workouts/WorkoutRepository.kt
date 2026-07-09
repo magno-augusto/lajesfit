@@ -84,6 +84,24 @@ private data class WorkoutPostUpdate(
     @SerialName("created_at") val createdAt: String,
 )
 
+@Serializable
+private data class WorkoutHealthConnectUpsert(
+    @SerialName("user_id") val userId: String,
+    val source: String = "health_connect",
+    @SerialName("health_connect_record_id") val healthConnectRecordId: String,
+    @SerialName("activity_type") val activityType: String,
+    val title: String? = null,
+    @SerialName("distance_meters") val distanceMeters: Double? = null,
+    @SerialName("duration_seconds") val durationSeconds: Int? = null,
+    val calories: Int? = null,
+    @SerialName("performed_at") val performedAt: String,
+)
+
+@Serializable
+private data class HealthConnectRecordIdRow(
+    @SerialName("health_connect_record_id") val healthConnectRecordId: String? = null,
+)
+
 /** Porta workouts-api.ts para Kotlin - ver android/specs/M5-treinos.md. */
 @Singleton
 class WorkoutRepository @Inject constructor(
@@ -169,6 +187,53 @@ class WorkoutRepository @Inject constructor(
                 eq("user_id", userId)
             }
         }
+    }
+
+    /** Porta upsertStravaActivities (strava.server.ts) para sessoes do Health Connect. */
+    suspend fun upsertHealthConnectWorkouts(inputs: List<HealthConnectWorkoutInput>): HealthConnectSyncResult {
+        if (inputs.isEmpty()) return HealthConnectSyncResult(imported = 0, updated = 0)
+        val userId = supabaseClient.auth.currentUserOrNull()?.id ?: throw WorkoutException("Sem sessao ativa")
+
+        val recordIds = inputs.map { it.healthConnectRecordId }
+        val existingIds = supabaseClient.postgrest.from("workouts")
+            .select(columns = Columns.list("health_connect_record_id")) {
+                filter {
+                    eq("user_id", userId)
+                    isIn("health_connect_record_id", recordIds)
+                }
+            }
+            .decodeList<HealthConnectRecordIdRow>()
+            .mapNotNull { it.healthConnectRecordId }
+            .toSet()
+
+        val rows = inputs.map { input ->
+            WorkoutHealthConnectUpsert(
+                userId = userId,
+                healthConnectRecordId = input.healthConnectRecordId,
+                activityType = input.activityType,
+                title = input.title,
+                distanceMeters = input.distanceMeters,
+                durationSeconds = input.durationSeconds,
+                calories = input.calories?.roundToInt(),
+                performedAt = input.performedAt,
+            )
+        }
+
+        val upserted = supabaseClient.postgrest.from("workouts")
+            .upsert(rows) {
+                onConflict = "user_id,health_connect_record_id"
+                ignoreDuplicates = false
+                select(columns = WORKOUT_COLUMNS)
+            }
+            .decodeList<WorkoutRow>()
+
+        val newRows = upserted.filter { it.healthConnectRecordId != null && it.healthConnectRecordId !in existingIds }
+        val updatedRows = upserted.filter { it.healthConnectRecordId != null && it.healthConnectRecordId in existingIds }
+
+        newRows.forEach { insertWorkoutPost(userId, it) }
+        updatedRows.forEach { updateWorkoutPost(it.id, it) }
+
+        return HealthConnectSyncResult(imported = newRows.size, updated = updatedRows.size)
     }
 
     private suspend fun fetchWorkoutRows(userId: String, columns: Columns): List<WorkoutRow> {

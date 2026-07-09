@@ -26,6 +26,8 @@ data class WorkoutsUiState(
     val workouts: List<LocalWorkout> = emptyList(),
     val healthConnectStatus: HealthConnectStatus = HealthConnectStatus.UNAVAILABLE,
     val isLoading: Boolean = true,
+    val isSyncingHealthConnect: Boolean = false,
+    val healthConnectSyncMessage: String? = null,
     val errorMessage: String? = null,
 ) {
     val monthTotals: WorkoutMonthTotals = workouts.monthTotals()
@@ -99,6 +101,26 @@ class WorkoutsViewModel @Inject constructor(
         }
     }
 
+    fun syncHealthConnect() {
+        if (_uiState.value.isSyncingHealthConnect) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSyncingHealthConnect = true, healthConnectSyncMessage = null, errorMessage = null) }
+            try {
+                val sessions = healthConnectSync.readMonthlyWorkouts()
+                val result = workoutRepository.upsertHealthConnectWorkouts(sessions)
+                _uiState.update { it.copy(isSyncingHealthConnect = false, healthConnectSyncMessage = result.toMessage()) }
+                load()
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isSyncingHealthConnect = false,
+                        errorMessage = e.message ?: "Nao foi possivel sincronizar com o Health Connect",
+                    )
+                }
+            }
+        }
+    }
+
     fun removeWorkout(id: String) {
         viewModelScope.launch {
             try {
@@ -132,4 +154,12 @@ private fun LocalWorkout.performedDate(): LocalDate? {
     return runCatching {
         Instant.parse(performedAt).atZone(ZoneId.systemDefault()).toLocalDate()
     }.getOrNull()
+}
+
+private fun HealthConnectSyncResult.toMessage(): String {
+    if (imported == 0 && updated == 0) return "Nenhuma sessao nova encontrada"
+    return buildList {
+        if (imported > 0) add("$imported importado(s)")
+        if (updated > 0) add("$updated atualizado(s)")
+    }.joinToString(", ")
 }

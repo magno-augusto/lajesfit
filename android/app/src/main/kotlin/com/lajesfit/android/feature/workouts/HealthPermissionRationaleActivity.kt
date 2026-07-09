@@ -35,8 +35,8 @@ private fun HealthPermissionRationaleContent(onClose: () -> Unit) {
     ) {
         Text("Health Connect", style = MaterialTheme.typography.headlineSmall)
         Text(
-            "O LajesFit usa o Health Connect apenas para ler sessoes de exercicio autorizadas por voce. " +
-                "Esses dados ajudam a preencher seus treinos, calorias queimadas e rankings do desafio.",
+            "O LajesFit usa o Health Connect apenas para ler sessoes de exercicio, distancia e calorias " +
+                "autorizadas por voce. Esses dados ajudam a preencher seus treinos e os rankings do desafio.",
         )
         Text(
             "A leitura so acontece depois da sua permissao. Voce pode revogar o acesso a qualquer momento nas configuracoes do Health Connect.",

@@ -1,8 +1,9 @@
 # M5 - Treinos
 
-Status: **aprovado em 2026-07-09; sub-partes 1-3 Android concluidas** (historico/totais, treino
-manual com foto e base Health Connect). A migration de Health Connect continua pendente porque fica
-em `../supabase`, fora do writable root atual desta sessao.
+Status: **aprovado em 2026-07-09; sub-partes 1-4 Android concluidas** (historico/totais, treino
+manual com foto, base Health Connect e importacao de sessoes). Migration de Health Connect criada em
+`../supabase/migrations/20260720120000_health_connect_workouts.sql`. Confirmacao de sincronizacao
+real num device fisico ainda pendente (ver notas de execucao).
 
 ## Objetivo
 
@@ -171,7 +172,7 @@ No Android, Health Connect substitui Strava neste marco.
 
 ## Feito quando
 
-- [ ] Existe migration para `health_connect_record_id`/dedupe e ela e compativel com o schema atual.
+- [x] Existe migration para `health_connect_record_id`/dedupe e ela e compativel com o schema atual.
 - [x] Abrir Treinos mostra historico real do usuario a partir de `workouts`, com estado vazio e
       loading.
 - [x] A tela mostra totais do mes coerentes: treinos, tempo, distancia e calorias.
@@ -181,11 +182,14 @@ No Android, Health Connect substitui Strava neste marco.
 - [x] Excluir treino remove o registro e o post relacionado deixa de aparecer por cascade.
 - [x] Health Connect mostra estado correto quando indisponivel, quando falta permissao e quando esta
       pronto para sincronizar.
-- [ ] Conceder permissao e sincronizar importa sessoes reais do dispositivo para `workouts`.
-- [ ] Rodar a sincronizacao duas vezes nao duplica sessoes ja importadas.
-- [ ] Treinos importados do Health Connect tambem geram posts no feed.
+- [ ] Conceder permissao e sincronizar importa sessoes reais do dispositivo para `workouts`
+      (implementado; falta confirmar num device real).
+- [ ] Rodar a sincronizacao duas vezes nao duplica sessoes ja importadas
+      (implementado via upsert com indice unico; falta confirmar num device real).
+- [ ] Treinos importados do Health Connect tambem geram posts no feed
+      (implementado; falta confirmar num device real).
 - [x] `HealthPermissionRationaleActivity` esta declarada no manifest com o intent-filter correto.
-- [ ] Todas as telas novas tem `@Preview(showBackground = true)`.
+- [x] Todas as telas novas tem `@Preview(showBackground = true)`.
 
 ## Notas de execucao
 
@@ -200,6 +204,12 @@ commit pequeno:
 3. **Health Connect base**: dependencia, manifest, rationale Activity, disponibilidade e fluxo de
    permissao. **Concluido no Android**.
 4. **Importacao Health Connect**: leitura/agregacao de sessoes, dedupe, upsert em `workouts`,
-   criacao/atualizacao de posts e teste de reimportacao.
+   criacao/atualizacao de posts e teste de reimportacao. **Concluido no Android** (leitura de
+   `ExerciseSessionRecord` do mes atual, agregacao de distancia/calorias por sessao via
+   `HealthConnectClient.aggregate`, upsert com `onConflict = "user_id,health_connect_record_id"` e
+   sincronizacao de post por treino novo/atualizado, botao "Sincronizar" na `WorkoutsScreen`).
+   Migration criada (indice unico **nao parcial**, ver comentario no arquivo da migration sobre por
+   que um indice parcial nao seria elegivel como arbitro do `ON CONFLICT` via PostgREST). Teste de
+   reimportacao (dedupe) e execucao num device real ainda pendentes.
 5. **Ligacao com Dieta**: se couber sem abrir demais o escopo, somar calorias de treinos do dia no
    resumo do M4; caso contrario, deixar como refinamento logo apos M5.

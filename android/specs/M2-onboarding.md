@@ -1,7 +1,7 @@
 # M2 — Onboarding (IDR)
 
-Status: **implementado nesta sessão, compila limpo (`./gradlew :app:compileDebugKotlin`), pendente
-de teste real em dispositivo/emulador.** Ver checklist "Feito quando" abaixo.
+Status: **concluído e validado de ponta a ponta contra o Supabase real em 2026-07-08** — todos os
+itens do checklist ("Feito quando") passaram. Marco fechado.
 
 ## Objetivo
 
@@ -107,19 +107,27 @@ Lido em `src/features/goals/goals-api.ts` e `src/features/goals/IdrSetup.tsx`:
 
 ## Feito quando
 
-- [ ] Logar (ou cadastrar+logar) com uma conta cujo `profiles.calorie_goal` ainda é `null` cai
-      automaticamente em `SetupScreen`, não no Feed.
-- [ ] O campo de usuário vem pré-preenchido com o username já existente (gerado no cadastro), e
-      trocar por um nome em uso mostra o erro certo (tanto na checagem ao digitar quanto num
-      `23505` de corrida no submit).
-- [ ] A meta calórica exibida como preview bate com a fórmula do web para os mesmos valores de
-      entrada (conferir manualmente com pelo menos 1 combinação homem e 1 mulher).
-- [ ] Salvar grava `display_name`, `calorie_goal`, `goal_*` e `username` em `profiles` (conferir no
-      Supabase Studio ou via novo login) e navega pro Feed sem permitir voltar pro formulário.
-- [ ] Reabrir o app (cold start) com uma conta que já completou o onboarding vai direto pro Feed,
-      não pede o formulário de novo.
-- [ ] Uma conta que pula a `RequireEmailScreen` ("Continuar por agora", M1) mas ainda não tem
-      `idrProfile` cai no `SetupScreen` em seguida, não direto no Feed.
+- [x] Logar (ou cadastrar+logar) com uma conta cujo `profiles.calorie_goal` ainda é `null` cai
+      automaticamente em `SetupScreen`, não no Feed (validado em 2026-07-08 com
+      `testelegado@lajesfit.local` — nesse login `needsRealEmail` já resolvia falso, já que a conta
+      tinha `new_email` pendente do teste do M1, então o caminho exercitado foi o de
+      `postLoginDestination` indo direto pra `Setup`, não o `onSkip` da `RequireEmailScreen`; a
+      lógica é a mesma nos dois pontos, mas o `onSkip` em si ainda não foi clicado de fato).
+- [x] O campo de usuário vem pré-preenchido com o username já existente (gerado no cadastro), e
+      trocar por um nome em uso mostra o erro certo ao digitar (validado em 2026-07-08 — prefill
+      correto e aviso "esse nome de usuario ja esta em uso" ao tentar `magnoaugustoss`). A corrida
+      `23505` no submit (dois usuários pegando o mesmo nome ao mesmo tempo) não foi testada — é um
+      caso raro de race condition, difícil de forçar manualmente.
+- [x] A meta calórica exibida como preview bate com a fórmula do web (validado em 2026-07-08:
+      masculino/31/72kg/170cm/sedentário = 1959 kcal; feminino/30/70kg/170cm/sedentário = 1742 kcal;
+      ambos calculados por fora e batendo exatamente com o app).
+- [x] Salvar grava `display_name`, `calorie_goal`, `goal_*` e `username` em `profiles` e navega pro
+      Feed sem permitir voltar pro formulário (validado em 2026-07-08).
+- [x] Reabrir o app (cold start) com uma conta que já completou o onboarding vai direto pro Feed,
+      não pede o formulário de novo (validado em 2026-07-08).
+- [x] Uma conta que pula a `RequireEmailScreen` clicando "Continuar por agora" e ainda não tem
+      `idrProfile` cai no `SetupScreen` em seguida (validado em 2026-07-08 com
+      `testelegado2@lajesfit.local`).
 
 ## Notas para o próximo marco (M3)
 

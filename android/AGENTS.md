@@ -1,19 +1,53 @@
 # LajesFit Android — instruções para o Codex
 
-Você é o agente responsável pelo desenvolvimento contínuo do app Android nativo do LajesFit,
-trabalhando diretamente com o usuário (não orquestrado por outra IA). Este arquivo existe pra você
-conseguir operar com autonomia entre sessões, sem precisar reconstruir contexto do zero a cada vez.
+Você é um **agente autônomo** no desenvolvimento do app Android nativo do LajesFit. O projeto pode
+ser executado tanto pelo **Codex** quanto pelo **Claude Code**, com igualdade de autonomia: nenhum
+dos dois é fiscalizador, líder fixo ou mero implementador por padrão. O agente que assume uma
+tarefa aprovada passa a ser dono daquele escopo até concluir, entregar handoff ou registrar
+bloqueio no quadro.
 
 **Leia `CLAUDE.md` (mesma pasta) inteiro antes de qualquer coisa** — é a fonte da verdade sobre
-arquitetura, marcos (M0-M8) e o que NÃO portar do app web. As decisões de arquitetura lá são
-fechadas (não redecida). Este arquivo complementa com: o processo que você deve seguir sozinho, o
-estado atual do projeto, e coisas específicas de ambiente/ferramenta que já foram descobertas na
-prática (evite redescobrir do zero).
+arquitetura, marcos (M0-M8), o protocolo compartilhado entre agentes e o que NÃO portar do app
+web. As decisões de arquitetura lá são fechadas (não redecida). Este arquivo complementa com:
+regras específicas para o Codex, o estado atual do projeto, e coisas de ambiente/ferramenta já
+descobertas na prática (evite redescobrir do zero).
+
+## Trabalho em equipe — coordenação entre pares
+
+O quadro compartilhado da equipe é `specs/COORDENACAO.md`. Estas regras existem para que Codex e
+Claude possam trabalhar no mesmo checkout sem implementar coisas conflitantes:
+
+1. **Uma tarefa por agente, com escopo de arquivos explícito.** Antes de editar uma tarefa de
+   marco, registre ou atualize a linha dela no quadro com dono, spec/sub-parte e arquivos
+   reservados. Se um briefing do usuário ou de outro agente listar arquivos permitidos, trate essa
+   lista como contrato.
+2. **Leia `specs/COORDENACAO.md` antes de editar qualquer arquivo.** Arquivo reservado a uma tarefa
+   aberta de outro agente é intocável. Arquivos de integração sensíveis (`specs/*`,
+   `../supabase/migrations/*`, `gradle/libs.versions.toml`, `app/build.gradle.kts`,
+   `AndroidManifest.xml`, `navigation/*`) não pertencem a um modelo específico; pertencem ao agente
+   que os reservar para a tarefa em andamento.
+3. **Não duplique**: não implemente função/tela/rota que pertença a outra tarefa aberta no
+   quadro, mesmo que "só pra ajudar" — é exatamente o conflito que este protocolo evita.
+4. **Handoff obrigatório**: termine toda tarefa com uma mensagem final contendo o que foi feito,
+   a lista exata de arquivos tocados, validações executadas, o que ficou de fora ou bloqueado, e o
+   que precisa do usuário ou do outro agente. Atualize também o status/notas da sua tarefa em
+   `specs/COORDENACAO.md`.
+5. **Permissões e ambiente**: cada agente usa os acessos disponíveis na própria sessão. Se algo
+   bloquear (device/adb, escrita fora do workspace, daemon Gradle global), registre no handoff e
+   peça ao usuário ou ao outro agente com acesso para executar. Build dentro do sandbox do Codex
+   funciona com o cache repo-local (ver "Ambiente de build").
+6. **Commits**: em modo direto ou em execução autônoma, o agente que conclui uma sub-parte aprovada
+   pode buildar e commitar com mensagem curta em português, seguindo o padrão do `git log`, salvo
+   se o usuário pedir explicitamente para não commitar.
+7. **Failover simétrico**: se qualquer agente cair no meio de uma tarefa, o outro pode assumir.
+   Antes de continuar, leia `specs/COORDENACAO.md`, `git status` e `git diff`, herde as reservas da
+   tarefa aberta e continue do ponto real do diff — nunca recomece do zero nem reverta trabalho
+   parcial sem pedido explícito do usuário.
 
 ## Processo — spec-driven development, com um gate de aprovação humana
 
-O `CLAUDE.md` já estabelece isso, mas é o ponto mais importante pra você operando sem supervisão
-constante, então repetindo com ênfase:
+O gate de aprovação é sempre humano. Codex e Claude podem escrever specs, revisar specs, implementar
+e validar; nenhum dos dois substitui a aprovação do usuário antes de começar um marco novo.
 
 1. Antes de escrever código de um marco (`M<n>`), confira se existe `specs/M<n>-<nome>.md`.
 2. **Se não existir spec, escreva você mesmo primeiro** (baseada nos marcos M0-M8 descritos em
@@ -29,9 +63,9 @@ constante, então repetindo com ênfase:
    divisão antes de começar). Nunca implemente mais de um marco, ou mais de uma sub-parte de um
    marco grande, numa sessão só.
 5. Termine cada sub-parte com o projeto num estado que compilaria (ver "Ambiente de build"
-   abaixo pra verificar de verdade, não só supor) e **um commit pequeno** — é assim que o
-   `CLAUDE.md` pede pra fechar cada etapa. Mensagem de commit curta, em português, estilo dos
-   commits já existentes (`git log` pra ver o padrão).
+   abaixo pra verificar de verdade, não só supor) e **um commit pequeno**, a menos que o usuário
+   peça para deixar sem commit. Mensagem de commit curta, em português, estilo dos commits já
+   existentes (`git log` pra ver o padrão).
 6. Pare aí. Não empilhe a próxima sub-parte "pra adiantar" — deixe o usuário decidir quando
    continuar.
 
@@ -50,11 +84,12 @@ constante, então repetindo com ênfase:
 **Pegadinha de sandbox (se você estiver rodando em modo não-interativo/sandboxed, ex. `codex exec
 -s workspace-write`)**: nessa máquina Windows, esse sandbox roda com um token restrito que não
 consegue adquirir o lock do daemon do Gradle em `C:\Users\magno\.gradle\daemon\...`, mesmo
-liberando a pasta com `--add-dir` — não é escopo de diretório, é token/ACL do Windows. Se isso
-acontecer, não fique tentando workarounds em loop (redirecionar `GRADLE_USER_HOME` funciona mas
-força um cache frio, 30+ min). Se estiver rodando interativo com o usuário presente, é mais simples
-pedir pra ele rodar o build (ou aprovar acesso irrestrito pra esse comando específico) do que brigar
-com o sandbox.
+liberando a pasta com `--add-dir` — não é escopo de diretório, é token/ACL do Windows. **Solução
+que funciona hoje**: usar o cache Gradle repo-local `.gradle-user-home/` (gitignored e já aquecido
+por builds anteriores — não é mais o cache frio de 30+ min): defina `GRADLE_USER_HOME` para
+`<raiz de android/>\.gradle-user-home` antes de rodar `gradlew.bat`. Instalação em device
+(`installDebug`/adb) pode continuar fora do alcance do sandbox — peça ao usuário ou ao outro agente via
+handoff.
 
 ## Erros de compilação já vistos neste projeto (não repetir)
 
@@ -66,23 +101,20 @@ com o sandbox.
   `Duration`, não segundos como `Int` — `import kotlin.time.Duration.Companion.seconds` e
   `(segundos).seconds`.
 
-## Estado atual do projeto (snapshot em 2026-07-09, atualizado por uma sessão de Claude Code —
+## Estado atual do projeto (snapshot em 2026-07-09, atualizado por sessões de Claude/Codex —
 confira `git log`/`git status` pra atualizar)
 
 - **M0-M4 commitados**: scaffolding, Supabase+Auth, Onboarding, Feed, Dieta completa (sub-partes
   1-4). Ver `git log` para os commits exatos.
-- **M5 (Treinos, `specs/M5-treinos.md`) sub-partes 1-4 concluídas no Android**: histórico/totais do
+- **M5 (Treinos, `specs/M5-treinos.md`) sub-partes 1-5 concluídas no Android**: histórico/totais do
   mês, treino manual com foto (criar/editar/excluir + sync do post), base Health Connect
   (dependência, manifest, rationale Activity, fluxo de permissão) e importação de sessões do
   Health Connect (leitura de `ExerciseSessionRecord` do mês atual, agregação de distância/calorias,
   upsert com dedupe por `(user_id, health_connect_record_id)`, criação/atualização de posts, botão
-  "Sincronizar" na tela). Migration
-  `../supabase/migrations/20260720120000_health_connect_workouts.sql` já criada (Claude Code tem
-  acesso de escrita em `../supabase`, ao contrário do sandbox do Codex — não é mais um bloqueio).
-  **Faltam**: sub-parte 5 (somar calorias de treino no resumo do M4) e confirmação de build/
-  `installDebug`/sincronização real num device físico (nenhuma sessão até agora, Claude ou Codex,
-  rodou isso num device de verdade para M5 — ver os itens em aberto no "Feito quando" de
-  `specs/M5-treinos.md`).
+  "Sincronizar" na tela) e ligação com Dieta (calorias de treino do dia em `Queimado`/restante).
+  Migration `../supabase/migrations/20260720120000_health_connect_workouts.sql` já criada.
+  **Falta** validar a sincronização real do Health Connect em device/emulador Android 9+; o device
+  de desenvolvimento testado roda Android 8.1 e só permite confirmar o estado "indisponível".
 
 ## Convenções de código já estabelecidas (espelhe, não reinvente)
 
@@ -104,9 +136,8 @@ confira `git log`/`git status` pra atualizar)
 
 ## Contexto de como este arquivo surgiu
 
-Até 2026-07-09, uma sessão de Claude Code supervisionou parte do desenvolvimento do M4, delegando
-implementação pra você via `codex exec` e fazendo build/install manualmente por causa da pegadinha
-de sandbox descrita acima. A partir de agora, o usuário vai continuar o projeto trabalhando com
-você diretamente (sem Claude Code no meio) até voltar a usar Claude Code depois. Isso não muda
-nada do processo — as mesmas regras de `CLAUDE.md` valem, só que agora é você quem interage com o
-usuário e decide quando commitar/parar, em vez de outra IA fazer isso por cima.
+Em 2026-07-09, uma sessão de Claude Code supervisionou parte do desenvolvimento do M4 delegando
+implementação para o Codex via `codex exec`; depois houve trabalho direto do Codex com o usuário e
+um período de coordenação hierárquica. O arranjo vigente agora é **autonomia simétrica**: Codex e
+Claude podem planejar, implementar, validar e commitar sub-partes aprovadas, desde que reservem
+escopo no quadro e respeitem o gate humano de spec.

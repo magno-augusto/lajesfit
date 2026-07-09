@@ -11,3 +11,8 @@ local.properties
 
 # Gerado pelo Firebase Console; ver android/CLAUDE.md.
 app/google-services.json
+
+# Agentes Claude/Codex (ver CLAUDE.md, seção "Equipe de agentes"): cache Gradle repo-local usado
+# em builds sandboxed, e última mensagem do codex exec.
+.gradle-user-home/
+codex-handoff.md

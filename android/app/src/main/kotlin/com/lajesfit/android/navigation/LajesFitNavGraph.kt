@@ -17,6 +17,7 @@ import com.lajesfit.android.feature.auth.ResetPasswordScreen
 import com.lajesfit.android.feature.auth.SignUpScreen
 import com.lajesfit.android.feature.challenges.ChallengesScreen
 import com.lajesfit.android.feature.diet.AddEditMealScreen
+import com.lajesfit.android.feature.diet.BarcodeScannerScreen
 import com.lajesfit.android.feature.diet.DietScreen
 import com.lajesfit.android.feature.feed.CommentsScreen
 import com.lajesfit.android.feature.feed.CreatePostScreen
@@ -43,7 +44,11 @@ fun LajesFitNavGraph(
                 onOpenComments = { postId -> navController.navigate(PopOverRoutes.commentsRoute(postId)) },
             )
         }
-        composable(BottomNavDestination.Diet.route) { DietScreen() }
+        composable(BottomNavDestination.Diet.route) {
+            DietScreen(
+                onAddMeal = { meal, date -> navController.navigate(PopOverRoutes.addMealRoute(meal.value, date.toString())) },
+            )
+        }
         composable(BottomNavDestination.Workouts.route) { WorkoutsScreen() }
         composable(BottomNavDestination.Challenges.route) { ChallengesScreen() }
 
@@ -59,8 +64,39 @@ fun LajesFitNavGraph(
                 },
             )
         }
-        composable(PopOverRoutes.AddMeal) {
-            AddEditMealScreen(onDone = { navController.popBackStack() })
+        composable(
+            route = PopOverRoutes.AddMeal,
+            arguments = listOf(
+                navArgument("meal") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("date") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+            ),
+        ) {
+            val scannedFoodJson = it.savedStateHandle.get<String>(SCANNED_FOOD_RESULT_KEY)
+            AddEditMealScreen(
+                onDone = { navController.popBackStack() },
+                onOpenBarcodeScanner = { navController.navigate(PopOverRoutes.BarcodeScanner) },
+                scannedFoodJson = scannedFoodJson,
+            )
+            it.savedStateHandle.remove<String>(SCANNED_FOOD_RESULT_KEY)
+        }
+        composable(PopOverRoutes.BarcodeScanner) {
+            BarcodeScannerScreen(
+                onDone = { navController.popBackStack() },
+                onFoodFound = { foodJson ->
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set(SCANNED_FOOD_RESULT_KEY, foodJson)
+                    navController.popBackStack()
+                },
+            )
         }
         composable(PopOverRoutes.AddWorkout) {
             AddWorkoutScreen(onDone = { navController.popBackStack() })
@@ -149,6 +185,8 @@ fun LajesFitNavGraph(
         }
     }
 }
+
+private const val SCANNED_FOOD_RESULT_KEY = "diet_scanned_food"
 
 /** Depois de login/recovery: RequireEmail p/ conta legada, Setup se falta o objetivo calorico,
  * senao Feed direto. */

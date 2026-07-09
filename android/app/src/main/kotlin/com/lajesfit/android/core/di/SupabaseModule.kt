@@ -10,7 +10,15 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
+import io.github.jan.supabase.storage.Storage
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.okhttp.OkHttp
+import io.ktor.client.plugins.DefaultRequest
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.request.header
+import io.ktor.serialization.kotlinx.json.json
 import javax.inject.Singleton
+import kotlinx.serialization.json.Json
 
 /**
  * Mesmo projeto Supabase do app web (../src/integrations/supabase/client.ts) - mesmo banco,
@@ -35,5 +43,17 @@ object SupabaseModule {
             host = "auth"
         }
         install(Postgrest)
+        install(Storage)
+    }
+
+    @Provides
+    @Singleton
+    fun provideOpenFoodFactsHttpClient(): HttpClient = HttpClient(OkHttp) {
+        install(ContentNegotiation) {
+            json(Json { ignoreUnknownKeys = true })
+        }
+        install(DefaultRequest) {
+            header("User-Agent", "LajesFit/1.0 (https://lajesfit.vercel.app)")
+        }
     }
 }

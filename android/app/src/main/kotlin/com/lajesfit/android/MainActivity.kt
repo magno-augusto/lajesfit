@@ -197,7 +197,7 @@ private fun NewActionFab(navController: NavHostController) {
                 text = { Text("Refeicao") },
                 onClick = {
                     expanded = false
-                    navController.navigate(PopOverRoutes.AddMeal)
+                    navController.navigate(PopOverRoutes.addMealRoute())
                 },
             )
             DropdownMenuItem(

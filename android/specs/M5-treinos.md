@@ -2,8 +2,10 @@
 
 Status: **aprovado em 2026-07-09; sub-partes 1-4 Android concluidas** (historico/totais, treino
 manual com foto, base Health Connect e importacao de sessoes). Migration de Health Connect criada em
-`../supabase/migrations/20260720120000_health_connect_workouts.sql`. Confirmacao de sincronizacao
-real num device fisico ainda pendente (ver notas de execucao).
+`../supabase/migrations/20260720120000_health_connect_workouts.sql`. Build/`installDebug`/abertura
+sem crash confirmados no device de desenvolvimento (SM-G610M, Android 8.1.0) - mas esse aparelho
+trava abaixo da versao minima do Health Connect (Android 9+), entao a sincronizacao real ainda
+precisa ser validada num device ou emulador compativel (ver notas de execucao).
 
 ## Objetivo
 
@@ -181,13 +183,14 @@ No Android, Health Connect substitui Strava neste marco.
 - [x] Editar um treino manual atualiza `workouts` e o post relacionado.
 - [x] Excluir treino remove o registro e o post relacionado deixa de aparecer por cascade.
 - [x] Health Connect mostra estado correto quando indisponivel, quando falta permissao e quando esta
-      pronto para sincronizar.
+      pronto para sincronizar. Confirmado em 2026-07-09 no device real (SM-G610M): mostra
+      "indisponivel", que e o esperado (ver nota abaixo sobre versao minima de Android).
 - [ ] Conceder permissao e sincronizar importa sessoes reais do dispositivo para `workouts`
-      (implementado; falta confirmar num device real).
+      (implementado; **bloqueado** no device de desenvolvimento atual - ver nota abaixo).
 - [ ] Rodar a sincronizacao duas vezes nao duplica sessoes ja importadas
-      (implementado via upsert com indice unico; falta confirmar num device real).
+      (implementado via upsert com indice unico; **bloqueado** no device de desenvolvimento atual).
 - [ ] Treinos importados do Health Connect tambem geram posts no feed
-      (implementado; falta confirmar num device real).
+      (implementado; **bloqueado** no device de desenvolvimento atual).
 - [x] `HealthPermissionRationaleActivity` esta declarada no manifest com o intent-filter correto.
 - [x] Todas as telas novas tem `@Preview(showBackground = true)`.
 
@@ -209,7 +212,16 @@ commit pequeno:
    `HealthConnectClient.aggregate`, upsert com `onConflict = "user_id,health_connect_record_id"` e
    sincronizacao de post por treino novo/atualizado, botao "Sincronizar" na `WorkoutsScreen`).
    Migration criada (indice unico **nao parcial**, ver comentario no arquivo da migration sobre por
-   que um indice parcial nao seria elegivel como arbitro do `ON CONFLICT` via PostgREST). Teste de
-   reimportacao (dedupe) e execucao num device real ainda pendentes.
+   que um indice parcial nao seria elegivel como arbitro do `ON CONFLICT` via PostgREST). Build,
+   `installDebug` e abertura sem crash confirmados em 2026-07-09 no device de desenvolvimento
+   (SM-G610M / Galaxy J7 Prime, Android 8.1.0) via ADB sem fio.
+   **Limitacao de hardware descoberta nesse teste**: Health Connect exige Android 9+, e o J7 Prime
+   trava permanentemente no Android 8.1 (Samsung nunca liberou update). `HealthConnectClient.
+   getSdkStatus()` retorna indisponivel de forma definitiva nesse aparelho - nao e bug, e o
+   comportamento correto (a tela mostra o estado certo). Mas isso significa que o fluxo real de
+   sincronizacao (ler sessoes, importar, dedupe, gerar posts) **nao pode ser validado ponta a ponta
+   no device de desenvolvimento atual** - precisa de um aparelho ou emulador com Android 9+ pra
+   fechar os itens pendentes do "Feito quando" acima. Ate la, esses itens ficam como implementados
+   mas nao confirmados.
 5. **Ligacao com Dieta**: se couber sem abrir demais o escopo, somar calorias de treinos do dia no
    resumo do M4; caso contrario, deixar como refinamento logo apos M5.

@@ -23,3 +23,13 @@ data class LocalWorkout(
     val stravaActivityId: Long?,
     val healthConnectRecordId: String?,
 )
+
+data class WorkoutInput(
+    val activityType: String,
+    val title: String?,
+    val distanceMeters: Double?,
+    val durationSeconds: Int?,
+    val calories: Double?,
+    val performedAt: String,
+    val mediaUrl: String?,
+)

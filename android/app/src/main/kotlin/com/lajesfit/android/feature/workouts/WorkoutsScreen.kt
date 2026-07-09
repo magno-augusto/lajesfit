@@ -14,6 +14,8 @@ import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Straighten
 import androidx.compose.material3.Button
@@ -21,6 +23,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,16 +46,24 @@ import kotlin.math.roundToInt
 @Composable
 fun WorkoutsScreen(
     onAddWorkout: () -> Unit,
+    onEditWorkout: (String) -> Unit,
     viewModel: WorkoutsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    WorkoutsScreenContent(uiState = uiState, onAddWorkout = onAddWorkout)
+    WorkoutsScreenContent(
+        uiState = uiState,
+        onAddWorkout = onAddWorkout,
+        onEditWorkout = onEditWorkout,
+        onRemoveWorkout = viewModel::removeWorkout,
+    )
 }
 
 @Composable
 private fun WorkoutsScreenContent(
     uiState: WorkoutsUiState,
     onAddWorkout: () -> Unit,
+    onEditWorkout: (String) -> Unit,
+    onRemoveWorkout: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -101,7 +112,12 @@ private fun WorkoutsScreenContent(
                 }
             } else {
                 items(uiState.workouts, key = { it.id }) { workout ->
-                    WorkoutCard(workout = workout, modifier = Modifier.fillMaxWidth())
+                    WorkoutCard(
+                        workout = workout,
+                        onEdit = { onEditWorkout(workout.id) },
+                        onRemove = { onRemoveWorkout(workout.id) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
             }
         }
@@ -141,7 +157,12 @@ private fun MonthStat(
 }
 
 @Composable
-private fun WorkoutCard(workout: LocalWorkout, modifier: Modifier = Modifier) {
+private fun WorkoutCard(
+    workout: LocalWorkout,
+    onEdit: () -> Unit,
+    onRemove: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Card(modifier = modifier) {
         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -167,6 +188,12 @@ private fun WorkoutCard(workout: LocalWorkout, modifier: Modifier = Modifier) {
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                }
+                IconButton(onClick = onEdit) {
+                    Icon(Icons.Filled.Edit, contentDescription = "Editar treino")
+                }
+                IconButton(onClick = onRemove) {
+                    Icon(Icons.Filled.Delete, contentDescription = "Remover treino")
                 }
             }
             HorizontalDivider()
@@ -234,6 +261,8 @@ private fun WorkoutsScreenPreview() {
                 isLoading = false,
             ),
             onAddWorkout = {},
+            onEditWorkout = {},
+            onRemoveWorkout = {},
         )
     }
 }

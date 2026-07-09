@@ -25,6 +25,7 @@ import com.lajesfit.android.feature.feed.FeedScreen
 import com.lajesfit.android.feature.feed.FeedViewModel
 import com.lajesfit.android.feature.goals.SetupScreen
 import com.lajesfit.android.feature.workouts.AddWorkoutScreen
+import com.lajesfit.android.feature.workouts.WorkoutsViewModel
 import com.lajesfit.android.feature.workouts.WorkoutsScreen
 import kotlinx.coroutines.launch
 
@@ -50,7 +51,10 @@ fun LajesFitNavGraph(
             )
         }
         composable(BottomNavDestination.Workouts.route) {
-            WorkoutsScreen(onAddWorkout = { navController.navigate(PopOverRoutes.AddWorkout) })
+            WorkoutsScreen(
+                onAddWorkout = { navController.navigate(PopOverRoutes.addWorkoutRoute()) },
+                onEditWorkout = { workoutId -> navController.navigate(PopOverRoutes.addWorkoutRoute(workoutId)) },
+            )
         }
         composable(BottomNavDestination.Challenges.route) { ChallengesScreen() }
 
@@ -100,8 +104,24 @@ fun LajesFitNavGraph(
                 },
             )
         }
-        composable(PopOverRoutes.AddWorkout) {
-            AddWorkoutScreen(onDone = { navController.popBackStack() })
+        composable(
+            route = PopOverRoutes.AddWorkout,
+            arguments = listOf(
+                navArgument("workoutId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+            ),
+        ) {
+            AddWorkoutScreen(
+                onDone = {
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set(WorkoutsViewModel.REFRESH_KEY, true)
+                    navController.popBackStack()
+                },
+            )
         }
         composable(
             route = PopOverRoutes.Comments,

@@ -1,6 +1,7 @@
 package com.lajesfit.android.feature.workouts
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
@@ -31,6 +32,7 @@ data class WorkoutsUiState(
 
 @HiltViewModel
 class WorkoutsViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
     private val workoutRepository: WorkoutRepository,
 ) : ViewModel() {
 
@@ -39,6 +41,14 @@ class WorkoutsViewModel @Inject constructor(
 
     init {
         load()
+        viewModelScope.launch {
+            savedStateHandle.getStateFlow(REFRESH_KEY, false).collect { shouldRefresh ->
+                if (shouldRefresh) {
+                    savedStateHandle[REFRESH_KEY] = false
+                    load()
+                }
+            }
+        }
     }
 
     fun refresh() {
@@ -61,6 +71,21 @@ class WorkoutsViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun removeWorkout(id: String) {
+        viewModelScope.launch {
+            try {
+                workoutRepository.removeWorkout(id)
+                _uiState.update { state -> state.copy(workouts = state.workouts.filterNot { it.id == id }) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = e.message ?: "Nao foi possivel remover o treino") }
+            }
+        }
+    }
+
+    companion object {
+        const val REFRESH_KEY = "workouts_refresh"
     }
 }
 

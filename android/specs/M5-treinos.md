@@ -1,8 +1,8 @@
 # M5 - Treinos
 
-Status: **aprovado em 2026-07-09; sub-parte 1 Android concluida** (leitura real, historico e
-totais do mes). A migration de Health Connect continua pendente porque fica em `../supabase`, fora
-do writable root atual desta sessao.
+Status: **aprovado em 2026-07-09; sub-partes 1-2 Android concluidas** (historico/totais e treino
+manual com foto). A migration de Health Connect continua pendente porque fica em `../supabase`,
+fora do writable root atual desta sessao.
 
 ## Objetivo
 
@@ -172,13 +172,13 @@ No Android, Health Connect substitui Strava neste marco.
 ## Feito quando
 
 - [ ] Existe migration para `health_connect_record_id`/dedupe e ela e compativel com o schema atual.
-- [ ] Abrir Treinos mostra historico real do usuario a partir de `workouts`, com estado vazio e
+- [x] Abrir Treinos mostra historico real do usuario a partir de `workouts`, com estado vazio e
       loading.
-- [ ] A tela mostra totais do mes coerentes: treinos, tempo, distancia e calorias.
-- [ ] Registrar treino manual com ou sem foto grava em `workouts`, cria post em `posts` e aparece no
+- [x] A tela mostra totais do mes coerentes: treinos, tempo, distancia e calorias.
+- [x] Registrar treino manual com ou sem foto grava em `workouts`, cria post em `posts` e aparece no
       historico.
-- [ ] Editar um treino manual atualiza `workouts` e o post relacionado.
-- [ ] Excluir treino remove o registro e o post relacionado deixa de aparecer por cascade.
+- [x] Editar um treino manual atualiza `workouts` e o post relacionado.
+- [x] Excluir treino remove o registro e o post relacionado deixa de aparecer por cascade.
 - [ ] Health Connect mostra estado correto quando indisponivel, quando falta permissao e quando esta
       pronto para sincronizar.
 - [ ] Conceder permissao e sincronizar importa sessoes reais do dispositivo para `workouts`.
@@ -196,7 +196,7 @@ commit pequeno:
    `WorkoutsScreen` com historico e totais do mes. **Android concluido**; migration pendente em
    `../supabase`.
 2. **Treino manual**: `AddWorkoutScreen`, upload de foto, criar/editar/excluir treino e manter post
-   do feed em sincronia.
+   do feed em sincronia. **Concluido no Android**.
 3. **Health Connect base**: dependencia, manifest, rationale Activity, disponibilidade e fluxo de
    permissao.
 4. **Importacao Health Connect**: leitura/agregacao de sessoes, dedupe, upsert em `workouts`,

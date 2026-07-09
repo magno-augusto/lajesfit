@@ -204,7 +204,7 @@ private fun NewActionFab(navController: NavHostController) {
                 text = { Text("Treino") },
                 onClick = {
                     expanded = false
-                    navController.navigate(PopOverRoutes.AddWorkout)
+                    navController.navigate(PopOverRoutes.addWorkoutRoute())
                 },
             )
         }

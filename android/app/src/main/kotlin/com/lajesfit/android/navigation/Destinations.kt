@@ -26,7 +26,7 @@ object PopOverRoutes {
     const val CreatePost = "post/create"
     const val AddMeal = "meal/add?meal={meal}&date={date}"
     const val BarcodeScanner = "diet/scanner"
-    const val AddWorkout = "workout/add"
+    const val AddWorkout = "workout/add?workoutId={workoutId}"
     const val Comments = "post/{postId}/comments"
 
     fun addMealRoute(meal: String? = null, date: String? = null): String {
@@ -37,6 +37,9 @@ object PopOverRoutes {
         return if (params.isEmpty()) "meal/add" else "meal/add?${params.joinToString("&")}"
     }
     fun commentsRoute(postId: String) = "post/$postId/comments"
+    fun addWorkoutRoute(workoutId: String? = null): String {
+        return workoutId?.let { "workout/add?workoutId=$it" } ?: "workout/add"
+    }
 }
 
 /**

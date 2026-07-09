@@ -30,7 +30,7 @@ data class WorkoutSummary(
     val durationSeconds: Int?,
     val calories: Int?,
     val title: String?,
-    val stravaActivityId: String?,
+    val stravaActivityId: Long?,
 )
 
 data class FeedPost(
@@ -66,7 +66,7 @@ private data class WorkoutRow(
     @SerialName("duration_seconds") val durationSeconds: Int? = null,
     val calories: Int? = null,
     val title: String? = null,
-    @SerialName("strava_activity_id") val stravaActivityId: String? = null,
+    @SerialName("strava_activity_id") val stravaActivityId: Long? = null,
 ) {
     fun toSummary() = WorkoutSummary(
         id = id,

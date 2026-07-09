@@ -281,7 +281,7 @@ Estender `AuthRepository.kt` quando necessario:
 - [x] Posts do perfil usam dados reais, respeitam privacidade e permitem apagar post proprio.
 - [x] Busca de pessoas replica sanitizacao, debounce, limite 20 e abre o perfil selecionado.
 - [ ] Configuracoes carregam e salvam nome, bio, avatar, privacidade e preferencias de notificacao.
-- [ ] Avatar sobe para o bucket `media`, gera signed URL de 5 anos e atualiza `profiles.avatar_url`.
+- [x] Avatar sobe para o bucket `media`, gera signed URL de 5 anos e atualiza `profiles.avatar_url`.
 - [ ] Trocar/definir senha, atualizar e-mail real e sair da conta funcionam contra Supabase Auth.
 - [ ] Nenhum fluxo de Strava ou FCM e implementado em M7.
 - [ ] Telas novas tem `@Preview(showBackground = true)`.
@@ -311,7 +311,11 @@ M7 e grande; dividir em sub-partes pequenas, uma por sessao/commit, deixando o a
    display name, exclui o usuario atual, mescla duplicados e limita a 20 resultados; a tela mostra
    campo de busca, loading, vazio, erro e abre `profile/{username}`. Build `:app:assembleDebug`
    confirmado em 2026-07-09.
-5. **Configuracoes de perfil**: editar nome, bio, avatar e privacidade.
+5. **Configuracoes de perfil**: **Concluido**. `SettingsRepository`, `SettingsViewModel` e
+   `SettingsScreen` carregam `profiles`, editam nome/bio, fazem upload de avatar no bucket
+   `media` com signed URL de 5 anos e atualizam privacidade. A tela usa Photo Picker nativo, sem
+   permissao de armazenamento, e nao porta Strava. Build `:app:assembleDebug` confirmado em
+   2026-07-09.
 6. **Seguranca e preferencias**: notificacoes por tipo, e-mail, senha, logout e polimento final.
 
 Nao iniciar uma sub-parte nova enquanto a anterior nao estiver validada e commitada. Como a M6

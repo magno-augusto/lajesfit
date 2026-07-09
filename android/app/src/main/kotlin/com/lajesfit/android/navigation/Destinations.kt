@@ -26,6 +26,9 @@ object PopOverRoutes {
     const val CreatePost = "post/create"
     const val AddMeal = "meal/add"
     const val AddWorkout = "workout/add"
+    const val Comments = "post/{postId}/comments"
+
+    fun commentsRoute(postId: String) = "post/$postId/comments"
 }
 
 /**

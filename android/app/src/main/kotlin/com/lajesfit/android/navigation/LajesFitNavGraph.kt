@@ -5,8 +5,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.lajesfit.android.feature.auth.AuthGateViewModel
 import com.lajesfit.android.feature.auth.ForgotPasswordScreen
 import com.lajesfit.android.feature.auth.LoginScreen
@@ -16,6 +18,7 @@ import com.lajesfit.android.feature.auth.SignUpScreen
 import com.lajesfit.android.feature.challenges.ChallengesScreen
 import com.lajesfit.android.feature.diet.AddEditMealScreen
 import com.lajesfit.android.feature.diet.DietScreen
+import com.lajesfit.android.feature.feed.CommentsScreen
 import com.lajesfit.android.feature.feed.CreatePostScreen
 import com.lajesfit.android.feature.feed.FeedScreen
 import com.lajesfit.android.feature.goals.SetupScreen
@@ -34,7 +37,11 @@ fun LajesFitNavGraph(
         startDestination = startDestination,
         modifier = modifier,
     ) {
-        composable(BottomNavDestination.Feed.route) { FeedScreen() }
+        composable(BottomNavDestination.Feed.route) {
+            FeedScreen(
+                onOpenComments = { postId -> navController.navigate(PopOverRoutes.commentsRoute(postId)) },
+            )
+        }
         composable(BottomNavDestination.Diet.route) { DietScreen() }
         composable(BottomNavDestination.Workouts.route) { WorkoutsScreen() }
         composable(BottomNavDestination.Challenges.route) { ChallengesScreen() }
@@ -49,6 +56,12 @@ fun LajesFitNavGraph(
         }
         composable(PopOverRoutes.AddWorkout) {
             AddWorkoutScreen(onDone = { navController.popBackStack() })
+        }
+        composable(
+            route = PopOverRoutes.Comments,
+            arguments = listOf(navArgument("postId") { type = NavType.StringType }),
+        ) {
+            CommentsScreen(onDone = { navController.popBackStack() })
         }
 
         // Grafo raiz nao-autenticado (M1) - mesmo NavHost, ver android/specs/M1-supabase-auth.md.

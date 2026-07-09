@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -17,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -118,55 +121,65 @@ private fun SignUpScreenContent(
     Column(
         modifier = modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(text = "Criar conta", style = MaterialTheme.typography.headlineMedium)
+        Text(text = "LajesFit", style = MaterialTheme.typography.headlineMedium)
 
-        OutlinedTextField(
-            value = uiState.username,
-            onValueChange = onUsernameChange,
-            label = { Text("Usuario") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
-        )
-        OutlinedTextField(
-            value = uiState.email,
-            onValueChange = onEmailChange,
-            label = { Text("E-mail") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-        )
-        OutlinedTextField(
-            value = uiState.password,
-            onValueChange = onPasswordChange,
-            label = { Text("Senha (minimo 6 caracteres)") },
-            singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-        )
-
-        if (uiState.errorMessage != null) {
-            Text(
-                text = uiState.errorMessage,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(top = 8.dp),
-            )
-        }
-
-        Button(
-            onClick = onSignUpClick,
-            enabled = !uiState.isLoading,
-            modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(top = 18.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         ) {
-            if (uiState.isLoading) {
-                CircularProgressIndicator(modifier = Modifier.size(16.dp).padding(end = 8.dp), strokeWidth = 2.dp)
-            }
-            Text("Criar conta")
-        }
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(text = "Criar conta", style = MaterialTheme.typography.titleMedium)
 
-        TextButton(onClick = onNavigateToLogin, modifier = Modifier.fillMaxWidth()) {
-            Text("Ja tenho conta")
+                OutlinedTextField(
+                    value = uiState.username,
+                    onValueChange = onUsernameChange,
+                    label = { Text("Usuario") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth().padding(top = 18.dp),
+                )
+                OutlinedTextField(
+                    value = uiState.email,
+                    onValueChange = onEmailChange,
+                    label = { Text("E-mail") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                )
+                OutlinedTextField(
+                    value = uiState.password,
+                    onValueChange = onPasswordChange,
+                    label = { Text("Senha (minimo 6 caracteres)") },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                )
+
+                if (uiState.errorMessage != null) {
+                    Text(
+                        text = uiState.errorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
+
+                Button(
+                    onClick = onSignUpClick,
+                    enabled = !uiState.isLoading,
+                    modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                ) {
+                    if (uiState.isLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp).padding(end = 8.dp), strokeWidth = 2.dp)
+                    }
+                    Text("Criar conta")
+                }
+
+                TextButton(onClick = onNavigateToLogin, modifier = Modifier.fillMaxWidth()) {
+                    Text("Ja tenho conta")
+                }
+            }
         }
     }
 }

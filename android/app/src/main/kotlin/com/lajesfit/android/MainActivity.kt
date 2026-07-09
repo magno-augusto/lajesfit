@@ -5,15 +5,23 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Article
+import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -26,9 +34,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -40,6 +51,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -155,6 +167,7 @@ private fun LajesFitAppRoot(
     val showTopBar = currentRoute?.let(::isAuthenticatedTopBarRoute) == true
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = { if (showTopBar) LajesFitTopBar(navController) },
         bottomBar = { if (showChrome) LajesFitBottomBar(navController) },
         floatingActionButton = { if (showChrome) NewActionFab(navController) },
@@ -178,7 +191,27 @@ private fun LajesFitTopBar(
     val profile = uiState.profile
 
     TopAppBar(
-        title = { Text("LajesFit") },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.background,
+            titleContentColor = MaterialTheme.colorScheme.onBackground,
+            actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        ),
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    color = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    shape = CircleShape,
+                    modifier = Modifier.size(34.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text("LF", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    }
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Text("LajesFit", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            }
+        },
         actions = {
             IconButton(
                 onClick = {
@@ -215,7 +248,9 @@ private fun ProfileAvatarAction(
                     model = avatarUrl,
                     contentDescription = "Abrir perfil",
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.size(32.dp).clip(CircleShape),
+                    modifier = Modifier.size(34.dp)
+                        .clip(CircleShape)
+                        .border(BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)), CircleShape),
                 )
             }
             profile != null -> {
@@ -244,7 +279,10 @@ private fun LajesFitBottomBar(navController: NavHostController) {
         BottomNavDestination.entries.any { it.route == destination.route }
     }?.route
 
-    NavigationBar {
+    NavigationBar(
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        tonalElevation = 8.dp,
+    ) {
         BottomNavDestination.entries.forEach { destination ->
             NavigationBarItem(
                 selected = currentRoute == destination.route,
@@ -257,6 +295,13 @@ private fun LajesFitBottomBar(navController: NavHostController) {
                 },
                 icon = { Icon(destination.icon, contentDescription = destination.label) },
                 label = { Text(destination.label) },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                ),
             )
         }
     }
@@ -272,12 +317,18 @@ private fun NewActionFab(navController: NavHostController) {
     var expanded by remember { mutableStateOf(false) }
 
     Box {
-        FloatingActionButton(onClick = { expanded = true }) {
+        FloatingActionButton(
+            onClick = { expanded = true },
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+            shape = CircleShape,
+        ) {
             Icon(Icons.Filled.Add, contentDescription = "Criar novo registro")
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             DropdownMenuItem(
                 text = { Text("Post no feed") },
+                leadingIcon = { Icon(Icons.Filled.Article, contentDescription = null) },
                 onClick = {
                     expanded = false
                     navController.navigate(PopOverRoutes.CreatePost)
@@ -285,6 +336,7 @@ private fun NewActionFab(navController: NavHostController) {
             )
             DropdownMenuItem(
                 text = { Text("Refeicao") },
+                leadingIcon = { Icon(Icons.Filled.Restaurant, contentDescription = null) },
                 onClick = {
                     expanded = false
                     navController.navigate(PopOverRoutes.addMealRoute())
@@ -292,6 +344,7 @@ private fun NewActionFab(navController: NavHostController) {
             )
             DropdownMenuItem(
                 text = { Text("Treino") },
+                leadingIcon = { Icon(Icons.Filled.FitnessCenter, contentDescription = null) },
                 onClick = {
                     expanded = false
                     navController.navigate(PopOverRoutes.addWorkoutRoute())

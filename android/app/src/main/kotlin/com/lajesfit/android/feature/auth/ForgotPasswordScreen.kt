@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -15,6 +17,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -91,49 +94,61 @@ private fun ForgotPasswordScreenContent(
     Column(
         modifier = modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(text = "Esqueci minha senha", style = MaterialTheme.typography.headlineMedium)
+        Text(text = "LajesFit", style = MaterialTheme.typography.headlineMedium)
 
-        if (uiState.emailSent) {
-            Text(
-                text = "Enviamos um link de recuperacao para o e-mail cadastrado nessa conta.",
-                modifier = Modifier.padding(top = 16.dp),
-            )
-        } else {
-            Text(
-                text = "Informe seu usuario para receber um link de recuperacao por e-mail.",
-                modifier = Modifier.padding(top = 8.dp),
-            )
-            OutlinedTextField(
-                value = uiState.username,
-                onValueChange = onUsernameChange,
-                label = { Text("Usuario") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-            )
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(top = 18.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(text = "Esqueci minha senha", style = MaterialTheme.typography.titleMedium)
 
-            if (uiState.errorMessage != null) {
-                Text(
-                    text = uiState.errorMessage,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(top = 8.dp),
-                )
-            }
+                if (uiState.emailSent) {
+                    Text(
+                        text = "Enviamos um link de recuperacao para o e-mail cadastrado nessa conta.",
+                        modifier = Modifier.padding(top = 16.dp),
+                    )
+                } else {
+                    Text(
+                        text = "Informe seu usuario para receber um link de recuperacao por e-mail.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                    OutlinedTextField(
+                        value = uiState.username,
+                        onValueChange = onUsernameChange,
+                        label = { Text("Usuario") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                    )
 
-            Button(
-                onClick = onSubmit,
-                enabled = !uiState.isLoading,
-                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-            ) {
-                if (uiState.isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(16.dp).padding(end = 8.dp), strokeWidth = 2.dp)
+                    if (uiState.errorMessage != null) {
+                        Text(
+                            text = uiState.errorMessage,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(top = 8.dp),
+                        )
+                    }
+
+                    Button(
+                        onClick = onSubmit,
+                        enabled = !uiState.isLoading,
+                        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                    ) {
+                        if (uiState.isLoading) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp).padding(end = 8.dp), strokeWidth = 2.dp)
+                        }
+                        Text("Enviar link de recuperacao")
+                    }
                 }
-                Text("Enviar link de recuperacao")
-            }
-        }
 
-        TextButton(onClick = onNavigateToLogin, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-            Text("Voltar para o login")
+                TextButton(onClick = onNavigateToLogin, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                    Text("Voltar para o login")
+                }
+            }
         }
     }
 }

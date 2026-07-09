@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,8 +22,8 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -247,7 +248,11 @@ private fun FeedScreenContent(
             }
         }
         else -> {
-            LazyColumn(modifier = modifier.fillMaxSize()) {
+            LazyColumn(
+                modifier = modifier.fillMaxSize(),
+                contentPadding = PaddingValues(top = 12.dp, bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
                 items(uiState.posts, key = { it.id }) { post ->
                     PostCard(
                         post = post,
@@ -256,9 +261,8 @@ private fun FeedScreenContent(
                         onDelete = { onRequestDelete(post) },
                         onOpenComments = { onOpenComments(post.id) },
                         onOpenProfile = { onOpenProfile(post.profile.username) },
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     )
-                    HorizontalDivider()
                 }
                 if (uiState.hasMore) {
                     item {
@@ -289,7 +293,10 @@ fun PostCard(
     onOpenProfile: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
-    Card(modifier = modifier) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -370,10 +377,11 @@ fun PostCard(
 
 @Composable
 private fun PostTypeBadge(label: String) {
-    Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.secondaryContainer) {
+    Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.tertiaryContainer) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onTertiaryContainer,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
         )
     }
@@ -405,7 +413,10 @@ private fun PostMedia(mediaUrl: String?) {
     if (mediaUrl == null) return
     val isVideo = VIDEO_EXTENSION_REGEX.containsMatchIn(mediaUrl) || mediaUrl.contains("video", ignoreCase = true)
     if (isVideo) {
-        Card(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        ) {
             Text(
                 text = "Video - abra pelo navegador pra assistir por enquanto",
                 modifier = Modifier.padding(16.dp),
@@ -416,14 +427,17 @@ private fun PostMedia(mediaUrl: String?) {
             model = mediaUrl,
             contentDescription = null,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp).clip(MaterialTheme.shapes.medium),
         )
     }
 }
 
 @Composable
 private fun WorkoutStats(workout: WorkoutSummary) {
-    Card(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+    ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Text(text = workout.title ?: workout.activityType ?: "Treino", style = MaterialTheme.typography.titleSmall)
             val parts = buildList {
@@ -432,7 +446,11 @@ private fun WorkoutStats(workout: WorkoutSummary) {
                 workout.calories?.let { add("$it kcal") }
             }
             if (parts.isNotEmpty()) {
-                Text(text = parts.joinToString(" · "), style = MaterialTheme.typography.bodySmall)
+                Text(
+                    text = parts.joinToString(" · "),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
             }
         }
     }

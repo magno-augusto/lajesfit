@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,8 +17,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -69,8 +70,11 @@ private fun SearchProfilesScreenContent(
         )
 
         uiState.errorMessage?.let { message ->
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Text(message, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(14.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+            ) {
+                Text(message, color = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.padding(14.dp))
             }
         }
 
@@ -87,14 +91,17 @@ private fun SearchProfilesScreenContent(
                 EmptySearchState("Nenhum perfil encontrado.")
             }
             else -> {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     items(uiState.results, key = { it.id }) { result ->
                         SearchResultRow(
                             result = result,
                             onClick = { onOpenProfile(result.username) },
                             modifier = Modifier.fillMaxWidth(),
                         )
-                        HorizontalDivider()
                     }
                 }
             }
@@ -115,19 +122,24 @@ private fun SearchResultRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier.clickable(onClick = onClick).padding(vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    Card(
+        modifier = modifier.clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
     ) {
-        SearchAvatar(result.avatarUrl, result.displayName)
-        Column(modifier = Modifier.weight(1f)) {
-            Text(result.displayName, style = MaterialTheme.typography.titleSmall)
-            Text(
-                "@${result.username}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            SearchAvatar(result.avatarUrl, result.displayName)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(result.displayName, style = MaterialTheme.typography.titleSmall)
+                Text(
+                    "@${result.username}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

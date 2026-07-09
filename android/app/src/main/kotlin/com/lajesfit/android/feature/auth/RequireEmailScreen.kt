@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -17,6 +19,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
@@ -108,54 +111,66 @@ private fun RequireEmailScreenContent(
     Column(
         modifier = modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(text = "Cadastre seu e-mail", style = MaterialTheme.typography.headlineMedium)
-        Text(
-            text = "Sua conta ainda nao tem um e-mail real. Cadastre um para conseguir recuperar " +
-                "sua senha caso a esqueca.",
-            modifier = Modifier.padding(top = 8.dp),
-        )
+        Text(text = "LajesFit", style = MaterialTheme.typography.headlineMedium)
 
-        if (uiState.sentTo != null) {
-            Text(
-                text = "Enviamos um link de confirmacao para ${uiState.sentTo}. Clique no link para concluir.",
-                modifier = Modifier.padding(top = 16.dp),
-            )
-            OutlinedButton(onClick = onSkip, modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
-                Text("Continuar por agora")
-            }
-        } else {
-            OutlinedTextField(
-                value = uiState.email,
-                onValueChange = onEmailChange,
-                label = { Text("E-mail") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-            )
-
-            if (uiState.errorMessage != null) {
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(top = 18.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(text = "Cadastre seu e-mail", style = MaterialTheme.typography.titleMedium)
                 Text(
-                    text = uiState.errorMessage,
-                    color = MaterialTheme.colorScheme.error,
+                    text = "Sua conta ainda nao tem um e-mail real. Cadastre um para conseguir recuperar " +
+                        "sua senha caso a esqueca.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 8.dp),
                 )
-            }
 
-            Button(
-                onClick = onSubmit,
-                enabled = !uiState.isLoading,
-                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-            ) {
-                if (uiState.isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(16.dp).padding(end = 8.dp), strokeWidth = 2.dp)
+                if (uiState.sentTo != null) {
+                    Text(
+                        text = "Enviamos um link de confirmacao para ${uiState.sentTo}. Clique no link para concluir.",
+                        modifier = Modifier.padding(top = 16.dp),
+                    )
+                    OutlinedButton(onClick = onSkip, modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
+                        Text("Continuar por agora")
+                    }
+                } else {
+                    OutlinedTextField(
+                        value = uiState.email,
+                        onValueChange = onEmailChange,
+                        label = { Text("E-mail") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                    )
+
+                    if (uiState.errorMessage != null) {
+                        Text(
+                            text = uiState.errorMessage,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(top = 8.dp),
+                        )
+                    }
+
+                    Button(
+                        onClick = onSubmit,
+                        enabled = !uiState.isLoading,
+                        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                    ) {
+                        if (uiState.isLoading) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp).padding(end = 8.dp), strokeWidth = 2.dp)
+                        }
+                        Text("Salvar e-mail")
+                    }
                 }
-                Text("Salvar e-mail")
-            }
-        }
 
-        TextButton(onClick = onLogout, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-            Text("Sair da conta")
+                TextButton(onClick = onLogout, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                    Text("Sair da conta")
+                }
+            }
         }
     }
 }

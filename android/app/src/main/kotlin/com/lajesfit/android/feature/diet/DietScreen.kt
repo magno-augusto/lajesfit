@@ -3,22 +3,26 @@ package com.lajesfit.android.feature.diet
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -61,6 +65,7 @@ private fun DietScreenContent(
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize().padding(horizontal = 16.dp),
+        contentPadding = PaddingValues(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
@@ -125,20 +130,30 @@ private fun DateStepper(
     onNextDay: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
+    Surface(
         modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        tonalElevation = 1.dp,
     ) {
-        IconButton(onClick = onPreviousDay) {
-            Icon(Icons.Filled.ChevronLeft, contentDescription = "Dia anterior")
-        }
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("Dieta", style = MaterialTheme.typography.titleLarge)
-            Text(selectedDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")))
-        }
-        IconButton(onClick = onNextDay) {
-            Icon(Icons.Filled.ChevronRight, contentDescription = "Proximo dia")
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            IconButton(onClick = onPreviousDay) {
+                Icon(Icons.Filled.ChevronLeft, contentDescription = "Dia anterior")
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Dieta", style = MaterialTheme.typography.titleLarge)
+                Text(
+                    selectedDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            IconButton(onClick = onNextDay) {
+                Icon(Icons.Filled.ChevronRight, contentDescription = "Proximo dia")
+            }
         }
     }
 }
@@ -152,7 +167,10 @@ private fun CalorieSummary(
     percent: Float,
     modifier: Modifier = Modifier,
 ) {
-    Card(modifier = modifier) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+    ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Restante", style = MaterialTheme.typography.titleMedium)
@@ -161,6 +179,8 @@ private fun CalorieSummary(
             LinearProgressIndicator(
                 progress = { percent / 100f },
                 modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             )
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Meta ${goal ?: 0}")
@@ -185,14 +205,17 @@ private fun MealSectionHeader(mealType: MealType, onClick: () -> Unit) {
 
 @Composable
 private fun MealCard(meal: LocalMeal, modifier: Modifier = Modifier) {
-    Card(modifier = modifier) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    ) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             meal.photoUrl?.let { photoUrl ->
                 AsyncImage(
                     model = photoUrl,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium),
                 )
             }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {

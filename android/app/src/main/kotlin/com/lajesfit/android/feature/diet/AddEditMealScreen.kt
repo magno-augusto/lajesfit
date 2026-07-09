@@ -5,6 +5,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,6 +20,7 @@ import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,6 +36,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -114,8 +117,13 @@ private fun AddEditMealContent(
     onSave: () -> Unit,
 ) {
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                ),
                 title = { Text(uiState.meal.label) },
                 navigationIcon = {
                     IconButton(onClick = onDone) {
@@ -127,6 +135,7 @@ private fun AddEditMealContent(
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
+            contentPadding = PaddingValues(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
@@ -139,7 +148,11 @@ private fun AddEditMealContent(
                         modifier = Modifier.weight(1f),
                     )
                     IconButton(onClick = onOpenBarcodeScanner) {
-                        Icon(Icons.Filled.QrCodeScanner, contentDescription = "Escanear codigo de barras")
+                        Icon(
+                            Icons.Filled.QrCodeScanner,
+                            contentDescription = "Escanear codigo de barras",
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
                     }
                 }
             }
@@ -195,7 +208,7 @@ private fun AddEditMealContent(
                 Button(
                     onClick = onSave,
                     enabled = !uiState.isSaving,
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(if (uiState.isSaving) "Salvando..." else "Salvar refeicao")
                 }
@@ -206,7 +219,16 @@ private fun AddEditMealContent(
 
 @Composable
 private fun FoodResultRow(food: TacoFood, selected: Boolean, onClick: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)) {
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(
+            containerColor = if (selected) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerLow
+            },
+        ),
+    ) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(food.name, style = MaterialTheme.typography.titleSmall)
             Text(
@@ -214,7 +236,13 @@ private fun FoodResultRow(food: TacoFood, selected: Boolean, onClick: () -> Unit
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            if (selected) Text("Selecionado", color = MaterialTheme.colorScheme.primary)
+            if (selected) {
+                Text(
+                    "Selecionado",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
         }
     }
 }
@@ -230,7 +258,10 @@ private fun SelectedFoodCard(
     onAdd: () -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    ) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(food.name, style = MaterialTheme.typography.titleMedium)
             ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
@@ -281,7 +312,10 @@ private fun ManualFoodForm(
     onFatChange: (String) -> Unit,
     onAdd: () -> Unit,
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    ) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("Cadastrar alimento", style = MaterialTheme.typography.titleMedium)
             OutlinedTextField(uiState.manualName, onNameChange, label = { Text("Nome") }, modifier = Modifier.fillMaxWidth())
@@ -315,7 +349,10 @@ private fun MacroField(label: String, value: String, onValueChange: (String) -> 
 
 @Composable
 private fun SessionItemsCard(uiState: AddEditMealUiState, onRemoveItem: (Int) -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    ) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Itens", style = MaterialTheme.typography.titleMedium)
             if (uiState.items.isEmpty()) {

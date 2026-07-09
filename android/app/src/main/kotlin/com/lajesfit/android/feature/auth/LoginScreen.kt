@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -18,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
@@ -145,66 +148,75 @@ private fun LoginScreenContent(
     Column(
         modifier = modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(text = "LajesFit", style = MaterialTheme.typography.headlineMedium)
-        Text(text = "Entrar", style = MaterialTheme.typography.titleMedium)
 
-        OutlinedTextField(
-            value = uiState.identifier,
-            onValueChange = onIdentifierChange,
-            label = { Text("Usuario ou e-mail") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
-        )
-        OutlinedTextField(
-            value = uiState.password,
-            onValueChange = onPasswordChange,
-            label = { Text("Senha") },
-            singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-        )
-
-        if (uiState.errorMessage != null) {
-            Text(
-                text = uiState.errorMessage,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(top = 8.dp),
-            )
-        }
-
-        Button(
-            onClick = onLoginClick,
-            enabled = !uiState.isLoading,
-            modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(top = 18.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         ) {
-            if (uiState.isLoading) {
-                CircularProgressIndicator(modifier = Modifier.size(16.dp).padding(end = 8.dp), strokeWidth = 2.dp)
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(text = "Entrar", style = MaterialTheme.typography.titleMedium)
+
+                OutlinedTextField(
+                    value = uiState.identifier,
+                    onValueChange = onIdentifierChange,
+                    label = { Text("Usuario ou e-mail") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth().padding(top = 18.dp),
+                )
+                OutlinedTextField(
+                    value = uiState.password,
+                    onValueChange = onPasswordChange,
+                    label = { Text("Senha") },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                )
+
+                if (uiState.errorMessage != null) {
+                    Text(
+                        text = uiState.errorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
+
+                Button(
+                    onClick = onLoginClick,
+                    enabled = !uiState.isLoading,
+                    modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                ) {
+                    if (uiState.isLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp).padding(end = 8.dp), strokeWidth = 2.dp)
+                    }
+                    Text("Entrar")
+                }
+
+                OutlinedButton(
+                    onClick = onGoogleClick,
+                    enabled = !uiState.isLoading,
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                ) {
+                    Text("Entrar com Google")
+                }
+
+                TextButton(
+                    onClick = onNavigateToForgotPassword,
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                ) {
+                    Text("Esqueci minha senha")
+                }
+
+                TextButton(
+                    onClick = onNavigateToSignUp,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Criar conta")
+                }
             }
-            Text("Entrar")
-        }
-
-        OutlinedButton(
-            onClick = onGoogleClick,
-            enabled = !uiState.isLoading,
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-        ) {
-            Text("Entrar com Google")
-        }
-
-        TextButton(
-            onClick = onNavigateToForgotPassword,
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-        ) {
-            Text("Esqueci minha senha")
-        }
-
-        TextButton(
-            onClick = onNavigateToSignUp,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text("Criar conta")
         }
     }
 }

@@ -36,7 +36,9 @@ editar, porque concentram integração e geram conflito com facilidade:
 
 ## Tarefas abertas
 
-Nenhuma tarefa aberta.
+| # | Tarefa | Spec | Dono | Arquivos reservados | Status | Notas |
+|---|--------|------|------|---------------------|--------|-------|
+| 7 | Polimento visual global do app Android | pedido direto do usuario | Claude (assumiu de Codex em 2026-07-09) | `app/src/main/kotlin/com/lajesfit/android/ui/theme/*`, `app/src/main/kotlin/com/lajesfit/android/MainActivity.kt`, `app/src/main/kotlin/com/lajesfit/android/ui/components/*`, `app/src/main/kotlin/com/lajesfit/android/feature/auth/*`, `app/src/main/kotlin/com/lajesfit/android/feature/feed/*`, `app/src/main/kotlin/com/lajesfit/android/feature/diet/*`, `app/src/main/kotlin/com/lajesfit/android/feature/workouts/*`, `app/src/main/kotlin/com/lajesfit/android/feature/challenges/*`, `app/src/main/kotlin/com/lajesfit/android/feature/profile/*`, `app/src/main/kotlin/com/lajesfit/android/feature/settings/*`, `specs/COORDENACAO.md` | em validação | Codex fez tema/chrome/telas principais; Claude estendeu o polimento a comments, create post, add meal, add workout, scanner, busca, settings, placeholders e telas de auth secundarias. Build em andamento; depois commit + install via adb wifi. |
 
 ## Próximo trabalho previsto (não iniciado — não começar sem o usuário liberar)
 

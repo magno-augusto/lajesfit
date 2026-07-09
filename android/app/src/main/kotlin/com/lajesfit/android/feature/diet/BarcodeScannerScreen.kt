@@ -29,6 +29,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -38,6 +39,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.input.KeyboardType
@@ -94,8 +96,13 @@ private fun BarcodeScannerContent(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                ),
                 title = { Text("Codigo de barras") },
                 navigationIcon = {
                     IconButton(onClick = onDone) {
@@ -110,7 +117,10 @@ private fun BarcodeScannerContent(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             if (hasPermission) {
-                CameraPreview(onBarcodeDetected = onBarcodeDetected, modifier = Modifier.fillMaxWidth().height(360.dp))
+                CameraPreview(
+                    onBarcodeDetected = onBarcodeDetected,
+                    modifier = Modifier.fillMaxWidth().height(360.dp).clip(MaterialTheme.shapes.extraLarge),
+                )
             } else {
                 Text(
                     "Permita o acesso a camera para escanear o codigo de barras.",

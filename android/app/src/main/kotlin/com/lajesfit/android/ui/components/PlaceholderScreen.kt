@@ -13,6 +13,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,9 +35,14 @@ fun PlaceholderScreen(
 ) {
     Scaffold(
         modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             if (onClose != null) {
                 TopAppBar(
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background,
+                        titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    ),
                     title = { Text(title) },
                     navigationIcon = {
                         IconButton(onClick = onClose) {
@@ -55,7 +61,11 @@ fun PlaceholderScreen(
             if (onClose == null) {
                 Text(text = title, style = MaterialTheme.typography.titleLarge)
             }
-            Text(text = "Em construcao", style = MaterialTheme.typography.bodyMedium)
+            Text(
+                text = "Em construcao",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

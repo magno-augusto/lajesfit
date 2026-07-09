@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.Public
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -214,10 +215,23 @@ private fun SettingsScreenContent(
 
 @Composable
 private fun StatusMessageCard(message: String, isError: Boolean) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isError) {
+                MaterialTheme.colorScheme.errorContainer
+            } else {
+                MaterialTheme.colorScheme.secondaryContainer
+            },
+        ),
+    ) {
         Text(
             text = message,
-            color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+            color = if (isError) {
+                MaterialTheme.colorScheme.onErrorContainer
+            } else {
+                MaterialTheme.colorScheme.onSecondaryContainer
+            },
             modifier = Modifier.padding(14.dp),
         )
     }
@@ -232,7 +246,10 @@ private fun ProfileSettingsCard(
     onPickAvatar: () -> Unit,
 ) {
     val settings = uiState.settings ?: return
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 SettingsAvatar(uiState.avatarUrl, uiState.displayName, modifier = Modifier.size(72.dp))
@@ -283,7 +300,10 @@ private fun PrivacyCard(
     isSaving: Boolean,
     onPrivacyChange: (Boolean) -> Unit,
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    ) {
         SettingsSwitchRow(
             icon = {
                 Icon(
@@ -339,7 +359,10 @@ private fun NotificationsCard(
         ),
     )
 
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             SettingsSwitchRow(
                 icon = {
@@ -390,7 +413,10 @@ private fun SecurityCard(
     onRecoveryEmailChange: (String) -> Unit,
     onSaveRecoveryEmail: () -> Unit,
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Icon(Icons.Filled.Password, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
@@ -497,7 +523,10 @@ private fun LogoutCard(
     isLoggingOut: Boolean,
     onLogout: () -> Unit,
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    ) {
         Button(
             onClick = onLogout,
             enabled = !isLoggingOut,

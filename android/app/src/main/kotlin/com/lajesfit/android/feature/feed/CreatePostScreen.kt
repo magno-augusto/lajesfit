@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -95,25 +97,35 @@ private fun CreatePostScreenContent(
     ) {
         Text(text = "Novo post", style = MaterialTheme.typography.headlineMedium)
 
-        OutlinedTextField(
-            value = uiState.content,
-            onValueChange = onContentChange,
-            label = { Text("O que voce quer compartilhar?") },
-            modifier = Modifier.fillMaxWidth().height(160.dp),
-        )
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                OutlinedTextField(
+                    value = uiState.content,
+                    onValueChange = onContentChange,
+                    label = { Text("O que voce quer compartilhar?") },
+                    modifier = Modifier.fillMaxWidth().height(160.dp),
+                )
 
-        if (uiState.errorMessage != null) {
-            Text(text = uiState.errorMessage, color = MaterialTheme.colorScheme.error)
-        }
+                if (uiState.errorMessage != null) {
+                    Text(text = uiState.errorMessage, color = MaterialTheme.colorScheme.error)
+                }
 
-        Button(onClick = onSubmit, enabled = !uiState.isSaving, modifier = Modifier.fillMaxWidth()) {
-            if (uiState.isSaving) {
-                CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp), strokeWidth = 2.dp)
+                Button(onClick = onSubmit, enabled = !uiState.isSaving, modifier = Modifier.fillMaxWidth()) {
+                    if (uiState.isSaving) {
+                        CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp), strokeWidth = 2.dp)
+                    }
+                    Text("Publicar")
+                }
+                TextButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) {
+                    Text("Cancelar")
+                }
             }
-            Text("Publicar")
-        }
-        TextButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) {
-            Text("Cancelar")
         }
     }
 }

@@ -1,13 +1,17 @@
 package com.lajesfit.android.feature.feed
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -19,16 +23,21 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -148,8 +157,13 @@ private fun CommentsScreenContent(
 ) {
     Scaffold(
         modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                ),
                 title = { Text("Comentarios") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -159,18 +173,25 @@ private fun CommentsScreenContent(
             )
         },
         bottomBar = {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                OutlinedTextField(
-                    value = uiState.input,
-                    onValueChange = onInputChange,
-                    label = { Text("Escreva um comentario") },
-                    modifier = Modifier.weight(1f),
-                )
-                IconButton(onClick = onSubmit, enabled = !uiState.isSending) {
-                    Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Enviar comentario")
+            Surface(color = MaterialTheme.colorScheme.surfaceContainer, tonalElevation = 8.dp) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    OutlinedTextField(
+                        value = uiState.input,
+                        onValueChange = onInputChange,
+                        label = { Text("Escreva um comentario") },
+                        modifier = Modifier.weight(1f),
+                    )
+                    IconButton(onClick = onSubmit, enabled = !uiState.isSending) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.Send,
+                            contentDescription = "Enviar comentario",
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
                 }
             }
         },
@@ -188,6 +209,7 @@ private fun CommentsScreenContent(
                     Column(
                         modifier = Modifier.fillMaxSize().padding(24.dp),
                         verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         CircularProgressIndicator()
                     }
@@ -196,8 +218,9 @@ private fun CommentsScreenContent(
                     Column(
                         modifier = Modifier.fillMaxSize().padding(24.dp),
                         verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Text("Nenhum comentario ainda")
+                        Text("Nenhum comentario ainda", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
                 else -> {
@@ -222,7 +245,12 @@ private fun CommentRow(comment: PostComment, canDelete: Boolean, onDelete: () ->
     Row(
         modifier = Modifier.fillMaxWidth().padding(12.dp),
         verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        CommentAvatar(
+            avatarUrl = comment.profile.avatarUrl,
+            fallbackName = comment.profile.displayName ?: comment.profile.username,
+        )
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = comment.profile.displayName ?: comment.profile.username,
@@ -239,6 +267,29 @@ private fun CommentRow(comment: PostComment, canDelete: Boolean, onDelete: () ->
             IconButton(onClick = onDelete) {
                 Icon(Icons.Filled.Delete, contentDescription = "Apagar comentario")
             }
+        }
+    }
+}
+
+@Composable
+private fun CommentAvatar(avatarUrl: String?, fallbackName: String) {
+    if (avatarUrl != null) {
+        AsyncImage(
+            model = avatarUrl,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.size(36.dp).clip(CircleShape),
+        )
+    } else {
+        Box(
+            modifier = Modifier.size(36.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                fallbackName.take(1).uppercase().ifBlank { "?" },
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
         }
     }
 }

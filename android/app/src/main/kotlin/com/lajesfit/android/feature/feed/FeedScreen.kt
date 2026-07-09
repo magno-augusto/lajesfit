@@ -44,6 +44,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil3.compose.AsyncImage
@@ -67,6 +68,7 @@ data class FeedUiState(
 /** Espelha FeedPage.tsx - ver android/specs/M3-feed.md. */
 @HiltViewModel
 class FeedViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
     private val feedRepository: FeedRepository,
 ) : ViewModel() {
 
@@ -75,6 +77,18 @@ class FeedViewModel @Inject constructor(
 
     init {
         loadFirstPage()
+        // CreatePostScreen/CommentsScreen sinalizam aqui quando algo muda (post criado/apagado,
+        // contagem de comentario) - o ViewModel do Feed continua vivo ao navegar pra essas telas e
+        // voltar, entao precisa desse gatilho explicito pra recarregar (nao ha CHANGE_EVENT global
+        // como no web, ver CLAUDE.md "O que NAO portar do web").
+        viewModelScope.launch {
+            savedStateHandle.getStateFlow(REFRESH_KEY, false).collect { shouldRefresh ->
+                if (shouldRefresh) {
+                    savedStateHandle[REFRESH_KEY] = false
+                    loadFirstPage()
+                }
+            }
+        }
     }
 
     fun currentUserId(): String? = feedRepository.currentUserId()
@@ -147,6 +161,12 @@ class FeedViewModel @Inject constructor(
 
     private fun replacePost(post: FeedPost) {
         _uiState.update { state -> state.copy(posts = state.posts.map { if (it.id == post.id) post else it }) }
+    }
+
+    companion object {
+        /** Chave do savedStateHandle da entrada do Feed no NavHost - CreatePostScreen seta isso
+         * antes de voltar pra sinalizar que precisa recarregar (ver comentario no init acima). */
+        const val REFRESH_KEY = "feed_refresh"
     }
 }
 

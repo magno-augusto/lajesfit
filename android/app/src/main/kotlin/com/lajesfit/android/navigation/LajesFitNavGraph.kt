@@ -21,6 +21,7 @@ import com.lajesfit.android.feature.diet.DietScreen
 import com.lajesfit.android.feature.feed.CommentsScreen
 import com.lajesfit.android.feature.feed.CreatePostScreen
 import com.lajesfit.android.feature.feed.FeedScreen
+import com.lajesfit.android.feature.feed.FeedViewModel
 import com.lajesfit.android.feature.goals.SetupScreen
 import com.lajesfit.android.feature.workouts.AddWorkoutScreen
 import com.lajesfit.android.feature.workouts.WorkoutsScreen
@@ -49,7 +50,14 @@ fun LajesFitNavGraph(
         // Telas "pop over": destinos do mesmo NavHost, resultado devolvido via
         // NavBackStackEntry.savedStateHandle quando a logica real chegar (M3/M4/M5).
         composable(PopOverRoutes.CreatePost) {
-            CreatePostScreen(onDone = { navController.popBackStack() })
+            CreatePostScreen(
+                onDone = {
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set(FeedViewModel.REFRESH_KEY, true)
+                    navController.popBackStack()
+                },
+            )
         }
         composable(PopOverRoutes.AddMeal) {
             AddEditMealScreen(onDone = { navController.popBackStack() })
@@ -61,7 +69,14 @@ fun LajesFitNavGraph(
             route = PopOverRoutes.Comments,
             arguments = listOf(navArgument("postId") { type = NavType.StringType }),
         ) {
-            CommentsScreen(onDone = { navController.popBackStack() })
+            CommentsScreen(
+                onDone = {
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set(FeedViewModel.REFRESH_KEY, true)
+                    navController.popBackStack()
+                },
+            )
         }
 
         // Grafo raiz nao-autenticado (M1) - mesmo NavHost, ver android/specs/M1-supabase-auth.md.

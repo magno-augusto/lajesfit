@@ -29,6 +29,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -278,25 +279,28 @@ private fun SetupScreenContent(
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedTextField(
-                value = uiState.age.toString(),
-                onValueChange = { text -> text.toIntOrNull()?.let(onAgeChange) },
-                label = { Text("Idade") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            IntNumberField(
+                label = "Idade",
+                value = uiState.age,
+                min = 12,
+                max = 100,
+                onValueChange = onAgeChange,
                 modifier = Modifier.fillMaxWidth().weight(1f),
             )
-            OutlinedTextField(
-                value = formatDecimal(uiState.weightKg),
-                onValueChange = { text -> text.replace(",", ".").toDoubleOrNull()?.let(onWeightChange) },
-                label = { Text("Peso (kg)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            DecimalNumberField(
+                label = "Peso (kg)",
+                value = uiState.weightKg,
+                min = 30.0,
+                max = 250.0,
+                onValueChange = onWeightChange,
                 modifier = Modifier.fillMaxWidth().weight(1f),
             )
-            OutlinedTextField(
-                value = uiState.heightCm.toString(),
-                onValueChange = { text -> text.toIntOrNull()?.let(onHeightChange) },
-                label = { Text("Altura (cm)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            IntNumberField(
+                label = "Altura (cm)",
+                value = uiState.heightCm,
+                min = 120,
+                max = 230,
+                onValueChange = onHeightChange,
                 modifier = Modifier.fillMaxWidth().weight(1f),
             )
         }
@@ -354,6 +358,69 @@ private fun ActivityLevelField(selected: ActivityLevel, onSelected: (ActivityLev
 
 private fun formatDecimal(value: Double): String =
     if (value == value.toLong().toDouble()) value.toLong().toString() else value.toString()
+
+/**
+ * Buffer de texto local desacoplado do valor derivado - igual ao NumberField do web
+ * (IdrSetup.tsx:269-333): so' confirma (e clampa) o numero quando o campo perde foco, senao apagar
+ * o campo pra digitar de novo fica impossivel (o valor antigo volta a cada tecla).
+ */
+@Composable
+private fun IntNumberField(
+    label: String,
+    value: Int,
+    min: Int,
+    max: Int,
+    onValueChange: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var text by remember(value) { mutableStateOf(value.toString()) }
+    OutlinedTextField(
+        value = text,
+        onValueChange = { newText ->
+            text = newText
+            newText.toIntOrNull()?.let { parsed -> if (parsed in min..max) onValueChange(parsed) }
+        },
+        label = { Text(label) },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        modifier = modifier.onFocusChanged { focusState ->
+            if (!focusState.isFocused) {
+                val clamped = text.toIntOrNull()?.coerceIn(min, max) ?: value
+                text = clamped.toString()
+                if (clamped != value) onValueChange(clamped)
+            }
+        },
+    )
+}
+
+@Composable
+private fun DecimalNumberField(
+    label: String,
+    value: Double,
+    min: Double,
+    max: Double,
+    onValueChange: (Double) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var text by remember(value) { mutableStateOf(formatDecimal(value)) }
+    OutlinedTextField(
+        value = text,
+        onValueChange = { newText ->
+            text = newText
+            newText.replace(",", ".").toDoubleOrNull()?.let { parsed ->
+                if (parsed in min..max) onValueChange(parsed)
+            }
+        },
+        label = { Text(label) },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        modifier = modifier.onFocusChanged { focusState ->
+            if (!focusState.isFocused) {
+                val clamped = text.replace(",", ".").toDoubleOrNull()?.coerceIn(min, max) ?: value
+                text = formatDecimal(clamped)
+                if (clamped != value) onValueChange(clamped)
+            }
+        },
+    )
+}
 
 @Preview(showBackground = true)
 @Composable

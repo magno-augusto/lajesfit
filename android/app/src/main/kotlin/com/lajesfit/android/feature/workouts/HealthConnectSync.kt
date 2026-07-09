@@ -92,7 +92,7 @@ class HealthConnectSync @Inject constructor(
                 ),
             )
         }.getOrNull() ?: return null to null
-        return result.get(DistanceRecord.DISTANCE_TOTAL)?.meters to result.get(TotalCaloriesBurnedRecord.ENERGY_TOTAL)?.kilocalories
+        return result[DistanceRecord.DISTANCE_TOTAL]?.inMeters to result[TotalCaloriesBurnedRecord.ENERGY_TOTAL]?.inKilocalories
     }
 
     private fun mapExerciseType(exerciseType: Int): String = when (exerciseType) {

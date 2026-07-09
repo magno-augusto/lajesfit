@@ -60,5 +60,6 @@ mesmo ponto antes de implementar importacao.
 - [x] A tela de rationale abre como Activity independente e explica o uso dos dados.
 - [x] A tela Treinos mostra um estado claro para Health Connect.
 - [x] O botao de permissao abre a tela de permissoes do Health Connect quando a API esta disponivel.
-- [ ] Build e `installDebug` passam no device.
-- [ ] Abrir o app no device nao gera `FATAL AndroidRuntime` no logcat.
+- [x] Build e `installDebug` passam no device (confirmado em 2026-07-09, SM-G610M Android 8.1.0, via
+      ADB sem fio).
+- [x] Abrir o app no device nao gera `FATAL AndroidRuntime` no logcat (confirmado em 2026-07-09).

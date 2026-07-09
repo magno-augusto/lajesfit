@@ -49,7 +49,9 @@ fun LajesFitNavGraph(
                 onAddMeal = { meal, date -> navController.navigate(PopOverRoutes.addMealRoute(meal.value, date.toString())) },
             )
         }
-        composable(BottomNavDestination.Workouts.route) { WorkoutsScreen() }
+        composable(BottomNavDestination.Workouts.route) {
+            WorkoutsScreen(onAddWorkout = { navController.navigate(PopOverRoutes.AddWorkout) })
+        }
         composable(BottomNavDestination.Challenges.route) { ChallengesScreen() }
 
         // Telas "pop over": destinos do mesmo NavHost, resultado devolvido via

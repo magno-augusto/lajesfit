@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
@@ -27,7 +28,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FabPosition
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -170,8 +170,6 @@ private fun LajesFitAppRoot(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = { if (showTopBar) LajesFitTopBar(navController) },
         bottomBar = { if (showChrome) LajesFitBottomBar(navController) },
-        floatingActionButton = { if (showChrome) NewActionFab(navController) },
-        floatingActionButtonPosition = FabPosition.Center,
     ) { contentPadding ->
         LajesFitNavGraph(
             navController = navController,
@@ -279,31 +277,42 @@ private fun LajesFitBottomBar(navController: NavHostController) {
         BottomNavDestination.entries.any { it.route == destination.route }
     }?.route
 
-    NavigationBar(
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        tonalElevation = 8.dp,
-    ) {
-        BottomNavDestination.entries.forEach { destination ->
-            NavigationBarItem(
-                selected = currentRoute == destination.route,
-                onClick = {
-                    navController.navigate(destination.route) {
-                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                },
-                icon = { Icon(destination.icon, contentDescription = destination.label) },
-                label = { Text(destination.label) },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    selectedTextColor = MaterialTheme.colorScheme.primary,
-                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                ),
-            )
+    // O botao "novo" pertence a nav: ocupa o slot central (entre Dieta e Treinos) com o topo
+    // levemente saltado para fora da barra.
+    Box {
+        NavigationBar(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            tonalElevation = 8.dp,
+        ) {
+            BottomNavDestination.entries.forEachIndexed { index, destination ->
+                if (index == 2) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+                NavigationBarItem(
+                    selected = currentRoute == destination.route,
+                    onClick = {
+                        navController.navigate(destination.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    icon = { Icon(destination.icon, contentDescription = destination.label) },
+                    label = { Text(destination.label) },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        selectedTextColor = MaterialTheme.colorScheme.primary,
+                        indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    ),
+                )
+            }
         }
+        NewActionFab(
+            navController = navController,
+            modifier = Modifier.align(Alignment.TopCenter).offset(y = (-14).dp),
+        )
     }
 }
 
@@ -313,10 +322,10 @@ private fun isAuthenticatedTopBarRoute(route: String): Boolean =
 // Equivalente ao NewActionMenu do web (src/components/new-action-menu.tsx):
 // Post no feed / Refeicao / Treino, cada um navegando para a rota "pop over" correspondente.
 @Composable
-private fun NewActionFab(navController: NavHostController) {
+private fun NewActionFab(navController: NavHostController, modifier: Modifier = Modifier) {
     var expanded by remember { mutableStateOf(false) }
 
-    Box {
+    Box(modifier = modifier) {
         FloatingActionButton(
             onClick = { expanded = true },
             containerColor = MaterialTheme.colorScheme.primary,

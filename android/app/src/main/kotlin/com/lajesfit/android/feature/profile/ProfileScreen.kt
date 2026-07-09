@@ -13,9 +13,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -57,6 +62,11 @@ fun ProfileScreen(
         uiState = uiState,
         onRefresh = viewModel::refresh,
         onOpenSettings = onOpenSettings,
+        onFollowOrRequest = viewModel::followOrRequest,
+        onCancelRequest = viewModel::cancelRequest,
+        onUnfollow = viewModel::unfollow,
+        onAcceptRequest = viewModel::acceptRequest,
+        onDeclineRequest = viewModel::declineRequest,
         onLike = viewModel::toggleLike,
         onDeletePost = viewModel::deletePost,
         onOpenComments = onOpenComments,
@@ -69,6 +79,11 @@ private fun ProfileScreenContent(
     uiState: ProfileUiState,
     onRefresh: () -> Unit,
     onOpenSettings: () -> Unit,
+    onFollowOrRequest: () -> Unit,
+    onCancelRequest: () -> Unit,
+    onUnfollow: () -> Unit,
+    onAcceptRequest: (String) -> Unit,
+    onDeclineRequest: (String) -> Unit,
     onLike: (FeedPost) -> Unit,
     onDeletePost: (String) -> Unit,
     onOpenComments: (String) -> Unit,
@@ -109,9 +124,26 @@ private fun ProfileScreenContent(
                         profile = uiState.profile,
                         counts = uiState.counts,
                         isMe = uiState.isMe,
+                        followStatus = uiState.followStatus,
+                        isBusy = uiState.isBusy,
                         onOpenSettings = onOpenSettings,
+                        onFollowOrRequest = onFollowOrRequest,
+                        onCancelRequest = onCancelRequest,
+                        onUnfollow = onUnfollow,
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
                     )
+                }
+
+                if (uiState.isMe && uiState.profile.isPrivate) {
+                    item {
+                        IncomingRequestsCard(
+                            requests = uiState.incomingRequests,
+                            isBusy = uiState.isBusy,
+                            onAccept = onAcceptRequest,
+                            onDecline = onDeclineRequest,
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        )
+                    }
                 }
 
                 uiState.errorMessage?.let { message ->
@@ -173,7 +205,12 @@ private fun ProfileHeaderCard(
     profile: UserProfile,
     counts: ProfileCounts,
     isMe: Boolean,
+    followStatus: FollowStatus,
+    isBusy: Boolean,
     onOpenSettings: () -> Unit,
+    onFollowOrRequest: () -> Unit,
+    onCancelRequest: () -> Unit,
+    onUnfollow: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(modifier = modifier) {
@@ -203,11 +240,116 @@ private fun ProfileHeaderCard(
                 Text(profile.bio)
             }
 
+            if (!isMe) {
+                FollowButton(
+                    status = followStatus,
+                    isPrivate = profile.isPrivate,
+                    isBusy = isBusy,
+                    onFollowOrRequest = onFollowOrRequest,
+                    onCancelRequest = onCancelRequest,
+                    onUnfollow = onUnfollow,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 ProfileStat("Posts", counts.posts)
                 ProfileStat("Treinos", counts.workouts)
                 ProfileStat("Seguidores", counts.followers)
                 ProfileStat("Seguindo", counts.following)
+            }
+        }
+    }
+}
+
+@Composable
+private fun FollowButton(
+    status: FollowStatus,
+    isPrivate: Boolean,
+    isBusy: Boolean,
+    onFollowOrRequest: () -> Unit,
+    onCancelRequest: () -> Unit,
+    onUnfollow: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    when (status) {
+        FollowStatus.FOLLOWING -> {
+            OutlinedButton(onClick = onUnfollow, enabled = !isBusy, modifier = modifier) {
+                Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                Text("Seguindo")
+            }
+        }
+        FollowStatus.REQUESTED -> {
+            OutlinedButton(onClick = onCancelRequest, enabled = !isBusy, modifier = modifier) {
+                Icon(Icons.Filled.Schedule, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                Text("Solicitado")
+            }
+        }
+        FollowStatus.NONE -> {
+            Button(onClick = onFollowOrRequest, enabled = !isBusy, modifier = modifier) {
+                Icon(Icons.Filled.PersonAdd, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                Text(if (isPrivate) "Solicitar" else "Seguir")
+            }
+        }
+    }
+}
+
+@Composable
+private fun IncomingRequestsCard(
+    requests: List<IncomingFollowRequest>,
+    isBusy: Boolean,
+    onAccept: (String) -> Unit,
+    onDecline: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(modifier = modifier) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Column {
+                    Text("Solicitacoes", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        text = "Aprove quem pode ver suas publicacoes.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (requests.isNotEmpty()) {
+                    Text(requests.size.toString(), style = MaterialTheme.typography.titleMedium)
+                }
+            }
+
+            if (requests.isEmpty()) {
+                Text(
+                    text = "Nenhuma solicitacao pendente",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                    textAlign = TextAlign.Center,
+                )
+            } else {
+                requests.forEachIndexed { index, request ->
+                    if (index > 0) HorizontalDivider()
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        ProfileAvatar(request.profile.avatarUrl, request.profile.displayName, modifier = Modifier.size(40.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(request.profile.displayName, style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                "@${request.profile.username}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        IconButton(onClick = { onAccept(request.requesterId) }, enabled = !isBusy) {
+                            Icon(Icons.Filled.Check, contentDescription = "Aceitar solicitacao")
+                        }
+                        IconButton(onClick = { onDecline(request.requesterId) }, enabled = !isBusy) {
+                            Icon(Icons.Filled.Close, contentDescription = "Recusar solicitacao")
+                        }
+                    }
+                }
             }
         }
     }
@@ -300,6 +442,11 @@ private fun ProfileScreenPreview() {
             ),
             onRefresh = {},
             onOpenSettings = {},
+            onFollowOrRequest = {},
+            onCancelRequest = {},
+            onUnfollow = {},
+            onAcceptRequest = {},
+            onDeclineRequest = {},
             onLike = {},
             onDeletePost = {},
             onOpenComments = {},
@@ -327,6 +474,11 @@ private fun PrivateProfileScreenPreview() {
             ),
             onRefresh = {},
             onOpenSettings = {},
+            onFollowOrRequest = {},
+            onCancelRequest = {},
+            onUnfollow = {},
+            onAcceptRequest = {},
+            onDeclineRequest = {},
             onLike = {},
             onDeletePost = {},
             onOpenComments = {},

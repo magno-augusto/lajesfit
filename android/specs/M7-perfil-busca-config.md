@@ -274,10 +274,10 @@ Estender `AuthRepository.kt` quando necessario:
 
 - [x] App tem acesso visivel a busca e ao proprio perfil pelo chrome autenticado.
 - [x] Rota `profile/{username}` carrega perfil real por username, com avatar/nome/bio/contadores.
-- [ ] Perfil publico de terceiro mostra posts e permite seguir/deixar de seguir.
-- [ ] Perfil privado de terceiro mostra estado bloqueado, permite solicitar/cancelar solicitacao e
+- [x] Perfil publico de terceiro mostra posts e permite seguir/deixar de seguir.
+- [x] Perfil privado de terceiro mostra estado bloqueado, permite solicitar/cancelar solicitacao e
       mostra posts apenas apos follow aceito.
-- [ ] Perfil proprio privado mostra solicitacoes recebidas e permite aceitar/recusar.
+- [x] Perfil proprio privado mostra solicitacoes recebidas e permite aceitar/recusar.
 - [x] Posts do perfil usam dados reais, respeitam privacidade e permitem apagar post proprio.
 - [ ] Busca de pessoas replica sanitizacao, debounce, limite 20 e abre o perfil selecionado.
 - [ ] Configuracoes carregam e salvam nome, bio, avatar, privacidade e preferencias de notificacao.
@@ -301,8 +301,11 @@ M7 e grande; dividir em sub-partes pequenas, uma por sessao/commit, deixando o a
    privacidade e posts do perfil via `FeedRepository.fetchProfilePosts()`. `PostCard` foi
    reutilizado pelo perfil e o feed agora navega para o perfil do autor. Build `:app:assembleDebug`
    confirmado em 2026-07-09.
-3. **Follow requests**: seguir, solicitar, cancelar, deixar de seguir, aceitar/recusar solicitacoes
-   e atualizar estados/contadores.
+3. **Follow requests**: **Concluido**. `ProfileRepository` agora escreve em `follows` e
+   `follow_requests` seguindo as RLS existentes: seguir perfil publico, solicitar perfil privado,
+   cancelar, deixar de seguir, aceitar e recusar solicitacoes. `ProfileScreen` mostra o botao de
+   follow conforme status e o card de solicitacoes recebidas no perfil proprio privado. Build
+   `:app:assembleDebug` confirmado em 2026-07-09.
 4. **Busca de pessoas**: tela de busca com debounce, resultados reais e navegacao para perfil.
 5. **Configuracoes de perfil**: editar nome, bio, avatar e privacidade.
 6. **Seguranca e preferencias**: notificacoes por tipo, e-mail, senha, logout e polimento final.

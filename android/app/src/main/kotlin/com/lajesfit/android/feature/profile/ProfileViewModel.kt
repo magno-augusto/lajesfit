@@ -74,6 +74,11 @@ class ProfileViewModel @Inject constructor(
                 }
                 val canViewPosts = isMe || followStatus == FollowStatus.FOLLOWING || !profile.isPrivate
                 val posts = if (canViewPosts) feedRepository.fetchProfilePosts(profile.id) else emptyList()
+                val incomingRequests = if (isMe) {
+                    profileRepository.fetchIncomingFollowRequests(currentUserId)
+                } else {
+                    emptyList()
+                }
 
                 _uiState.update {
                     ProfileUiState(
@@ -81,6 +86,7 @@ class ProfileViewModel @Inject constructor(
                         profile = profile,
                         counts = counts,
                         followStatus = followStatus,
+                        incomingRequests = incomingRequests,
                         posts = posts,
                         isLoading = false,
                     )
@@ -88,6 +94,114 @@ class ProfileViewModel @Inject constructor(
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(isLoading = false, errorMessage = e.message ?: "Nao foi possivel carregar o perfil")
+                }
+            }
+        }
+    }
+
+    fun followOrRequest() {
+        val state = _uiState.value
+        val currentUserId = state.currentUserId ?: return
+        val profile = state.profile ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isBusy = true, errorMessage = null) }
+            try {
+                val nextStatus = profileRepository.sendFollowOrRequest(currentUserId, profile)
+                _uiState.update {
+                    it.copy(
+                        followStatus = nextStatus,
+                        counts = if (nextStatus == FollowStatus.FOLLOWING) {
+                            it.counts.copy(followers = it.counts.followers + 1)
+                        } else {
+                            it.counts
+                        },
+                        isBusy = false,
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(isBusy = false, errorMessage = e.message ?: "Nao foi possivel seguir")
+                }
+            }
+        }
+    }
+
+    fun cancelRequest() {
+        val state = _uiState.value
+        val currentUserId = state.currentUserId ?: return
+        val profile = state.profile ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isBusy = true, errorMessage = null) }
+            try {
+                profileRepository.cancelFollowRequest(currentUserId, profile.id)
+                _uiState.update { it.copy(followStatus = FollowStatus.NONE, isBusy = false) }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(isBusy = false, errorMessage = e.message ?: "Nao foi possivel cancelar a solicitacao")
+                }
+            }
+        }
+    }
+
+    fun unfollow() {
+        val state = _uiState.value
+        val currentUserId = state.currentUserId ?: return
+        val profile = state.profile ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isBusy = true, errorMessage = null) }
+            try {
+                profileRepository.unfollowProfile(currentUserId, profile.id)
+                _uiState.update {
+                    it.copy(
+                        followStatus = FollowStatus.NONE,
+                        counts = it.counts.copy(followers = (it.counts.followers - 1).coerceAtLeast(0)),
+                        isBusy = false,
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(isBusy = false, errorMessage = e.message ?: "Nao foi possivel deixar de seguir")
+                }
+            }
+        }
+    }
+
+    fun acceptRequest(requesterId: String) {
+        val currentUserId = _uiState.value.currentUserId ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isBusy = true, errorMessage = null) }
+            try {
+                profileRepository.acceptFollowRequest(currentUserId, requesterId)
+                _uiState.update {
+                    it.copy(
+                        incomingRequests = it.incomingRequests.filterNot { request -> request.requesterId == requesterId },
+                        counts = it.counts.copy(followers = it.counts.followers + 1),
+                        isBusy = false,
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(isBusy = false, errorMessage = e.message ?: "Nao foi possivel aceitar a solicitacao")
+                }
+            }
+        }
+    }
+
+    fun declineRequest(requesterId: String) {
+        val currentUserId = _uiState.value.currentUserId ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isBusy = true, errorMessage = null) }
+            try {
+                profileRepository.declineFollowRequest(currentUserId, requesterId)
+                _uiState.update {
+                    it.copy(
+                        incomingRequests = it.incomingRequests.filterNot { request -> request.requesterId == requesterId },
+                        isBusy = false,
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(isBusy = false, errorMessage = e.message ?: "Nao foi possivel recusar a solicitacao")
                 }
             }
         }

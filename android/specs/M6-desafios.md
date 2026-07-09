@@ -1,7 +1,7 @@
 # M6 - Desafios
 
-Status: **aprovado em 2026-07-09**. Implementar em sub-partes pequenas conforme as notas de
-execucao; nao empilhar mais de uma sub-parte na mesma sessao.
+Status: **aprovado em 2026-07-09; sub-parte 1 concluida**. Implementar as proximas sub-partes
+conforme as notas de execucao; nao empilhar mais de uma sub-parte na mesma sessao.
 
 ## Objetivo
 
@@ -150,14 +150,17 @@ Fonte da verdade: `../supabase/migrations/*.sql`.
 - [ ] Perfis privados nao aparecem porque as RPCs ja filtram no servidor.
 - [ ] Nao ha fluxo Android novo escrevendo `challenge_participants` sem aprovacao explicita.
 - [ ] Tela nova tem `@Preview(showBackground = true)`.
-- [ ] `:app:assembleDebug` passa com `GRADLE_USER_HOME=.gradle-user-home`.
+- [x] `:app:assembleDebug` passa com `GRADLE_USER_HOME=.gradle-user-home`.
 
 ## Notas de execucao
 
 Dividir em sub-partes pequenas, cada uma deixando o projeto compilando e fechando com commit pequeno:
 
-1. **Repository + modelos + ViewModel**: criar modelos, repository e `ChallengesViewModel`, mantendo
-   a tela ainda simples se necessario. Validar compilacao.
+1. **Repository + modelos + ViewModel**: **Concluido**. Criados `ChallengeModels.kt`,
+   `ChallengeRepository.kt` e `ChallengesViewModel.kt`; a tela ainda segue como placeholder para a
+   sub-parte 2. Build `:app:assembleDebug` confirmado em 2026-07-09 com `GRADLE_USER_HOME`
+   repo-local; o Kotlin daemon falhou por ACL em `%LOCALAPPDATA%\kotlin\daemon`, mas o Gradle usou
+   fallback sem daemon e terminou com `BUILD SUCCESSFUL`.
 2. **Tela real de rankings**: substituir placeholder por UI com header, estados de loading/erro,
    seis cards/listas e preview. Validar compilacao.
 3. **Polimento leve e paridade**: formatacao de periodo/mes, valores (`km`, `kcal`, `%`, dias,

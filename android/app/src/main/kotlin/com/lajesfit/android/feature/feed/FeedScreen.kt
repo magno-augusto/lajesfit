@@ -118,8 +118,13 @@ class FeedViewModel @Inject constructor(
             try {
                 val page = feedRepository.fetchFeed(offset = state.posts.size)
                 _uiState.update {
+                    // marcar a pagina como vista muda a ordenacao da RPC pra proxima chamada
+                    // (nao-visto-primeiro), entao o offset seguinte pode trazer um post repetido -
+                    // filtra por id pra nao quebrar a key do LazyColumn.
+                    val existingIds = it.posts.mapTo(mutableSetOf()) { existing -> existing.id }
+                    val newPosts = page.filterNot { candidate -> candidate.id in existingIds }
                     it.copy(
-                        posts = it.posts + page,
+                        posts = it.posts + newPosts,
                         isLoadingMore = false,
                         hasMore = page.size == FeedRepository.FEED_PAGE_SIZE,
                     )

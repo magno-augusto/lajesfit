@@ -1,5 +1,6 @@
 package com.lajesfit.android.navigation
 
+import android.net.Uri
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.FitnessCenter
@@ -40,6 +41,17 @@ object PopOverRoutes {
     fun addWorkoutRoute(workoutId: String? = null): String {
         return workoutId?.let { "workout/add?workoutId=$it" } ?: "workout/add"
     }
+}
+
+object ProfileRoutes {
+    const val Search = "search"
+    const val Settings = "settings"
+    const val UsernameArg = "username"
+    const val Profile = "profile/{$UsernameArg}"
+
+    val all = setOf(Search, Settings, Profile)
+
+    fun profileRoute(username: String): String = "profile/${Uri.encode(username)}"
 }
 
 /**

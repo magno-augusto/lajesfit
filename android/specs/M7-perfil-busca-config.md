@@ -1,7 +1,7 @@
 # M7 - Perfil, busca e configuracoes
 
-Status: **rascunho criado em 2026-07-09; aguardando aprovacao humana**. Nao implementar M7 antes
-de o usuario aprovar esta spec.
+Status: **aprovado em 2026-07-09; sub-parte 1 concluida**. Implementar as proximas sub-partes
+conforme as notas de execucao; nao empilhar mais de uma sub-parte na mesma sessao.
 
 ## Objetivo
 
@@ -272,7 +272,7 @@ Estender `AuthRepository.kt` quando necessario:
 
 ## Feito quando
 
-- [ ] App tem acesso visivel a busca e ao proprio perfil pelo chrome autenticado.
+- [x] App tem acesso visivel a busca e ao proprio perfil pelo chrome autenticado.
 - [ ] Rota `profile/{username}` carrega perfil real por username, com avatar/nome/bio/contadores.
 - [ ] Perfil publico de terceiro mostra posts e permite seguir/deixar de seguir.
 - [ ] Perfil privado de terceiro mostra estado bloqueado, permite solicitar/cancelar solicitacao e
@@ -291,8 +291,11 @@ Estender `AuthRepository.kt` quando necessario:
 
 M7 e grande; dividir em sub-partes pequenas, uma por sessao/commit, deixando o app compilando:
 
-1. **Navegacao + chrome autenticado**: rotas de perfil/busca/configuracoes, top bar com busca e
-   avatar do usuario atual, helpers de rota. Sem implementar telas completas ainda.
+1. **Navegacao + chrome autenticado**: **Concluido**. Criadas rotas
+   `search`, `settings` e `profile/{username}`, top bar autenticada com busca e avatar do usuario
+   atual, helper `ProfileRoutes.profileRoute(username)`, repository/ViewModel minimo para o resumo
+   do topo e placeholders compilaveis para perfil/busca/configuracoes. Build `:app:assembleDebug`,
+   `installDebug`, abertura do app e logcat sem crash confirmados em 2026-07-09.
 2. **Perfil read-only + posts**: modelos/repository/ViewModel, tela de perfil com dados,
    contadores, posts permitidos e estado de perfil privado bloqueado.
 3. **Follow requests**: seguir, solicitar, cancelar, deixar de seguir, aceitar/recusar solicitacoes

@@ -38,15 +38,15 @@ editar, porque concentram integração e geram conflito com facilidade:
 
 | # | Tarefa | Spec | Dono | Arquivos reservados | Status | Notas |
 |---|--------|------|------|---------------------|--------|-------|
-| 4 | Escrever spec do M7 - Perfil, busca e configurações | `specs/M7-perfil-busca-config.md` | Codex | `specs/COORDENACAO.md`, `specs/M7-perfil-busca-config.md` | bloqueada | Spec criada para revisao humana; nao implementar M7 antes da aprovacao do usuario. |
 
 ## Próximo trabalho previsto (não iniciado — não começar sem o usuário liberar)
 
 - **Verificação de M5 em device**: sync real do Health Connect nunca rodou num aparelho físico.
   Atenção: o device de dev atual (J7 Prime, Android 8.1) **não roda Health Connect** (exige
   Android 9+) — a sync real precisa de outro device ou emulador API 28+.
-- **M6 — Desafios** (`specs/M6-desafios.md`): sub-parte 1 concluida; proximo passo e sub-parte 2
-  (tela real de rankings), sem comecar sem nova liberacao do usuario.
+- **M7 — Perfil, busca e configuracoes** (`specs/M7-perfil-busca-config.md`): sub-parte 1
+  concluida; proximo passo e sub-parte 2 (perfil read-only + posts), sem comecar sem nova
+  liberacao do usuario.
 
 ## Histórico
 
@@ -54,5 +54,6 @@ editar, porque concentram integração e geram conflito com facilidade:
 |------|--------|------|--------|-------|
 | 2026-07-09 | M6 sub-parte 1 - modelos, repository e ViewModel | Codex | concluída | Criados modelos, repository e ViewModel de desafios; build `:app:assembleDebug` confirmado com cache repo-local. Commit: `Implementa M6: base de desafios`. |
 | 2026-07-09 | M6 sub-parte 2 - tela real de rankings | Codex | concluída | `ChallengesScreen.kt` substitui o placeholder por header, loading/erro, seis rankings, destaque do usuario atual e preview; `:app:assembleDebug`, `installDebug`, abertura do app e logcat sem crash confirmados. |
+| 2026-07-09 | M7 sub-parte 1 - navegacao e chrome autenticado | Codex | concluída | Rotas `search`, `settings` e `profile/{username}` registradas; top bar autenticada com busca e avatar do usuario atual; placeholders dos destinos criados; `:app:assembleDebug`, `installDebug`, abertura do app e logcat sem crash confirmados. |
 | 2026-07-09 | Escrever spec do M6 - Desafios | Codex | concluída | Spec aprovada pelo usuário; próxima etapa é sub-parte 1 (modelos, repository e ViewModel). |
 | 2026-07-09 | Somar calorias de treino do dia no resumo da Dieta (burned) | Codex | concluída | Failover por tokens do Claude; build `:app:assembleDebug` confirmado com cache repo-local. Commit: `Implementa M5: calorias de treino na dieta`. |

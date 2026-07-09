@@ -24,6 +24,9 @@ import com.lajesfit.android.feature.feed.CreatePostScreen
 import com.lajesfit.android.feature.feed.FeedScreen
 import com.lajesfit.android.feature.feed.FeedViewModel
 import com.lajesfit.android.feature.goals.SetupScreen
+import com.lajesfit.android.feature.profile.ProfileScreen
+import com.lajesfit.android.feature.profile.SearchProfilesScreen
+import com.lajesfit.android.feature.settings.SettingsScreen
 import com.lajesfit.android.feature.workouts.AddWorkoutScreen
 import com.lajesfit.android.feature.workouts.WorkoutsViewModel
 import com.lajesfit.android.feature.workouts.WorkoutsScreen
@@ -57,6 +60,25 @@ fun LajesFitNavGraph(
             )
         }
         composable(BottomNavDestination.Challenges.route) { ChallengesScreen() }
+
+        composable(ProfileRoutes.Search) {
+            SearchProfilesScreen(
+                onOpenProfile = { username -> navController.navigate(ProfileRoutes.profileRoute(username)) },
+            )
+        }
+        composable(ProfileRoutes.Settings) {
+            SettingsScreen()
+        }
+        composable(
+            route = ProfileRoutes.Profile,
+            arguments = listOf(navArgument(ProfileRoutes.UsernameArg) { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val username = backStackEntry.arguments?.getString(ProfileRoutes.UsernameArg).orEmpty()
+            ProfileScreen(
+                username = username,
+                onOpenSettings = { navController.navigate(ProfileRoutes.Settings) },
+            )
+        }
 
         // Telas "pop over": destinos do mesmo NavHost, resultado devolvido via
         // NavBackStackEntry.savedStateHandle quando a logica real chegar (M3/M4/M5).

@@ -3,6 +3,8 @@ package com.lajesfit.android.feature.diet
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lajesfit.android.feature.goals.GoalsRepository
+import com.lajesfit.android.feature.workouts.LocalWorkout
+import com.lajesfit.android.feature.workouts.WorkoutRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
 import java.time.LocalDate
@@ -19,13 +21,17 @@ import kotlin.math.roundToInt
 data class DietUiState(
     val selectedDate: LocalDate = LocalDate.now(),
     val meals: List<LocalMeal> = emptyList(),
+    val workouts: List<LocalWorkout> = emptyList(),
     val calorieGoal: Int? = null,
     val isLoading: Boolean = true,
     val errorMessage: String? = null,
 ) {
     val dayMeals: List<LocalMeal> = meals.filter { meal -> meal.consumedDate() == selectedDate }
+    val dayWorkouts: List<LocalWorkout> = workouts.filter { workout ->
+        workout.performedDate() == selectedDate
+    }
     val consumed: Int = dayMeals.sumOf { meal -> meal.items.sumOf { it.kcal } }.roundToInt()
-    val burned: Int = 0
+    val burned: Int = dayWorkouts.sumOf { workout -> workout.calories ?: 0.0 }.roundToInt()
     val remaining: Int = ((calorieGoal ?: 0) - consumed + burned).toDouble().roundToInt()
     val percent: Float = calorieGoal?.takeIf { it > 0 }?.let { goal ->
         min(100.0, consumed.toDouble() / goal * 100.0).toFloat()
@@ -37,6 +43,7 @@ data class DietUiState(
 class DietViewModel @Inject constructor(
     private val dietRepository: DietRepository,
     private val goalsRepository: GoalsRepository,
+    private val workoutRepository: WorkoutRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DietUiState())
@@ -64,9 +71,13 @@ class DietViewModel @Inject constructor(
             try {
                 val idrProfile = goalsRepository.getIdrProfile()
                 val meals = dietRepository.getMeals()
+                val workouts = runCatching {
+                    workoutRepository.getWorkouts()
+                }.getOrDefault(emptyList())
                 _uiState.update {
                     it.copy(
                         meals = meals,
+                        workouts = workouts,
                         calorieGoal = idrProfile?.idrCalories,
                         isLoading = false,
                     )
@@ -83,5 +94,11 @@ class DietViewModel @Inject constructor(
 private fun LocalMeal.consumedDate(): LocalDate? {
     return runCatching {
         Instant.parse(consumedAt).atZone(ZoneId.systemDefault()).toLocalDate()
+    }.getOrNull()
+}
+
+private fun LocalWorkout.performedDate(): LocalDate? {
+    return runCatching {
+        Instant.parse(performedAt).atZone(ZoneId.systemDefault()).toLocalDate()
     }.getOrNull()
 }

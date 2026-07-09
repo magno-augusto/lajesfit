@@ -1,7 +1,7 @@
 # M5 - Treinos
 
-Status: **aprovado em 2026-07-09; sub-partes 1-4 Android concluidas** (historico/totais, treino
-manual com foto, base Health Connect e importacao de sessoes). Migration de Health Connect criada em
+Status: **aprovado em 2026-07-09; sub-partes 1-5 Android concluidas** (historico/totais, treino
+manual com foto, base Health Connect, importacao de sessoes e ligacao com Dieta). Migration de Health Connect criada em
 `../supabase/migrations/20260720120000_health_connect_workouts.sql`. Build/`installDebug`/abertura
 sem crash confirmados no device de desenvolvimento (SM-G610M, Android 8.1.0) - mas esse aparelho
 trava abaixo da versao minima do Health Connect (Android 9+), entao a sincronizacao real ainda
@@ -193,6 +193,7 @@ No Android, Health Connect substitui Strava neste marco.
       (implementado; **bloqueado** no device de desenvolvimento atual).
 - [x] `HealthPermissionRationaleActivity` esta declarada no manifest com o intent-filter correto.
 - [x] Todas as telas novas tem `@Preview(showBackground = true)`.
+- [x] O resumo da Dieta soma calorias de treinos do dia em `Queimado` e no restante calorico.
 
 ## Notas de execucao
 
@@ -223,5 +224,7 @@ commit pequeno:
    no device de desenvolvimento atual** - precisa de um aparelho ou emulador com Android 9+ pra
    fechar os itens pendentes do "Feito quando" acima. Ate la, esses itens ficam como implementados
    mas nao confirmados.
-5. **Ligacao com Dieta**: se couber sem abrir demais o escopo, somar calorias de treinos do dia no
-   resumo do M4; caso contrario, deixar como refinamento logo apos M5.
+5. **Ligacao com Dieta**: **Concluido no Android**. `DietViewModel` carrega `workouts` junto das
+   refeicoes e soma as calorias dos treinos cujo `performed_at` cai no dia selecionado, alimentando
+   `Queimado` e o calculo de calorias restantes. Build `:app:assembleDebug` confirmado em
+   2026-07-09 com `GRADLE_USER_HOME` repo-local.

@@ -1,7 +1,8 @@
 # M6 - Desafios
 
-Status: **aprovado em 2026-07-09; sub-parte 1 concluida**. Implementar as proximas sub-partes
-conforme as notas de execucao; nao empilhar mais de uma sub-parte na mesma sessao.
+Status: **aprovado em 2026-07-09; sub-partes 1 e 2 concluidas**. A tela Android real de desafios
+foi implementada e validada; proximos ajustes devem ser tratados como polimento novo, se o usuario
+pedir.
 
 ## Objetivo
 
@@ -140,16 +141,16 @@ Fonte da verdade: `../supabase/migrations/*.sql`.
 
 ## Feito quando
 
-- [ ] Aba **Desafio** deixa de ser placeholder e carrega dados reais do Supabase.
-- [ ] Ao abrir logado, o app chama `ensure_challenge_lifecycle()` sem quebrar a tela.
-- [ ] Desafio ativo aparece com periodo do mes atual quando existir.
-- [ ] Os seis rankings aparecem com dados reais, valores formatados e estado vazio individual:
+- [x] Aba **Desafio** deixa de ser placeholder e carrega dados reais do Supabase.
+- [x] Ao abrir logado, o app chama `ensure_challenge_lifecycle()` sem quebrar a tela.
+- [x] Desafio ativo aparece com periodo do mes atual quando existir.
+- [x] Os seis rankings aparecem com dados reais, valores formatados e estado vazio individual:
       Atividades, Dias ativos, Distancia, Calorias queimadas, Peso perdido e Refeicoes.
-- [ ] Falha em um ranking nao impede que os demais sejam exibidos.
-- [ ] Usuario atual e destacado nas listas quando aparecer no ranking.
-- [ ] Perfis privados nao aparecem porque as RPCs ja filtram no servidor.
-- [ ] Nao ha fluxo Android novo escrevendo `challenge_participants` sem aprovacao explicita.
-- [ ] Tela nova tem `@Preview(showBackground = true)`.
+- [x] Falha em um ranking nao impede que os demais sejam exibidos.
+- [x] Usuario atual e destacado nas listas quando aparecer no ranking.
+- [x] Perfis privados nao aparecem porque as RPCs ja filtram no servidor.
+- [x] Nao ha fluxo Android novo escrevendo `challenge_participants` sem aprovacao explicita.
+- [x] Tela nova tem `@Preview(showBackground = true)`.
 - [x] `:app:assembleDebug` passa com `GRADLE_USER_HOME=.gradle-user-home`.
 
 ## Notas de execucao
@@ -161,7 +162,10 @@ Dividir em sub-partes pequenas, cada uma deixando o projeto compilando e fechand
    sub-parte 2. Build `:app:assembleDebug` confirmado em 2026-07-09 com `GRADLE_USER_HOME`
    repo-local; o Kotlin daemon falhou por ACL em `%LOCALAPPDATA%\kotlin\daemon`, mas o Gradle usou
    fallback sem daemon e terminou com `BUILD SUCCESSFUL`.
-2. **Tela real de rankings**: substituir placeholder por UI com header, estados de loading/erro,
-   seis cards/listas e preview. Validar compilacao.
-3. **Polimento leve e paridade**: formatacao de periodo/mes, valores (`km`, `kcal`, `%`, dias,
-   treinos), destaque do usuario atual e revisao dos empty states. Validar compilacao e parar.
+2. **Tela real de rankings**: **Concluido**. `ChallengesScreen.kt` substitui o placeholder por UI
+   com header, loading, erros parciais, seis cards/listas, avatar/fallback e preview. Build
+   `:app:assembleDebug`, `installDebug`, abertura do app e logcat sem crash confirmados em
+   2026-07-09.
+3. **Polimento leve e paridade**: **Coberto no fechamento da tela real**. A UI ja inclui formatacao
+   de periodo/mes, valores (`km`, `kcal`, `%`, dias, treinos), destaque do usuario atual e empty
+   states por ranking. Polimentos adicionais devem ser tratados como nova tarefa pequena.

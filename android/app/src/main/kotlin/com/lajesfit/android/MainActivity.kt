@@ -207,7 +207,7 @@ private fun LajesFitTopBar(
                     }
                 }
                 Spacer(modifier = Modifier.width(10.dp))
-                Text("LajesFit", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text("LajesFit", style = MaterialTheme.typography.displaySmall)
             }
         },
         actions = {

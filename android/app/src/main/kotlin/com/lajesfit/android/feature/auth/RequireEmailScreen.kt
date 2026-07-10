@@ -113,7 +113,7 @@ private fun RequireEmailScreenContent(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(text = "LajesFit", style = MaterialTheme.typography.headlineMedium)
+        Text(text = "LajesFit", style = MaterialTheme.typography.displayMedium)
 
         Card(
             modifier = Modifier.fillMaxWidth().padding(top = 18.dp),

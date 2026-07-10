@@ -34,9 +34,17 @@ apontam para cá). Ele não substitui os outros artefatos, complementa:
 
 > _Atualizado por: **Claude** em 2026-07-10._
 
-- **Branch / HEAD**: `main` @ `c86a10c` - "Assume a ficha da TWA na Play: com.lajesfit.app e
-  assinatura de release". `main` esta a frente de `origin/main` (nada empurrado ainda).
+- **Branch / HEAD**: `main` @ `379e478` - "Atualiza quadro e diario: takeover verificado...".
+  **Em sincronia com `origin/main`** - os 42 commits locais (M0->M7 + podio + tema + preparo Play)
+  foram **empurrados para o GitHub em 2026-07-10** (o repo estava so na maquina ate entao).
 - **Working tree limpo** - nada sem commit (fora `local.properties` e caches gitignored).
+- **Ambiente / topologia (importante):** o checkout canonico e este monorepo
+  `C:/Users/magno/Documents/lajesfit/` (web + `supabase/` + `android/` nativo + `android-twa/`),
+  remote `github.com/magno-augusto/lajesfit`. Havia um segundo clone do MESMO repo em
+  `Documents/GitHub/lajesfit/` (antigo, sem `android/`), arquivado em 2026-07-10 como
+  **`lajesfit-OLD`** (nao tinha commit unico). A **keystore de release** (upload key da TWA e do
+  app nativo) agora mora em `C:/Users/magno/Documents/lajesfit-keystore/` (fora do git) e
+  `android/local.properties` aponta para la; backup no gerenciador de senhas e do usuario.
 - **Publicacao na Play - o que ja fechou nesta rodada**:
   - Tarefa #8 (Codex) commitada: politica `/privacidade` + `specs/PLAY-STORE-PREP.md` - commit
     `5cf257d`.

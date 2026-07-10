@@ -1,24 +1,17 @@
 import { useEffect, useState } from "react";
-import { Bell, Crown, Heart, MessageCircle, Trophy, UserPlus } from "lucide-react";
+import { Bell, Crown, Heart, MessageCircle, Share2, Trophy, UserPlus } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { toast } from "sonner";
+import { BOARD_LABELS } from "@/features/challenges/board-meta";
 import { timeAgo } from "@/features/feed/format";
 import {
   fetchNotifications,
   markAllNotificationsRead,
   type AppNotification,
 } from "./notifications-api";
-
-const BOARD_LABELS: Record<string, string> = {
-  activities: "Atividades",
-  workout_days: "Dias ativos",
-  distance: "Distancia",
-  calories: "Calorias queimadas",
-  diet_days: "Refeicoes",
-};
 
 function notificationText(notification: AppNotification) {
   switch (notification.type) {
@@ -33,6 +26,10 @@ function notificationText(notification: AppNotification) {
     case "challenge_dethroned": {
       const label = (notification.board && BOARD_LABELS[notification.board]) || "do mes";
       return `${notification.actor.displayName} roubou sua coroa no desafio ${label}`;
+    }
+    case "challenge_podium": {
+      const label = (notification.board && BOARD_LABELS[notification.board]) || "do mes";
+      return `${notification.actor.displayName} assumiu a lideranca no desafio ${label} — compartilhe o podio`;
     }
   }
 }
@@ -49,6 +46,8 @@ function notificationIcon(type: AppNotification["type"]) {
       return <UserPlus className="size-4 text-primary" />;
     case "challenge_dethroned":
       return <Crown className="size-4 fill-medal-gold text-medal-gold" />;
+    case "challenge_podium":
+      return <Share2 className="size-4 text-primary" />;
   }
 }
 
@@ -129,10 +128,12 @@ export function NotificationsSheet({
               const rowClass = "flex items-center gap-3 rounded-lg p-2 hover:bg-muted/60";
               // eventos de desafio levam ao ranking; os demais, ao perfil de quem agiu
               return notification.type === "challenge_join" ||
-                notification.type === "challenge_dethroned" ? (
+                notification.type === "challenge_dethroned" ||
+                notification.type === "challenge_podium" ? (
                 <Link
                   key={notification.id}
                   to="/desafio"
+                  search={{ podio: notification.podiumEventId ?? undefined }}
                   onClick={() => setOpen(false)}
                   className={rowClass}
                 >

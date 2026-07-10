@@ -5,8 +5,16 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLocalAuth } from "@/features/auth/auth";
 import { CHANGE_EVENT } from "@/features/fitness/change-event";
+import { supabase } from "@/integrations/supabase/client";
 import { ChallengeCard } from "./ChallengeCard";
 import { PodiumCard } from "./PodiumCard";
+import { PodiumEventsCard } from "./PodiumEventsCard";
+import { PodiumShareDialog } from "./PodiumShareDialog";
+import {
+  getPendingPodiumEvents,
+  getPodiumEvent,
+  type PodiumEvent,
+} from "./podium-events-api";
 import {
   ensureChallengeLifecycle,
   getActiveChallenge,
@@ -52,7 +60,7 @@ function formatDistance(meters: number) {
   return `${km.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km`;
 }
 
-export function ChallengePage() {
+export function ChallengePage({ podiumEventId }: { podiumEventId?: string }) {
   const { user, loading: authLoading } = useLocalAuth();
   const [loading, setLoading] = useState(true);
   const [challenge, setChallenge] = useState<Challenge | null>(null);
@@ -63,6 +71,9 @@ export function ChallengePage() {
   const [distance, setDistance] = useState<DistanceEntry[]>([]);
   const [caloriesBurned, setCaloriesBurned] = useState<CaloriesEntry[]>([]);
   const [dietDays, setDietDays] = useState<ActivityDaysEntry[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [podiumEvents, setPodiumEvents] = useState<PodiumEvent[]>([]);
+  const [activePodiumEvent, setActivePodiumEvent] = useState<PodiumEvent | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -160,6 +171,49 @@ export function ChallengePage() {
     setLeaderboard(board);
   }
 
+  // Podios pendentes de compartilhar: visiveis apenas para admins; o deep link
+  // do push (?podio=<id>) abre o dialog do evento direto
+  const userId = user?.id;
+  useEffect(() => {
+    if (!userId) return;
+    let mounted = true;
+
+    async function loadPodiumEvents() {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_admin")
+        .eq("id", userId!)
+        .maybeSingle();
+      if (!mounted || !profile?.is_admin) return;
+      setIsAdmin(true);
+
+      const [pending, deepLinked] = await Promise.allSettled([
+        getPendingPodiumEvents(),
+        podiumEventId ? getPodiumEvent(podiumEventId) : Promise.resolve(null),
+      ]);
+      if (!mounted) return;
+      if (pending.status === "fulfilled") setPodiumEvents(pending.value);
+      if (deepLinked.status === "fulfilled" && deepLinked.value) {
+        setActivePodiumEvent(deepLinked.value);
+      }
+    }
+
+    loadPodiumEvents().catch(() => {
+      // melhor esforco: a falha aqui nao pode derrubar a pagina de rankings
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [userId, podiumEventId]);
+
+  function handlePodiumShared() {
+    getPendingPodiumEvents()
+      .then(setPodiumEvents)
+      .catch(() => {
+        // melhor esforco: lista sera recarregada na proxima visita
+      });
+  }
+
   if (authLoading || loading) {
     return (
       <div className="space-y-4">
@@ -186,6 +240,18 @@ export function ChallengePage() {
       </section>
 
       {/* Definicao de peso pelo admin oculta temporariamente (AdminParticipantsCard) */}
+
+      {isAdmin && <PodiumEventsCard events={podiumEvents} onSelect={setActivePodiumEvent} />}
+      {activePodiumEvent && (
+        <PodiumShareDialog
+          event={activePodiumEvent}
+          open
+          onOpenChange={(open) => {
+            if (!open) setActivePodiumEvent(null);
+          }}
+          onShared={handlePodiumShared}
+        />
+      )}
 
       <ChallengeCard
         title="Atividades"

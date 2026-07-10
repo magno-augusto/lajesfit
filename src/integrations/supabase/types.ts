@@ -409,6 +409,7 @@ export type Database = {
           comment_id: string | null;
           created_at: string;
           id: string;
+          podium_event_id: string | null;
           post_id: string | null;
           pushed_at: string | null;
           read_at: string | null;
@@ -421,6 +422,7 @@ export type Database = {
           comment_id?: string | null;
           created_at?: string;
           id?: string;
+          podium_event_id?: string | null;
           post_id?: string | null;
           pushed_at?: string | null;
           read_at?: string | null;
@@ -433,6 +435,7 @@ export type Database = {
           comment_id?: string | null;
           created_at?: string;
           id?: string;
+          podium_event_id?: string | null;
           post_id?: string | null;
           pushed_at?: string | null;
           read_at?: string | null;
@@ -857,6 +860,38 @@ export type Database = {
         };
         Returns: undefined;
       };
+      get_pending_podium_events: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          id: string;
+          board: string;
+          period_month: string;
+          event_date: string;
+          top3: Json;
+          shared_at: string | null;
+          created_at: string;
+        }[];
+      };
+      get_podium_event: {
+        Args: {
+          p_event_id: string;
+        };
+        Returns: {
+          id: string;
+          board: string;
+          period_month: string;
+          event_date: string;
+          top3: Json;
+          shared_at: string | null;
+          created_at: string;
+        }[];
+      };
+      mark_podium_event_shared: {
+        Args: {
+          p_event_id: string;
+        };
+        Returns: undefined;
+      };
       upsert_catalog_food: {
         Args: {
           p_brand: string | null;
@@ -876,7 +911,13 @@ export type Database = {
     };
     Enums: {
       challenge_status: "active" | "closed";
-      notification_type: "like" | "comment" | "challenge_join";
+      notification_type:
+        | "like"
+        | "comment"
+        | "challenge_join"
+        | "follow"
+        | "challenge_dethroned"
+        | "challenge_podium";
       meal_type: "breakfast" | "lunch" | "snack" | "dinner";
       post_type: "general" | "workout" | "diet";
       workout_source: "manual" | "strava";

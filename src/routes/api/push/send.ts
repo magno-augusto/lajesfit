@@ -28,6 +28,7 @@ function buildPayload(
   actorName: string,
   actorUsername: string,
   board: string | null,
+  podiumEventId: string | null,
 ) {
   switch (type) {
     case "follow":
@@ -54,6 +55,14 @@ function buildPayload(
         title: "Roubaram sua coroa!",
         body: `${actorName} roubou sua coroa no desafio ${label}`,
         url: "/desafio",
+      };
+    }
+    case "challenge_podium": {
+      const label = (board && BOARD_LABELS[board]) || "do mes";
+      return {
+        title: "Novo lider no desafio!",
+        body: `${actorName} assumiu a lideranca no desafio ${label}. Toque para compartilhar o podio.`,
+        url: podiumEventId ? `/desafio?podio=${podiumEventId}` : "/desafio",
       };
     }
     default:
@@ -87,7 +96,7 @@ export const Route = createFileRoute("/api/push/send")({
           .update({ pushed_at: new Date().toISOString() })
           .eq("id", notificationId)
           .is("pushed_at", null)
-          .select("id, user_id, actor_id, type, board")
+          .select("id, user_id, actor_id, type, board, podium_event_id")
           .maybeSingle();
 
         if (claimError) {
@@ -107,6 +116,7 @@ export const Route = createFileRoute("/api/push/send")({
           actor?.display_name ?? "Alguem",
           actor?.username ?? "user",
           notification.board ?? null,
+          notification.podium_event_id ?? null,
         );
         if (!payload) return json({ ok: true, skipped: "type_without_push" });
 

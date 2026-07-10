@@ -7,6 +7,10 @@ import logoUrl from "@/assets/logo.png";
 
 export const Route = createFileRoute("/desafio")({
   ssr: false,
+  validateSearch: (search: Record<string, unknown>) => ({
+    // deep link do push de podio: abre o dialog de compartilhamento do evento
+    podio: typeof search.podio === "string" ? search.podio : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Desafios do mês - Lajes Fit" },
@@ -24,13 +28,14 @@ export const Route = createFileRoute("/desafio")({
 // usuario logado mantem o shell normal do app (header + nav)
 function DesafioGate() {
   const { session, loading } = useLocalAuth();
+  const { podio } = Route.useSearch();
 
   if (loading) return <div className="min-h-screen bg-muted/40" />;
 
   if (session) {
     return (
       <AppShell>
-        <ChallengePage />
+        <ChallengePage podiumEventId={podio} />
       </AppShell>
     );
   }

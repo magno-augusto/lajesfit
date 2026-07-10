@@ -5,7 +5,8 @@ export type NotificationType =
   | "comment"
   | "challenge_join"
   | "follow"
-  | "challenge_dethroned";
+  | "challenge_dethroned"
+  | "challenge_podium";
 
 export type AppNotification = {
   id: string;
@@ -13,6 +14,7 @@ export type AppNotification = {
   postId: string | null;
   commentId: string | null;
   board: string | null;
+  podiumEventId: string | null;
   readAt: string | null;
   createdAt: string;
   actor: {
@@ -29,6 +31,7 @@ type NotificationRow = {
   post_id: string | null;
   comment_id: string | null;
   board: string | null;
+  podium_event_id: string | null;
   read_at: string | null;
   created_at: string;
 };
@@ -36,7 +39,7 @@ type NotificationRow = {
 export async function fetchNotifications(userId: string, limit = 30): Promise<AppNotification[]> {
   const { data: rows, error } = await supabase
     .from("notifications")
-    .select("id, type, actor_id, post_id, comment_id, board, read_at, created_at")
+    .select("id, type, actor_id, post_id, comment_id, board, podium_event_id, read_at, created_at")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -60,6 +63,7 @@ export async function fetchNotifications(userId: string, limit = 30): Promise<Ap
       postId: row.post_id,
       commentId: row.comment_id,
       board: row.board,
+      podiumEventId: row.podium_event_id,
       readAt: row.read_at,
       createdAt: row.created_at,
       actor: {

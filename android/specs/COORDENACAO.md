@@ -52,6 +52,7 @@ editar, porque concentram integração e geram conflito com facilidade:
 
 | Data | Tarefa | Dono | Status | Notas |
 |------|--------|------|--------|-------|
+| 2026-07-10 | Preparo de publicacao na Play | Codex | concluida | Politica publica `/privacidade` atualizada para cobrir Android nativo + web/PWA, Health Connect e Strava somente no web; criado `android/specs/PLAY-STORE-PREP.md` com inventario de Data safety, texto-base de Health Connect e pendencias de Play Console/app build. `tsc --noEmit --project ../tsconfig.json` passou. Fora do escopo: `android/app/**`, Play Console, deploy web e migrations Supabase. |
 | 2026-07-09 | M6 sub-parte 1 - modelos, repository e ViewModel | Codex | concluída | Criados modelos, repository e ViewModel de desafios; build `:app:assembleDebug` confirmado com cache repo-local. Commit: `Implementa M6: base de desafios`. |
 | 2026-07-09 | M6 sub-parte 2 - tela real de rankings | Codex | concluída | `ChallengesScreen.kt` substitui o placeholder por header, loading/erro, seis rankings, destaque do usuario atual e preview; `:app:assembleDebug`, `installDebug`, abertura do app e logcat sem crash confirmados. |
 | 2026-07-09 | M7 sub-parte 1 - navegacao e chrome autenticado | Codex | concluída | Rotas `search`, `settings` e `profile/{username}` registradas; top bar autenticada com busca e avatar do usuario atual; placeholders dos destinos criados; `:app:assembleDebug`, `installDebug`, abertura do app e logcat sem crash confirmados. |

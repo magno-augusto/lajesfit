@@ -31,7 +31,8 @@ Claude possam trabalhar no mesmo checkout sem implementar coisas conflitantes:
 4. **Handoff obrigatório**: termine toda tarefa com uma mensagem final contendo o que foi feito,
    a lista exata de arquivos tocados, validações executadas, o que ficou de fora ou bloqueado, e o
    que precisa do usuário ou do outro agente. Atualize também o status/notas da sua tarefa em
-   `specs/COORDENACAO.md`.
+   `specs/COORDENACAO.md` **e** `specs/DIARIO-DE-BORDO.md` (reescreva "Estado atual do repositório"
+   + acrescente uma entrada no registro) — é o que a próxima sessão do outro agente lê primeiro.
 5. **Permissões e ambiente**: cada agente usa os acessos disponíveis na própria sessão. Se algo
    bloquear (device/adb, escrita fora do workspace, daemon Gradle global), registre no handoff e
    peça ao usuário ou ao outro agente com acesso para executar. Build dentro do sandbox do Codex
@@ -101,8 +102,11 @@ handoff.
   `Duration`, não segundos como `Int` — `import kotlin.time.Duration.Companion.seconds` e
   `(segundos).seconds`.
 
-## Estado atual do projeto (snapshot em 2026-07-09, atualizado por sessões de Claude/Codex —
-confira `git log`/`git status` pra atualizar)
+## Estado atual do projeto
+
+> **A foto viva do repositório (HEAD, working tree, o que o outro agente acabou de fazer) está em
+> `specs/DIARIO-DE-BORDO.md` — leia-a primeiro.** O resumo abaixo é só o progresso de marcos
+> (snapshot 2026-07-09) e pode estar defasado; o diário e o `git log` mandam.
 
 - **M0-M4 commitados**: scaffolding, Supabase+Auth, Onboarding, Feed, Dieta completa (sub-partes
   1-4). Ver `git log` para os commits exatos.

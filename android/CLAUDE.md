@@ -13,8 +13,11 @@ bucket `media`. Não é um backend novo: qualquer schema/RPC/tabela deve bater c
 1. Leia `specs/M<n>-*.md` do marco em andamento. Se não existir spec para o marco pedido,
    **escreva a spec primeiro** (baseada nos marcos M0–M8 abaixo) e espere revisão antes de
    implementar — spec-driven development: a spec é a fonte da verdade, não a conversa.
-2. Rode `git status`/`git log -5` antes de assumir o que já foi feito — uma sessão anterior pode
-   ter sido interrompida no meio de um marco.
+2. Leia `specs/DIARIO-DE-BORDO.md` (canal assíncrono Claude⇄Codex): a seção "Estado atual do
+   repositório" diz o que a última sessão do outro agente fez, qual o HEAD e o que está sem commit —
+   é para não ter que garimpar o git. Confirme com `git status`/`git log -5`; se divergir, o git é a
+   verdade e o diário está desatualizado (corrija-o). Uma sessão anterior pode ter parado no meio de
+   um marco.
 3. Nunca tente implementar mais de um marco (ou mais de uma sub-parte de um marco grande, como
    M4/M7) numa única sessão. Termine com commits pequenos que deixem o projeto num estado que
    compilaria, e pare — não empilhe marcos "para adiantar".
@@ -43,6 +46,19 @@ coordenação é `specs/COORDENACAO.md`.
 - Encerrar com handoff claro: o que fez, arquivos tocados, validações, pendências e próximo passo.
 - Commitar sub-partes aprovadas com mensagem curta em português, seguindo o padrão do `git log`,
   salvo se o usuário pedir explicitamente para deixar sem commit.
+
+### Delegação proativa ao Codex (economia de contexto)
+
+Sempre que houver tarefas que **não dependem da execução em andamento** e que **possam ser feitas
+pelo Codex** (trabalho autônomo de código/repo — gerar páginas/docs, refatorações contidas,
+auditorias de código), **delegue-as ao Codex em paralelo**, para economizar contexto/tokens do
+Claude e adiantar a entrega. Regras:
+
+- **Peça aprovação do usuário antes de disparar** a tarefa ao Codex — apresente o briefing e peça a
+  aprovação num formato **s/n**: o usuário digita **s** (sim, aprova o envio) ou **n** (não, não
+  envia). Espere a resposta; nunca dispare sem um **s** explícito.
+- Só delegar escopos de arquivos **disjuntos** dos que estão em uso; reservar no quadro antes.
+- Ações de **console/navegador ou que exijam as contas do usuário não** são delegáveis ao Codex.
 
 ### Quadro de coordenação (`specs/COORDENACAO.md`)
 

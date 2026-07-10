@@ -47,11 +47,17 @@ editar, porque concentram integração e geram conflito com facilidade:
   Android 9+) — a sync real precisa de outro device ou emulador API 28+.
 - **M8 - Notificacoes + FCM**: escrever `specs/M8-notificacoes-fcm.md` e aguardar aprovacao do
   usuario antes de implementar, conforme gate de spec-driven development.
+- **Integrar Gradle Play Publisher (pós-primeiro-publish)**: automatizar upload/promoção do AAB via
+  Google Play Android Developer API a partir do Gradle (`./gradlew publishReleaseBundle`), lendo o
+  `versionCode` atual das trilhas em vez de conferir à mão. Só faz sentido **depois** do primeiro
+  publish manual — os formulários de Data safety / Health Connect são console-only. Exige conta de
+  serviço no Google Cloud + acesso de API no Play Console (credencial/segredo, ação do usuário).
 
 ## Histórico
 
 | Data | Tarefa | Dono | Status | Notas |
 |------|--------|------|--------|-------|
+| 2026-07-10 | Verificacao do takeover da ficha da Play + `build.gradle.kts` | Claude | concluída | Conferido no Play Console (via extensao Chrome) que `com.lajesfit.app` esta so no teste interno — bundle unico `versionCode 1`, producao inativa, 0 instalacoes — e que a upload key e a mesma keystore da TWA (`android-twa/android.keystore`, alias `lajesfit`, SHA-256 `0A:86:47:...:06`). Commitado `app/build.gradle.kts` (applicationId `com.lajesfit.app`, `versionCode 2`, signingConfig release). Commit `c86a10c`. Pendente (usuario/console): primeiro publish manual + formularios Data safety/Health Connect. |
 | 2026-07-10 | Preparo de publicacao na Play | Codex | concluida | Politica publica `/privacidade` atualizada para cobrir Android nativo + web/PWA, Health Connect e Strava somente no web; criado `android/specs/PLAY-STORE-PREP.md` com inventario de Data safety, texto-base de Health Connect e pendencias de Play Console/app build. `tsc --noEmit --project ../tsconfig.json` passou. Fora do escopo: `android/app/**`, Play Console, deploy web e migrations Supabase. |
 | 2026-07-09 | M6 sub-parte 1 - modelos, repository e ViewModel | Codex | concluída | Criados modelos, repository e ViewModel de desafios; build `:app:assembleDebug` confirmado com cache repo-local. Commit: `Implementa M6: base de desafios`. |
 | 2026-07-09 | M6 sub-parte 2 - tela real de rankings | Codex | concluída | `ChallengesScreen.kt` substitui o placeholder por header, loading/erro, seis rankings, destaque do usuario atual e preview; `:app:assembleDebug`, `installDebug`, abertura do app e logcat sem crash confirmados. |

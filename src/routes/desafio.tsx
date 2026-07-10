@@ -7,10 +7,10 @@ import logoUrl from "@/assets/logo.png";
 
 export const Route = createFileRoute("/desafio")({
   ssr: false,
-  validateSearch: (search: Record<string, unknown>) => ({
-    // deep link do push de podio: abre o dialog de compartilhamento do evento
-    podio: typeof search.podio === "string" ? search.podio : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { podio?: string } =>
+    // deep link do push de podio: abre o dialog de compartilhamento do evento.
+    // chave opcional para os Links existentes de /desafio nao exigirem search
+    typeof search.podio === "string" ? { podio: search.podio } : {},
   head: () => ({
     meta: [
       { title: "Desafios do mês - Lajes Fit" },

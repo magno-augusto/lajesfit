@@ -10,11 +10,7 @@ import { ChallengeCard } from "./ChallengeCard";
 import { PodiumCard } from "./PodiumCard";
 import { PodiumEventsCard } from "./PodiumEventsCard";
 import { PodiumShareDialog } from "./PodiumShareDialog";
-import {
-  getPendingPodiumEvents,
-  getPodiumEvent,
-  type PodiumEvent,
-} from "./podium-events-api";
+import { getPendingPodiumEvents, getPodiumEvent, type PodiumEvent } from "./podium-events-api";
 import {
   ensureChallengeLifecycle,
   getActiveChallenge,

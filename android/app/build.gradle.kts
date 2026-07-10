@@ -20,15 +20,25 @@ val localProperties = Properties().apply {
     }
 }
 
+// Credenciais de assinatura do release: lidas do local.properties (gitignored),
+// nunca hardcoded no repo. Se ausentes, o release fica sem signingConfig (ex.:
+// CI sem os segredos) e o assembleDebug continua funcionando normalmente.
+val keystorePath = localProperties.getProperty("LAJESFIT_KEYSTORE_PATH")
+val keystorePassword = localProperties.getProperty("LAJESFIT_KEYSTORE_PASSWORD")
+
 android {
     namespace = "com.lajesfit.android"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.lajesfit.android"
+        // applicationId = identidade na Play. Assume a ficha da TWA (com.lajesfit.app)
+        // para substitui-la; o namespace/pacote Kotlin continua com.lajesfit.android.
+        // ATENCAO: versionCode DEVE ser maior que o publicado da TWA na Play — confira
+        // no Play Console e ajuste se a TWA ja passou de 1.
+        applicationId = "com.lajesfit.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
+        versionCode = 2
         versionName = "0.1.0"
 
         buildConfigField(
@@ -48,9 +58,26 @@ android {
         )
     }
 
+    signingConfigs {
+        // Assina o release com a MESMA chave (upload key) da TWA, para poder
+        // atualizar a ficha com.lajesfit.app. Store e key password sao iguais
+        // (keystore PKCS12). So cria se o local.properties tiver a chave.
+        if (keystorePath != null) {
+            create("release") {
+                storeFile = file(keystorePath)
+                storePassword = keystorePassword
+                keyAlias = "lajesfit"
+                keyPassword = keystorePassword
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            if (keystorePath != null) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 

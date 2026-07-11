@@ -156,18 +156,37 @@ Respostas-base para o formulario:
 - [x] Web deployado com `/privacidade` publica — confirmado em 2026-07-11 que
       `https://lajesfit.vercel.app/privacidade` abre sem login, com politica completa (coleta,
       Health Connect, Supabase, exclusao de conta).
-- [ ] Confirmar no Play Console o `versionCode` atual da TWA publicada; `app/build.gradle.kts`
-      esta WIP com `versionCode = 2`, mas precisa ser maior que o publicado.
-- [ ] Confirmar assinatura: release Android nativo precisa usar a upload key correta da ficha
-      `com.lajesfit.app`.
-- [ ] Gerar AAB release e instalar/testar build release quando a zona `app/**` for fechada.
-- [ ] Checar no Play Console se o pacote `com.lajesfit.app` substitui mesmo a TWA desejada.
+- [x] `versionCode = 2` confirmado no Play Console (a TWA tinha `versionCode 1`, so no teste
+      interno) — 2026-07-11.
+- [x] Assinatura confirmada: SHA-256 do cert do AAB == keystore de upload (alias `lajesfit`,
+      `0A:86:47:...:97:D0:6C`) — 2026-07-11.
+- [x] AAB release gerado e assinado (`:app:bundleRelease`, 29 MB, `versionCode 2`). Teste em device
+      fisico ainda recomendado (nao bloqueia o teste interno).
+- [x] Takeover confirmado: `com.lajesfit.app` v2 nativa **publicada no teste interno** em
+      2026-07-11 03:19 ("Disponivel para testadores internos", substituindo a v1 da TWA). Status da
+      release: "Nao revisado" (revisao do Google em andamento).
 - [x] Migrations `20260720120000_health_connect_workouts.sql` e `20260721120000_podium_events.sql`
       **ja aplicadas no remoto** — confirmado via `supabase migration list` em 2026-07-11 (ambas com
       `remote` correspondente; nenhuma pendente).
-- [ ] Validar Health Connect em Android 9+ e dedupe de importacao.
-- [ ] Preencher Data safety e Health Connect declaration com base neste inventario, revisando os
-      nomes exatos das categorias no Console.
+- [ ] Validar Health Connect em Android 9+ e dedupe de importacao (pendente — precisa device).
+- [x] Data safety, Apps de saude e ID de publicidade preenchidos/revisados no Console (2026-07-11):
+      ID de publicidade = "Nao" (sem `AD_ID` no manifest merged do release); Data safety herdado da
+      TWA revisado e **correto para o nativo** (Nome/E-mail/IDs de usuario; fitness cobre Health
+      Connect; fotos; interacoes no app; sem localizacao/financeiro/AD_ID); Apps de saude = so
+      "Atividade e condicionamento fisicos".
+
+## Status do primeiro publish (2026-07-11)
+
+Primeiro publish do app nativo **feito** na trilha de **teste interno** (`com.lajesfit.app`,
+`versionCode 2`, `0.1.0`). Passos 1-8 da lista de publicacao concluidos. Pendencias que sobram, todas
+do usuario/device:
+
+- **Promover para producao** quando validado (Play Console: "Promover versao" teste interno ->
+  producao; revisao mais criteriosa, reusa os formularios ja preenchidos).
+- **Testar a v2 em device** Android 8.0+ via link de opt-in do teste interno (aba "Testadores").
+- **Validar Health Connect** em Android 9+ (o J7 Prime do dev nao roda HC).
+- Opcional em versao futura: habilitar R8/proguard e subir simbolos de depuracao nativos (avisos
+  benignos vistos na tela de review; nenhum bloqueia).
 
 ## Fora do escopo desta tarefa
 

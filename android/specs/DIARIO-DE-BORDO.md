@@ -58,14 +58,15 @@ apontam para cá). Ele não substitui os outros artefatos, complementa:
     commitado - commit `c86a10c`: `applicationId com.lajesfit.app`, `versionCode 2` (o unico bundle
     ja enviado tem `versionCode 1`, so no teste interno; producao inativa, 0 instalacoes), e
     signingConfig release reusando a keystore/upload key da TWA. Sem usuarios reais a "assumir".
-- **Publicacao na Play - fechado em 2026-07-11 (tarefa #9)**: gap Android 14+ do Health Connect
-  fechado (`activity-alias` no manifest) e **AAB de release assinado gerado e verificado** - o lado
-  de codigo/artefato do primeiro publish esta pronto. Passos 1-4 da lista de publicacao concluidos
-  (deploy web `/privacidade` confirmado no ar, migrations ja no remoto, alias HC, AAB assinado).
-- **Pendencias externas (usuario/console - nenhum agente resolve)**:
-  - **Upload do AAB** (`app-release.aab`) no Play Console + **primeiro publish manual** + formularios
-    **Data safety / Health Connect** (console-only; textos-base em `specs/PLAY-STORE-PREP.md`).
-  - Validar Health Connect real em Android 9+; o device atual (J7 Prime, Android 8.1) e incompativel.
+- **PRIMEIRO PUBLISH FEITO (2026-07-11)**: `com.lajesfit.app` v2 nativa (`versionCode 2`, `0.1.0`)
+  **publicada no teste interno** ("Disponivel para testadores internos", "Nao revisado" = revisao
+  Google em andamento). Takeover efetivado - a v2 nativa substituiu a v1 da TWA na ficha. Passos 1-8
+  da lista de publicacao concluidos: deploy web `/privacidade`, migrations no remoto, alias HC, AAB
+  assinado, upload, formularios (ID publicidade="Nao", Data safety e Apps de saude revisados e
+  corretos para o nativo). Feito com o usuario via extensao Chrome; detalhes em
+  `specs/PLAY-STORE-PREP.md`.
+- **Pendencias que sobram (usuario/device)**: promover teste interno -> producao quando validado;
+  testar a v2 em device Android 8.0+; validar Health Connect em Android 9+ (J7 Prime nao roda HC).
 - **Migrations Supabase: JA aplicadas no remoto** - confirmado em 2026-07-11 via
   `supabase migration list` (`20260720120000` e `20260721120000` com `remote` correspondente; nada
   pendente). Nao e' mais uma pendencia.
@@ -114,6 +115,14 @@ key = a keystore da TWA. `build.gradle.kts` commitado (`c86a10c`). Resolvido.
 
 _Mais recente no topo. Uma entrada por sessão/handoff; detalhe fechado vai para o Histórico do
 `COORDENACAO.md`._
+
+### 2026-07-11 - Claude (PRIMEIRO PUBLISH: teste interno via Play Console)
+- Com o usuario (extensao Claude no Chrome): subiu o AAB v2 no teste interno de `com.lajesfit.app`,
+  resolveu a declaracao de **ID de publicidade** = "Nao" (evidencia: sem `AD_ID` no manifest merged
+  do release), revisou **Data safety** + **Apps de saude** (herdados da TWA, confirmados corretos
+  para o nativo). Usuario clicou "Salvar e publicar" -> v2 "Disponivel para testadores internos"
+  (revisao Google pendente). Takeover efetivado.
+- Commit do `activity-alias` HC + specs de publicacao: `e053603` (local, **nao empurrado** ainda).
 
 ### 2026-07-11 - Claude (fechamento do lado de codigo do primeiro publish)
 - Fechou o gap Android 14+ do checklist Health Connect: `activity-alias` `ViewPermissionUsageActivity`

@@ -34,15 +34,14 @@ apontam para cá). Ele não substitui os outros artefatos, complementa:
 
 > _Atualizado por: **Claude** em 2026-07-11._
 
-- **Branch / HEAD**: `main` @ `0c3aa92` - "Diario: registra push do repo e consolidacao...".
-  Em sincronia com `origin/main` ate esse commit (os 42 commits locais M0->M7 + podio + tema +
-  preparo Play foram empurrados para o GitHub em 2026-07-10).
-- **Working tree com mudancas sem commit (tarefa #9, Claude, 2026-07-11)** - prontas para commitar:
-  `app/src/main/AndroidManifest.xml` (novo `activity-alias` do Health Connect), `specs/COORDENACAO.md`,
-  `specs/PLAY-STORE-PREP.md`, `specs/DIARIO-DE-BORDO.md`. Tambem sem commit e' o rascunho
-  `specs/M8-notificacoes-fcm.md` (aguardando aprovacao do usuario - nao commitar).
+- **Branch / HEAD**: `main` @ `b4a1a38` - "Registra primeiro publish na Play...".
+  **Em sincronia com `origin/main`** - empurrado em 2026-07-11 (`e053603` alias HC + specs,
+  `b4a1a38` registro do publish).
+- **Working tree limpo** - unica coisa sem commit e' o rascunho `specs/M8-notificacoes-fcm.md`
+  (aguardando aprovacao do usuario - **nao commitar**).
 - **AAB de release gerado** (nao versionado - build output): `app/build/outputs/bundle/release/app-release.aab`
-  (29 MB, `versionCode 2`), assinado com a upload key da TWA (SHA-256 conferido == keystore).
+  (29 MB, `versionCode 2`), assinado com a upload key da TWA (SHA-256 conferido == keystore). **Ja
+  publicado no teste interno** da Play em 2026-07-11.
 - **Ambiente / topologia (importante):** o checkout canonico e este monorepo
   `C:/Users/magno/Documents/lajesfit/` (web + `supabase/` + `android/` nativo + `android-twa/`),
   remote `github.com/magno-augusto/lajesfit`. Havia um segundo clone do MESMO repo em
@@ -122,7 +121,8 @@ _Mais recente no topo. Uma entrada por sessão/handoff; detalhe fechado vai para
   do release), revisou **Data safety** + **Apps de saude** (herdados da TWA, confirmados corretos
   para o nativo). Usuario clicou "Salvar e publicar" -> v2 "Disponivel para testadores internos"
   (revisao Google pendente). Takeover efetivado.
-- Commit do `activity-alias` HC + specs de publicacao: `e053603` (local, **nao empurrado** ainda).
+- Commits: `e053603` (`activity-alias` HC + specs) e `b4a1a38` (registro do publish) - **empurrados
+  para o GitHub em 2026-07-11**; `main` em sincronia com `origin/main`.
 
 ### 2026-07-11 - Claude (fechamento do lado de codigo do primeiro publish)
 - Fechou o gap Android 14+ do checklist Health Connect: `activity-alias` `ViewPermissionUsageActivity`

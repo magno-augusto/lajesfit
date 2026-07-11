@@ -32,12 +32,17 @@ apontam para cá). Ele não substitui os outros artefatos, complementa:
 
 ## Estado atual do repositório
 
-> _Atualizado por: **Claude** em 2026-07-10._
+> _Atualizado por: **Claude** em 2026-07-11._
 
-- **Branch / HEAD**: `main` @ `379e478` - "Atualiza quadro e diario: takeover verificado...".
-  **Em sincronia com `origin/main`** - os 42 commits locais (M0->M7 + podio + tema + preparo Play)
-  foram **empurrados para o GitHub em 2026-07-10** (o repo estava so na maquina ate entao).
-- **Working tree limpo** - nada sem commit (fora `local.properties` e caches gitignored).
+- **Branch / HEAD**: `main` @ `0c3aa92` - "Diario: registra push do repo e consolidacao...".
+  Em sincronia com `origin/main` ate esse commit (os 42 commits locais M0->M7 + podio + tema +
+  preparo Play foram empurrados para o GitHub em 2026-07-10).
+- **Working tree com mudancas sem commit (tarefa #9, Claude, 2026-07-11)** - prontas para commitar:
+  `app/src/main/AndroidManifest.xml` (novo `activity-alias` do Health Connect), `specs/COORDENACAO.md`,
+  `specs/PLAY-STORE-PREP.md`, `specs/DIARIO-DE-BORDO.md`. Tambem sem commit e' o rascunho
+  `specs/M8-notificacoes-fcm.md` (aguardando aprovacao do usuario - nao commitar).
+- **AAB de release gerado** (nao versionado - build output): `app/build/outputs/bundle/release/app-release.aab`
+  (29 MB, `versionCode 2`), assinado com a upload key da TWA (SHA-256 conferido == keystore).
 - **Ambiente / topologia (importante):** o checkout canonico e este monorepo
   `C:/Users/magno/Documents/lajesfit/` (web + `supabase/` + `android/` nativo + `android-twa/`),
   remote `github.com/magno-augusto/lajesfit`. Havia um segundo clone do MESMO repo em
@@ -53,12 +58,17 @@ apontam para cá). Ele não substitui os outros artefatos, complementa:
     commitado - commit `c86a10c`: `applicationId com.lajesfit.app`, `versionCode 2` (o unico bundle
     ja enviado tem `versionCode 1`, so no teste interno; producao inativa, 0 instalacoes), e
     signingConfig release reusando a keystore/upload key da TWA. Sem usuarios reais a "assumir".
+- **Publicacao na Play - fechado em 2026-07-11 (tarefa #9)**: gap Android 14+ do Health Connect
+  fechado (`activity-alias` no manifest) e **AAB de release assinado gerado e verificado** - o lado
+  de codigo/artefato do primeiro publish esta pronto. Passos 1-4 da lista de publicacao concluidos
+  (deploy web `/privacidade` confirmado no ar, migrations ja no remoto, alias HC, AAB assinado).
 - **Pendencias externas (usuario/console - nenhum agente resolve)**:
-  - **Primeiro publish manual** na Play + formularios **Data safety / Health Connect** (console-only).
-  - Deployar o web e confirmar `https://lajesfit.vercel.app/privacidade` sem login.
-  - Aplicar migrations Supabase: `20260720120000_health_connect_workouts.sql` e
-    `20260721120000_podium_events.sql`.
+  - **Upload do AAB** (`app-release.aab`) no Play Console + **primeiro publish manual** + formularios
+    **Data safety / Health Connect** (console-only; textos-base em `specs/PLAY-STORE-PREP.md`).
   - Validar Health Connect real em Android 9+; o device atual (J7 Prime, Android 8.1) e incompativel.
+- **Migrations Supabase: JA aplicadas no remoto** - confirmado em 2026-07-11 via
+  `supabase migration list` (`20260720120000` e `20260721120000` com `remote` correspondente; nada
+  pendente). Nao e' mais uma pendencia.
 - **Proximo trabalho previsto (nao iniciado)**: integrar Gradle Play Publisher pos-primeiro-publish
   (ver `COORDENACAO.md`); M8 (FCM) atras do gate de spec.
 
@@ -104,6 +114,21 @@ key = a keystore da TWA. `build.gradle.kts` commitado (`c86a10c`). Resolvido.
 
 _Mais recente no topo. Uma entrada por sessão/handoff; detalhe fechado vai para o Histórico do
 `COORDENACAO.md`._
+
+### 2026-07-11 - Claude (fechamento do lado de codigo do primeiro publish)
+- Fechou o gap Android 14+ do checklist Health Connect: `activity-alias` `ViewPermissionUsageActivity`
+  (`VIEW_PERMISSION_USAGE`/`HEALTH_PERMISSIONS`) no manifest, apontando para a
+  `HealthPermissionRationaleActivity` que ja existia.
+- Gerou o **AAB de release** (`:app:bundleRelease`) com o JBR do Android Studio + cache Gradle
+  repo-local: `BUILD SUCCESSFUL`, `app-release.aab` 29 MB, `versionCode 2`.
+- **Verificou a assinatura**: SHA-256 do cert do AAB == SHA-256 da keystore de upload (alias
+  `lajesfit`) - `0A:86:47:B1:...:97:D0:6C` (o fingerprint completo; entradas antigas o abreviavam
+  como `...:06`, impreciso).
+- Verificou via `supabase migration list` (CLI 2.109.1, projeto `lmqzjmxtlecbwqpoumux`) que as 2
+  migrations do "passo 2" (`20260720120000`, `20260721120000`) **ja estao no remoto** - nada a
+  aplicar; corrigiu os quadros que as listavam como pendentes.
+- Mudancas sem commit (manifest + specs) prontas para commitar. Pendencias externas restantes:
+  deploy web `/privacidade` + upload do AAB e formularios no console.
 
 ### 2026-07-10 - Claude (verificacao do takeover + publicacao)
 - Commitou a entrega da tarefa #8 do Codex (`5cf257d`) e o diario/canal (`94481db`), descartando o

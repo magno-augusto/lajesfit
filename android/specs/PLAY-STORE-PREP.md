@@ -65,13 +65,10 @@ Checklist tecnico de Health Connect:
 - [x] Manifest declara `queries` para `com.google.android.apps.healthdata`.
 - [x] Existe `HealthPermissionRationaleActivity` com
       `androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE`.
-- [ ] Confirmar se a Play exige, para Android 14+, `activity-alias` com
-      `android.intent.action.VIEW_PERMISSION_USAGE`,
-      `android.intent.category.HEALTH_PERMISSIONS` e permissao
-      `android.permission.START_VIEW_PERMISSION_USAGE`. A documentacao atual mostra esse alias; o
-      manifest do app ainda nao tem. Arquivo fica na zona `app/**`, fora da reserva da tarefa #8.
-- [ ] Se o alias acima for adicionado, garantir que ele abra a mesma politica/rationale informada
-      no Play Console.
+- [x] `activity-alias` para Android 14+ adicionado ao manifest (tarefa #9, Claude, 2026-07-11):
+      `ViewPermissionUsageActivity` responde a `VIEW_PERMISSION_USAGE`/`HEALTH_PERMISSIONS`, protegido
+      por `android.permission.START_VIEW_PERMISSION_USAGE`, apontando (`targetActivity`) para a
+      `HealthPermissionRationaleActivity` que ja existia. Reusa a mesma tela de rationale/uso de dados.
 - [ ] Validar sync real em aparelho/emulador Android 9+; o device atual Android 8.1 retorna Health
       Connect indisponivel, que e esperado.
 
@@ -156,15 +153,18 @@ Respostas-base para o formulario:
 
 ## Itens pendentes antes de enviar o AAB
 
-- [ ] Publicar/deployar o web com a rota `/privacidade` e confirmar a URL final abre sem login.
+- [x] Web deployado com `/privacidade` publica — confirmado em 2026-07-11 que
+      `https://lajesfit.vercel.app/privacidade` abre sem login, com politica completa (coleta,
+      Health Connect, Supabase, exclusao de conta).
 - [ ] Confirmar no Play Console o `versionCode` atual da TWA publicada; `app/build.gradle.kts`
       esta WIP com `versionCode = 2`, mas precisa ser maior que o publicado.
 - [ ] Confirmar assinatura: release Android nativo precisa usar a upload key correta da ficha
       `com.lajesfit.app`.
 - [ ] Gerar AAB release e instalar/testar build release quando a zona `app/**` for fechada.
 - [ ] Checar no Play Console se o pacote `com.lajesfit.app` substitui mesmo a TWA desejada.
-- [ ] Aplicar no Supabase as migrations pendentes antes de testar fluxos reais:
-      `20260720120000_health_connect_workouts.sql` e `20260721120000_podium_events.sql`.
+- [x] Migrations `20260720120000_health_connect_workouts.sql` e `20260721120000_podium_events.sql`
+      **ja aplicadas no remoto** — confirmado via `supabase migration list` em 2026-07-11 (ambas com
+      `remote` correspondente; nenhuma pendente).
 - [ ] Validar Health Connect em Android 9+ e dedupe de importacao.
 - [ ] Preencher Data safety e Health Connect declaration com base neste inventario, revisando os
       nomes exatos das categorias no Console.

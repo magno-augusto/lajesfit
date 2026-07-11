@@ -48,10 +48,27 @@
             android:exported="true"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.LajesFit">
+            <!-- Android < 14 / Health Connect como app separado: rationale acionada
+                 pelo proprio Health Connect. -->
             <intent-filter>
                 <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
             </intent-filter>
         </activity>
+
+        <!-- Android 14+ (targetSdk 34+): Health Connect e' parte do sistema e a Play
+             exige uma activity que responda a VIEW_PERMISSION_USAGE/HEALTH_PERMISSIONS
+             para mostrar como o app usa dados de saude. Reaproveita a mesma tela de
+             rationale. Ver specs/PLAY-STORE-PREP.md (item do checklist Health Connect). -->
+        <activity-alias
+            android:name="ViewPermissionUsageActivity"
+            android:exported="true"
+            android:permission="android.permission.START_VIEW_PERMISSION_USAGE"
+            android:targetActivity=".feature.workouts.HealthPermissionRationaleActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+                <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+            </intent-filter>
+        </activity-alias>
 
     </application>
 

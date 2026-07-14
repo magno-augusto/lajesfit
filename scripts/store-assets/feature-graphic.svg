@@ -1,0 +1,32 @@
+<svg width="1024" height="500" viewBox="0 0 1024 500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F08A42"/>
+      <stop offset="100%" stop-color="#C6511C"/>
+    </linearGradient>
+    <linearGradient id="badge" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFF8EC"/>
+      <stop offset="100%" stop-color="#FDEBD3"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="500" fill="url(#bg)"/>
+
+  <!-- subtle mountain silhouette motif, right side, low contrast -->
+  <path d="M 620 500 L 760 260 L 840 360 L 920 240 L 1024 420 L 1024 500 Z" fill="#00000014"/>
+  <path d="M 560 500 L 700 300 L 800 420 L 900 300 L 1024 460 L 1024 500 Z" fill="#00000010"/>
+
+  <!-- icon badge -->
+  <g transform="translate(96,150)">
+    <rect x="0" y="0" width="200" height="200" rx="44" fill="url(#badge)"/>
+    <g fill="#C6511C" transform="translate(38,42)">
+      <path d="M 20 0 L 20 96 L 20 116 L 82 116 L 82 96 L 52 96 L 52 0 Z"/>
+      <path d="M 96 0 L 96 116 L 128 116 L 128 76 L 160 76 L 160 56 L 128 56 L 128 20 L 166 20 L 166 0 Z"/>
+    </g>
+  </g>
+
+  <!-- wordmark -->
+  <g transform="translate(340,205)">
+    <text x="0" y="0" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="86" fill="#FFF8EC">Lajes Fit</text>
+    <text x="4" y="52" font-family="Arial, Helvetica, sans-serif" font-weight="400" font-size="30" fill="#FFF8ECE0">Treino, dieta e comunidade fitness</text>
+  </g>
+</svg>

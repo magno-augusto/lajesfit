@@ -37,13 +37,25 @@ apontam para cá). Ele não substitui os outros artefatos, complementa:
 - **CODEX DESCONTINUADO (2026-07-15)**: a assinatura do Codex terminou. Todo o trabalho
   (planejar, implementar, validar, commitar) passa a ser do **Claude Code**. Pedido do usuario na
   mesma data: **cada sub-parte implementada ganha um commit**.
-- **Branch / HEAD**: `main` @ `3012c00` - "Android: Dieta fiel ao web (anel de calorias...)".
-  Commits locais ainda **nao empurrados** nesta maquina (verificar `git status -sb` antes de push).
-- **Maquina atual**: checkout em `C:/Users/Terminal/Documents/lajesfit` (usuario "Terminal", nao a
-  maquina "magno") — **sem Android SDK/adb/local.properties**: nao compila nem instala aqui;
-  validacao por leitura + `@Preview`, build/device ficam para maquina com Android Studio.
-- **Working tree**: `.gitignore` e `src/routeTree.gen.ts` modificados sem commit (pre-existentes
-  nesta maquina, nao pertencem a tarefa atual — nao commitar sem confirmar com o usuario).
+- **Branch / HEAD**: `main` @ `a definir no push de 2026-07-15` (ver `git log`): `3012c00` Dieta
+  fiel ao web, `9172cf0` diario, `bea4cae` gitignore `.env*`, + este commit de diario.
+  **Empurrado para `origin/main` em 2026-07-15** (pedido do usuario, para continuar em casa).
+- **Maquina "Terminal" agora COMPILA E INSTALA**: em 2026-07-15 foram instalados (sem admin)
+  JDK 21 portatil (`~\.jdks\jdk-21.0.11+10`), SDK Android API 36 + build-tools + platform-tools
+  (`%LOCALAPPDATA%\Android\Sdk`, via cmdline-tools) e Gradle 9.3 via wrapper. `:app:assembleDebug`
+  BUILD SUCCESSFUL (7m15s frio, ~1m incremental).
+- **Device de teste novo: Galaxy Tab S6 Lite (SM-P625), Android 16** — roda Health Connect!
+  Pareado por **adb WiFi** (pareamento persistente); a porta de conexao muda a cada sessao —
+  descobrir com `adb mdns services` e `adb connect <ip:porta>`. App debug (`com.lajesfit.app.debug`)
+  instalado e rodando no tablet.
+- **Login no Android consertado (causa raiz)**: o `local.properties` desta maquina nao tinha
+  `SUPABASE_URL`/`SUPABASE_ANON_KEY` (segredos ficam fora do git) -> APK compilava com config
+  vazia e nenhum login funcionava. Corrigido copiando do `.env` da raiz (usada a
+  `VITE_SUPABASE_PUBLISHABLE_KEY`, como o web). **Google Sign-In no debug segue pendente**
+  (exige registrar package `com.lajesfit.app.debug` + SHA-1 da debug key desta maquina no Google
+  Cloud); e-mail/senha funciona.
+- **Working tree**: `src/routeTree.gen.ts` modificado sem commit (so ruido de fim de linha, diff
+  textual vazio — pode descartar).
 - **Tarefa em andamento (#7, fidelidade visual ao web)**: usuario reporta app muito diferente do
   web nas 4 areas (Dieta, Treinos, Feed, Perfil/Login/Config). Gap e de **composicao de tela**,
   nao de tema (tema ja fiel). Plano: reescrever uma tela por sub-parte, um commit cada.
@@ -130,6 +142,18 @@ key = a keystore da TWA. `build.gradle.kts` commitado (`c86a10c`). Resolvido.
 
 _Mais recente no topo. Uma entrada por sessão/handoff; detalhe fechado vai para o Histórico do
 `COORDENACAO.md`._
+
+### 2026-07-15 - Claude (ambiente de build na maquina "Terminal" + tablet + fix do login)
+- Montou toolchain completa sem Android Studio nem admin: JDK 21 portatil, SDK cmdline-tools ->
+  platform-tools/platforms;android-36/build-tools;36.0.0, licencas aceitas, `local.properties`.
+- `assembleDebug` BUILD SUCCESSFUL -> valida que a Dieta nova (`3012c00`) compila.
+- Pareou **Galaxy Tab S6 Lite (Android 16)** via adb WiFi e instalou o app debug.
+- **Fix do login**: APK anterior tinha `SUPABASE_URL`/`ANON_KEY` vazios (local.properties novo so
+  tinha sdk.dir). Copiado do `.env` da raiz; recompilado e reinstalado — e-mail/senha OK.
+- Pendencias: verificacao visual da Dieta no tablet (login com conta real ou usuario de teste —
+  criacao do usuario de teste em prod requer autorizacao explicita do usuario); Google Sign-In no
+  debug (SHA-1); proximas sub-partes da tarefa #7 (Treinos, Feed, Perfil/Login/Config).
+- Push para `origin/main` a pedido do usuario (continuara em casa).
 
 ### 2026-07-15 - Claude (fidelidade visual: Dieta; fim do Codex)
 - Usuario informou que a **assinatura do Codex terminou** — daqui em diante so Claude Code; e que

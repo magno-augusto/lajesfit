@@ -1,5 +1,6 @@
 package com.lajesfit.android.feature.feed
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -7,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -16,6 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
@@ -24,6 +27,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -40,15 +44,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil3.compose.AsyncImage
+import com.lajesfit.android.ui.theme.BebasNeue
+import com.lajesfit.android.ui.theme.LajesFitSuccess
 import com.lajesfit.android.ui.theme.LajesFitTheme
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -176,6 +185,12 @@ class FeedViewModel @Inject constructor(
     }
 }
 
+// Espelha src/features/feed/FeedPage.tsx + PostCard.tsx: card branco por post
+// com midia full-bleed, badge de tipo (Treino/Dieta) e bloco de stats de
+// treino em fundo solido (web usa gradiente ember; aqui secondary solido, ver
+// specs/M3-feed.md). Compartilhar post, upload de midia no CreatePostScreen e
+// player de video inline ficam fora de escopo Android.
+
 @Composable
 fun FeedScreen(
     onOpenComments: (String) -> Unit,
@@ -231,17 +246,23 @@ private fun FeedScreenContent(
             Column(
                 modifier = modifier.fillMaxSize().padding(24.dp),
                 verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 CircularProgressIndicator(modifier = Modifier.padding(bottom = 8.dp))
-                Text("Carregando feed...")
+                Text("Carregando feed...", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         uiState.posts.isEmpty() -> {
             Column(
                 modifier = modifier.fillMaxSize().padding(24.dp),
                 verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text("Nenhum post publicado ainda", style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    text = "Nenhum post publicado ainda",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 if (uiState.errorMessage != null) {
                     Text(uiState.errorMessage, color = MaterialTheme.colorScheme.error)
                 }
@@ -296,12 +317,14 @@ fun PostCard(
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 PostAvatar(post.profile.avatarUrl, post.profile.displayName ?: post.profile.username)
                 Column(
@@ -317,58 +340,94 @@ fun PostCard(
                     Text(
                         text = post.profile.displayName ?: post.profile.username,
                         style = MaterialTheme.typography.titleSmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = "@${post.profile.username} · ${timeAgo(post.createdAt)}",
+                        text = "@${post.profile.username} - ${timeAgo(post.createdAt)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
                 when (post.type) {
-                    PostType.WORKOUT -> PostTypeBadge("Treino")
-                    PostType.DIET -> PostTypeBadge("Dieta")
+                    PostType.WORKOUT -> PostTypeBadge("Treino", MaterialTheme.colorScheme.primary)
+                    PostType.DIET -> PostTypeBadge("Dieta", LajesFitSuccess)
                     PostType.GENERAL -> {}
                 }
                 if (canDelete && onDelete != null) {
                     IconButton(onClick = { onDelete() }) {
-                        Icon(Icons.Filled.Delete, contentDescription = "Apagar post")
+                        Icon(
+                            Icons.Filled.Delete,
+                            contentDescription = "Apagar post",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
             }
 
-            if (post.content.isNotBlank()) {
-                Text(text = post.content, modifier = Modifier.padding(top = 8.dp))
-            }
-
             PostMedia(post.mediaUrl)
 
-            post.workout?.let { workout -> WorkoutStats(workout) }
+            if (post.content.isNotBlank()) {
+                Text(
+                    text = post.content,
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                )
+            }
 
+            post.workout?.let { workout ->
+                WorkoutStatsBlock(
+                    workout = workout,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 12.dp),
+                )
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline, modifier = Modifier.padding(top = 8.dp))
             Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.fillMaxWidth().padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .then(if (onLike != null) Modifier.clickable { onLike() } else Modifier)
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = if (onLike != null) Modifier.clickable { onLike() } else Modifier,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Icon(
                         imageVector = if (post.likedByMe) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                         contentDescription = "Curtir",
-                        tint = if (post.likedByMe) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                        tint = if (post.likedByMe) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp),
                     )
-                    Text(text = post.likesCount.toString(), modifier = Modifier.padding(start = 4.dp))
+                    Text(
+                        text = post.likesCount.toString(),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = if (post.likedByMe) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
                 Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .then(if (onOpenComments != null) Modifier.clickable { onOpenComments() } else Modifier)
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = if (onOpenComments != null) {
-                        Modifier.clickable { onOpenComments() }
-                    } else {
-                        Modifier
-                    },
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    Icon(Icons.Filled.ChatBubbleOutline, contentDescription = "Comentarios")
-                    Text(text = post.commentsCount.toString(), modifier = Modifier.padding(start = 4.dp))
+                    Icon(
+                        Icons.Filled.ChatBubbleOutline,
+                        contentDescription = "Comentarios",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Text(
+                        text = post.commentsCount.toString(),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }
@@ -376,13 +435,17 @@ fun PostCard(
 }
 
 @Composable
-private fun PostTypeBadge(label: String) {
-    Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.tertiaryContainer) {
+private fun PostTypeBadge(label: String, color: Color) {
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = color.copy(alpha = 0.1f),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.2f)),
+    ) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onTertiaryContainer,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            color = color,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
         )
     }
 }
@@ -398,10 +461,17 @@ private fun PostAvatar(avatarUrl: String?, fallbackName: String) {
         )
     } else {
         Box(
-            modifier = Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
             contentAlignment = Alignment.Center,
         ) {
-            Text(text = fallbackName.take(1).uppercase(), textAlign = TextAlign.Center)
+            Text(
+                text = fallbackName.take(1).uppercase(),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
         }
     }
 }
@@ -413,13 +483,19 @@ private fun PostMedia(mediaUrl: String?) {
     if (mediaUrl == null) return
     val isVideo = VIDEO_EXTENSION_REGEX.containsMatchIn(mediaUrl) || mediaUrl.contains("video", ignoreCase = true)
     if (isVideo) {
-        Card(
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+            contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = "Video - abra pelo navegador pra assistir por enquanto",
-                modifier = Modifier.padding(16.dp),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(24.dp),
             )
         }
     } else {
@@ -427,33 +503,81 @@ private fun PostMedia(mediaUrl: String?) {
             model = mediaUrl,
             contentDescription = null,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp).clip(MaterialTheme.shapes.medium),
+            modifier = Modifier.fillMaxWidth().aspectRatio(1f),
         )
     }
 }
 
 @Composable
-private fun WorkoutStats(workout: WorkoutSummary) {
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+private fun WorkoutStatsBlock(workout: WorkoutSummary, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.secondary)
+            .padding(16.dp),
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Text(text = workout.title ?: workout.activityType ?: "Treino", style = MaterialTheme.typography.titleSmall)
-            val parts = buildList {
-                workout.distanceMeters?.let { add("${"%.1f".format(it / 1000)} km") }
-                workout.durationSeconds?.let { add("${it / 60} min") }
-                workout.calories?.let { add("$it kcal") }
-            }
-            if (parts.isNotEmpty()) {
-                Text(
-                    text = parts.joinToString(" · "),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                )
-            }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Icon(
+                Icons.AutoMirrored.Filled.DirectionsRun,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSecondary,
+                modifier = Modifier.size(18.dp),
+            )
+            Text(
+                text = workout.title?.takeIf { it.isNotBlank() } ?: workout.activityType ?: "Treino",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            WorkoutStatItem(
+                label = "Distancia",
+                value = formatWorkoutDistance(workout.distanceMeters),
+                modifier = Modifier.weight(1f),
+            )
+            WorkoutStatItem(
+                label = "Tempo",
+                value = formatWorkoutDuration(workout.durationSeconds),
+                modifier = Modifier.weight(1f),
+            )
+            WorkoutStatItem(
+                label = "Calorias",
+                value = workout.calories?.toString() ?: "-",
+                modifier = Modifier.weight(1f),
+            )
         }
     }
+}
+
+@Composable
+private fun WorkoutStatItem(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(text = value, fontFamily = BebasNeue, fontSize = 22.sp, color = MaterialTheme.colorScheme.onSecondary)
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.8f),
+        )
+    }
+}
+
+private fun formatWorkoutDistance(distanceMeters: Double?): String {
+    val meters = distanceMeters ?: return "-"
+    return "%.2f km".format(meters / 1000.0)
+}
+
+private fun formatWorkoutDuration(seconds: Int?): String {
+    val total = seconds ?: return "-"
+    if (total <= 0) return "-"
+    val hours = total / 3600
+    val minutes = (total % 3600) / 60
+    val secs = total % 60
+    return if (hours > 0) "%dh%02d".format(hours, minutes) else "%d:%02d".format(minutes, secs)
 }
 
 @Preview(showBackground = true)
@@ -469,13 +593,21 @@ private fun FeedScreenPreview() {
                         mediaUrl = null,
                         createdAt = "2026-07-08T12:00:00Z",
                         userId = "u1",
-                        workoutId = null,
+                        workoutId = "w1",
                         profile = ProfileSummary("u1", "atleta_lajes", "Atleta Lajes", null),
-                        workout = null,
+                        workout = WorkoutSummary(
+                            id = "w1",
+                            activityType = "Corrida",
+                            distanceMeters = 5200.0,
+                            durationSeconds = 1860,
+                            calories = 410,
+                            title = "Corrida no fim da tarde",
+                            stravaActivityId = null,
+                        ),
                         likesCount = 3,
                         commentsCount = 1,
-                        likedByMe = false,
-                        type = PostType.GENERAL,
+                        likedByMe = true,
+                        type = PostType.WORKOUT,
                     ),
                 ),
                 isLoading = false,

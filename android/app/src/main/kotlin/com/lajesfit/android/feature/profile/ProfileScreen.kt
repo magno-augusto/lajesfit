@@ -1,6 +1,8 @@
 package com.lajesfit.android.feature.profile
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -22,6 +25,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -30,6 +34,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -39,17 +44,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import com.lajesfit.android.feature.feed.FeedPost
 import com.lajesfit.android.feature.feed.PostCard
 import com.lajesfit.android.feature.feed.PostType
 import com.lajesfit.android.feature.feed.ProfileSummary
+import com.lajesfit.android.ui.theme.BebasNeue
 import com.lajesfit.android.ui.theme.LajesFitTheme
+
+// Espelha src/features/profile/ProfilePage.tsx: card branco de cabecalho com
+// avatar em anel primary/30, nome em Bebas e stats (Posts/Treinos/Seguidores/
+// Seguindo) em Bebas, secoes "SOLICITACOES"/"PUBLICACOES" com titulo Bebas
+// maiusculo e badge de contagem primary/10.
 
 @Composable
 fun ProfileScreen(
@@ -100,7 +111,7 @@ private fun ProfileScreenContent(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 CircularProgressIndicator(modifier = Modifier.padding(bottom = 8.dp))
-                Text("Carregando perfil...")
+                Text("Carregando perfil...", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         uiState.profile == null -> {
@@ -151,18 +162,19 @@ private fun ProfileScreenContent(
 
                 uiState.errorMessage?.let { message ->
                     item {
-                        Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                        ) {
                             Text(message, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(14.dp))
                         }
                     }
                 }
 
                 item {
-                    Text(
-                        text = "Publicacoes",
-                        style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                    )
+                    SectionHeading(text = "Publicacoes", modifier = Modifier.padding(horizontal = 16.dp))
                 }
 
                 when {
@@ -173,7 +185,12 @@ private fun ProfileScreenContent(
                     }
                     uiState.posts.isEmpty() -> {
                         item {
-                            Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                            Card(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                            ) {
                                 Text(
                                     text = "Nenhuma publicacao ainda",
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -203,6 +220,16 @@ private fun ProfileScreenContent(
 }
 
 @Composable
+private fun SectionHeading(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text = text.uppercase(),
+        fontFamily = BebasNeue,
+        fontSize = 22.sp,
+        modifier = modifier,
+    )
+}
+
+@Composable
 private fun ProfileHeaderCard(
     profile: UserProfile,
     counts: ProfileCounts,
@@ -217,7 +244,9 @@ private fun ProfileHeaderCard(
 ) {
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Row(
@@ -225,9 +254,16 @@ private fun ProfileHeaderCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                ProfileAvatar(profile.avatarUrl, profile.displayName, modifier = Modifier.size(72.dp))
+                ProfileAvatar(
+                    profile.avatarUrl,
+                    profile.displayName,
+                    modifier = Modifier
+                        .size(72.dp)
+                        .border(3.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), CircleShape)
+                        .padding(3.dp),
+                )
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(profile.displayName, style = MaterialTheme.typography.headlineSmall)
+                    Text(profile.displayName, fontFamily = BebasNeue, fontSize = 28.sp)
                     Text(
                         text = "@${profile.username}",
                         style = MaterialTheme.typography.bodyMedium,
@@ -236,13 +272,17 @@ private fun ProfileHeaderCard(
                 }
                 if (isMe) {
                     IconButton(onClick = onOpenSettings) {
-                        Icon(Icons.Filled.Settings, contentDescription = "Configuracoes")
+                        Icon(
+                            Icons.Filled.Settings,
+                            contentDescription = "Configuracoes",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
             }
 
             if (!profile.bio.isNullOrBlank()) {
-                Text(profile.bio)
+                Text(profile.bio, style = MaterialTheme.typography.bodyMedium)
             }
 
             if (!isMe) {
@@ -258,10 +298,10 @@ private fun ProfileHeaderCard(
             }
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                ProfileStat("Posts", counts.posts)
-                ProfileStat("Treinos", counts.workouts)
-                ProfileStat("Seguidores", counts.followers)
-                ProfileStat("Seguindo", counts.following)
+                ProfileStat("Posts", counts.posts, modifier = Modifier.weight(1f))
+                ProfileStat("Treinos", counts.workouts, modifier = Modifier.weight(1f))
+                ProfileStat("Seguidores", counts.followers, modifier = Modifier.weight(1f))
+                ProfileStat("Seguindo", counts.following, modifier = Modifier.weight(1f))
             }
         }
     }
@@ -285,7 +325,12 @@ private fun FollowButton(
             }
         }
         FollowStatus.REQUESTED -> {
-            OutlinedButton(onClick = onCancelRequest, enabled = !isBusy, modifier = modifier) {
+            Button(
+                onClick = onCancelRequest,
+                enabled = !isBusy,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                modifier = modifier,
+            ) {
                 Icon(Icons.Filled.Schedule, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
                 Text("Solicitado")
             }
@@ -310,11 +355,17 @@ private fun IncomingRequestsCard(
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Column {
-                    Text("Solicitacoes", style = MaterialTheme.typography.titleMedium)
+                    SectionHeading(text = "Solicitacoes")
                     Text(
                         text = "Aprove quem pode ver suas publicacoes.",
                         style = MaterialTheme.typography.bodySmall,
@@ -322,7 +373,17 @@ private fun IncomingRequestsCard(
                     )
                 }
                 if (requests.isNotEmpty()) {
-                    Text(requests.size.toString(), style = MaterialTheme.typography.titleMedium)
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                    ) {
+                        Text(
+                            text = requests.size.toString(),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        )
+                    }
                 }
             }
 
@@ -335,7 +396,7 @@ private fun IncomingRequestsCard(
                 )
             } else {
                 requests.forEachIndexed { index, request ->
-                    if (index > 0) HorizontalDivider()
+                    if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -374,22 +435,22 @@ private fun ProfileAvatar(avatarUrl: String?, fallbackName: String, modifier: Mo
         )
     } else {
         Box(
-            modifier = modifier.clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
+            modifier = modifier.clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 fallbackName.take(1).uppercase(),
                 style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                color = MaterialTheme.colorScheme.primary,
             )
         }
     }
 }
 
 @Composable
-private fun ProfileStat(label: String, value: Int) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value.toString(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+private fun ProfileStat(label: String, value: Int, modifier: Modifier = Modifier) {
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(text = value.toString(), fontFamily = BebasNeue, fontSize = 22.sp)
         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
@@ -399,13 +460,28 @@ private fun PrivateProfileCard(modifier: Modifier = Modifier) {
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Icon(Icons.Filled.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Filled.Lock,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
             Text("Perfil privado", style = MaterialTheme.typography.titleMedium)
             Text(
                 text = "Solicite para seguir e ver as publicacoes deste perfil.",

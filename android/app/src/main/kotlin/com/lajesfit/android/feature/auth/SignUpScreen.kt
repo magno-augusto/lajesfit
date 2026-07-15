@@ -1,5 +1,6 @@
 package com.lajesfit.android.feature.auth
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,9 +26,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lajesfit.android.ui.theme.BebasNeue
 import com.lajesfit.android.ui.theme.LajesFitTheme
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -85,6 +88,8 @@ class SignUpViewModel @Inject constructor(
 /**
  * Espelha signUpWithPassword (auth.ts:27-56): cadastro nao loga automaticamente - ao concluir,
  * volta para a tela de login (onSignedUp), nao entra no app.
+ * Visual: mesmo card branco com borda+sombra leve e titulo Bebas maiusculo de
+ * LoginScreen.kt (AuthPage.tsx no web).
  */
 @Composable
 fun SignUpScreen(
@@ -123,14 +128,16 @@ private fun SignUpScreenContent(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(text = "LajesFit", style = MaterialTheme.typography.displayMedium)
+        Text(text = "LAJES FIT", style = MaterialTheme.typography.displayMedium)
 
         Card(
             modifier = Modifier.fillMaxWidth().padding(top = 18.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(text = "Criar conta", style = MaterialTheme.typography.titleMedium)
+                Text(text = "CRIAR CONTA", fontFamily = BebasNeue, fontSize = 22.sp)
 
                 OutlinedTextField(
                     value = uiState.username,

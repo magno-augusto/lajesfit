@@ -1,11 +1,17 @@
 package com.lajesfit.android.feature.auth
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -23,13 +29,16 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lajesfit.android.ui.theme.BebasNeue
 import com.lajesfit.android.ui.theme.LajesFitTheme
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -98,7 +107,13 @@ class LoginViewModel @Inject constructor(
     }
 }
 
-/** Espelha src/routes/auth.tsx (login por usuario ou e-mail) - ver M1-supabase-auth.md. */
+/**
+ * Espelha src/routes/auth.tsx (login por usuario ou e-mail) - ver M1-supabase-auth.md.
+ * Visual: card branco com borda+sombra leve, titulo "LAJES FIT"/"ENTRAR" em Bebas
+ * maiusculo e selo circular "G" no botao do Google, como no web (AuthPage.tsx). Web
+ * usa abas Entrar/Cadastro na mesma tela - Android mantem rotas separadas (decisao
+ * de M1), so o visual do card foi realinhado.
+ */
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
@@ -150,14 +165,16 @@ private fun LoginScreenContent(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(text = "LajesFit", style = MaterialTheme.typography.displayMedium)
+        Text(text = "LAJES FIT", style = MaterialTheme.typography.displayMedium)
 
         Card(
             modifier = Modifier.fillMaxWidth().padding(top = 18.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(text = "Entrar", style = MaterialTheme.typography.titleMedium)
+                Text(text = "ENTRAR", fontFamily = BebasNeue, fontSize = 22.sp)
 
                 OutlinedTextField(
                     value = uiState.identifier,
@@ -200,6 +217,13 @@ private fun LoginScreenContent(
                     enabled = !uiState.isLoading,
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                 ) {
+                    Box(
+                        modifier = Modifier.size(18.dp).border(1.dp, MaterialTheme.colorScheme.outline, CircleShape),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(text = "G", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text("Entrar com Google")
                 }
 

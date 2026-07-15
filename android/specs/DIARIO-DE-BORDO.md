@@ -161,6 +161,61 @@ key = a keystore da TWA. `build.gradle.kts` commitado (`c86a10c`). Resolvido.
 _Mais recente no topo. Uma entrada por sessão/handoff; detalhe fechado vai para o Histórico do
 `COORDENACAO.md`._
 
+### 2026-07-15 - Claude (incentivo ao Health Connect no Feed + auto-desconectar Strava)
+- Pedido do usuario: incentivar testadores a conectar o Health Connect, e ao conectar, desconectar
+  automaticamente o Strava (motivo real: a API do Strava limita quantas contas o app pode ter
+  vinculadas ao mesmo tempo — ja documentado como risco em `CLAUDE.md`; desconectar libera vaga para
+  outro usuario).
+- Primeira versao do plano (apagar so a linha local `strava_tokens` pelo Android) foi corrigida
+  depois do usuario explicar o motivo real — apagar so a linha local NAO libera a vaga, porque isso
+  exige chamar a revogacao oficial do Strava (`/oauth/deauthorize`), que precisa do `client_secret`
+  (so existe no servidor web). Solucao final: extraida a logica de `disconnectStrava`
+  (`strava-api.ts`) para `disconnectStravaForUser` em `strava.server.ts`, reusada por (1) o
+  `createServerFn` existente (botao "Desconectar Strava" das Configuracoes, sem mudanca de
+  comportamento) e (2) um novo endpoint `POST /api/strava/disconnect` (mesmo padrao de
+  `api/strava/webhook.ts`, autenticado por Bearer token no header — o Android ja tem esse token na
+  sessao do supabase-kt, sem precisar de cookie).
+- Android: `WorkoutRepository.disconnectStrava()` chama o novo endpoint via o `HttpClient` (Ktor)
+  que o Hilt ja fornecia pro Open Food Facts; `WorkoutsViewModel.onHealthPermissionsResult` dispara
+  isso so na transicao real pra `READY` (nao em toda checagem passiva), best-effort dentro de
+  `runCatching`.
+- Banner de incentivo novo no Feed (`HealthConnectPromptBanner`, mesmo estilo de card de
+  `HealthConnectCard`/Treinos): `FeedViewModel` ganhou `healthConnectStatus` (mesma checagem ao vivo
+  de `HealthConnectSync`), banner só aparece em `NEEDS_PERMISSION`/`NEEDS_INSTALL_OR_UPDATE` (nunca
+  em `UNAVAILABLE`, ex.: o J7 Prime do dev, Android 8.1) e navega pra Treinos ao tocar (sem duplicar
+  o launcher de permissao, que continua só lá).
+- Validado: `npx tsc --noEmit` (web) e `:app:compileDebugKotlin`/`installDebug` (Android) OK;
+  testado no Galaxy J7 Prime que o banner **não** aparece (Health Connect indisponível nesse
+  aparelho, comportamento esperado).
+- **Pendente**: deploy do web pra produção (o endpoint `/api/strava/disconnect` só existe local
+  ainda — o Android de debug aponta pro `lajesfit.vercel.app` de produção, então o disconnect real
+  só funciona depois do deploy); testar o fluxo completo (Strava conectado pelo web → Health Connect
+  no Android → linha some de `strava_tokens`) com o usuário; ver o banner aparecendo de verdade num
+  aparelho com Health Connect disponível (Galaxy Tab S6 Lite). Nada commitado ainda.
+
+### 2026-07-15 - Claude (busca de alimentos: dado + ranking, so Supabase)
+- Testadora relatou que "banana cozida" nao devolvia nenhum resultado ao adicionar refeicao.
+  Diagnostico: web e Android chamam a mesma RPC `public.search_foods` — nao ha logica separada por
+  plataforma, entao a correcao e 100% no Supabase (nenhum arquivo de `src/` ou `android/app/**`
+  mudou) e vale para os dois assim que a migration for aplicada, sem depender de nova versao na
+  Play Store.
+- Causa raiz: lacuna de dado — `public.foods` tinha varias bananas cruas (TACO) mas nenhuma "cozida".
+  Corrigido em `supabase/migrations/20260722120000_add_banana_da_terra_cozida.sql` (item
+  `estimated`, macros estimados a partir da TACO crua — pendente de revisao do usuario, que domina
+  nutricao, antes de aplicar).
+- Usuario pediu tambem, de forma generalizavel (nao so banana): (1) o alimento "sozinho" + variante
+  de preparo (cru/cozido/frito/grelhado) deve vencer prato/receita composta no ranking; (2) o que
+  as pessoas mais adicionam de verdade (ex.: "Coca-Cola", "Fanta Laranja") deve subir no ranking.
+  Implementado em `supabase/migrations/20260722130000_rank_simple_and_popular_foods.sql`:
+  `search_foods` ganhou dois criterios novos no `ORDER BY` (nº de palavras do nome, ASC; depois
+  contagem de uso em `diet_entries.food_id`, DESC), nessa ordem — simplicidade primeiro para que um
+  item novo (0 usos) ja nasca no topo, popularidade so desempata entre itens igualmente simples.
+  Novo indice `diet_entries_food_id_idx` para a agregacao.
+- **Pendente (usuario)**: as duas migrations estao criadas mas **nao aplicadas** — `supabase
+  migration list` confirma que so essas duas ainda nao tem `remote` (projeto nao tem staging
+  separado, entao aplicar e' direto em producao). Falta revisar os macros da banana e rodar
+  `supabase db push` (ou aplicar via SQL editor do Console).
+
 ### 2026-07-15 - Claude (verificação em device real + fix do Google Sign-In)
 - Usuário conectou o Galaxy J7 Prime por cabo USB (driver do ADB precisou ser corrigido no
   Gerenciador de Dispositivos do Windows - status "Unknown" na interface `SAMSUNG Android ADB

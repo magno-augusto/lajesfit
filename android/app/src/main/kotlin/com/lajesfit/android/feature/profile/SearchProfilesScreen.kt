@@ -1,5 +1,6 @@
 package com.lajesfit.android.feature.profile
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -33,9 +34,15 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
+import com.lajesfit.android.ui.theme.BebasNeue
 import com.lajesfit.android.ui.theme.LajesFitTheme
+
+// Espelha src/features/profile/SearchPage.tsx: cabecalho "BUSCAR PESSOAS" em
+// Bebas, campo de busca e lista de resultados em cards brancos com avatar no
+// padrao primary/10 ja usado nas demais telas.
 
 @Composable
 fun SearchProfilesScreen(
@@ -60,6 +67,11 @@ private fun SearchProfilesScreenContent(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(
+            text = "BUSCAR PESSOAS",
+            fontFamily = BebasNeue,
+            fontSize = 28.sp,
+        )
         OutlinedTextField(
             value = uiState.query,
             onValueChange = onQueryChange,
@@ -125,6 +137,8 @@ private fun SearchResultRow(
     Card(
         modifier = modifier.clickable(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(12.dp),
@@ -155,10 +169,10 @@ private fun SearchAvatar(avatarUrl: String?, fallbackName: String) {
         )
     } else {
         Box(
-            modifier = Modifier.size(44.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
+            modifier = Modifier.size(44.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
             contentAlignment = Alignment.Center,
         ) {
-            Text(fallbackName.take(1).uppercase(), color = MaterialTheme.colorScheme.onPrimaryContainer)
+            Text(fallbackName.take(1).uppercase(), color = MaterialTheme.colorScheme.primary)
         }
     }
 }

@@ -3,16 +3,23 @@ package com.lajesfit.android.feature.workouts
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.FitnessCenter
@@ -23,6 +30,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Straighten
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -38,18 +46,32 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.health.connect.client.PermissionController
 import coil3.compose.AsyncImage
 import com.lajesfit.android.feature.feed.timeAgo
+import com.lajesfit.android.ui.theme.BebasNeue
 import com.lajesfit.android.ui.theme.LajesFitTheme
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 import kotlin.math.roundToInt
+
+// Espelha src/features/workouts/WorkoutsPage.tsx: cabecalho "MEUS TREINOS" em
+// Bebas + botao Registrar, card branco "Este mes" com badges circulares
+// primary/10 e numeros em Bebas, e lista de treinos em cards brancos com stat
+// de distancia/tempo/calorias. Strava (link/logo/OAuth) e o WeeklyWorkoutChart
+// ficam fora de escopo Android (ver specs/M5-treinos.md).
+
+private val PtBr = Locale("pt", "BR")
 
 @Composable
 fun WorkoutsScreen(
@@ -104,10 +126,15 @@ private fun WorkoutsScreenContent(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(text = "Meus treinos", style = MaterialTheme.typography.headlineSmall)
-                Button(onClick = onAddWorkout) {
-                    Icon(Icons.Filled.Add, contentDescription = null)
-                    Text("Registrar")
+                Text(text = "MEUS TREINOS", style = MaterialTheme.typography.displaySmall)
+                Button(
+                    onClick = onAddWorkout,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Registrar", style = MaterialTheme.typography.labelLarge)
                 }
             }
         }
@@ -140,12 +167,18 @@ private fun WorkoutsScreenContent(
             }
             if (uiState.workouts.isEmpty()) {
                 item {
-                    Card(modifier = Modifier.fillMaxWidth()) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                    ) {
                         Text(
                             text = "Nenhum treino registrado ainda",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(24.dp),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth().padding(24.dp),
                         )
                     }
                 }
@@ -163,6 +196,8 @@ private fun WorkoutsScreenContent(
     }
 }
 
+// --- Health Connect (sem equivalente no web, que usa Strava) ---
+
 @Composable
 private fun HealthConnectCard(
     status: HealthConnectStatus,
@@ -175,7 +210,9 @@ private fun HealthConnectCard(
 ) {
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Health Connect", style = MaterialTheme.typography.titleMedium)
@@ -183,12 +220,14 @@ private fun HealthConnectCard(
                 HealthConnectStatus.UNAVAILABLE -> {
                     Text(
                         "Health Connect nao esta disponivel neste aparelho.",
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 HealthConnectStatus.NEEDS_INSTALL_OR_UPDATE -> {
                     Text(
                         "Instale ou atualize o Health Connect para importar treinos automaticamente.",
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Button(onClick = onInstallHealthConnect) {
@@ -198,6 +237,7 @@ private fun HealthConnectCard(
                 HealthConnectStatus.NEEDS_PERMISSION -> {
                     Text(
                         "Autorize a leitura de sessoes de exercicio para sincronizar treinos.",
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Button(onClick = onRequestPermission) {
@@ -211,6 +251,7 @@ private fun HealthConnectCard(
                             syncMessage != null -> syncMessage
                             else -> "Importa as sessoes de exercicio do mes atual do Health Connect."
                         },
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Button(onClick = onSync, enabled = !isSyncing) {
@@ -222,23 +263,47 @@ private fun HealthConnectCard(
     }
 }
 
+// --- Resumo do mes (web: 4 MonthStat com icone circular bg-primary/10) ---
+
 @Composable
 private fun MonthTotalsCard(totals: WorkoutMonthTotals, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
-                text = "Este mes",
-                style = MaterialTheme.typography.labelLarge,
+                text = "Este mes".uppercase(PtBr),
+                style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                MonthStat(icon = Icons.Filled.FitnessCenter, value = totals.count.toString(), label = "Treinos")
-                MonthStat(icon = Icons.Filled.Schedule, value = formatDuration(totals.durationSeconds), label = "Tempo")
-                MonthStat(icon = Icons.Filled.Straighten, value = formatDistance(totals.distanceMeters), label = "Distancia")
-                MonthStat(icon = Icons.Filled.LocalFireDepartment, value = totals.calories.toString(), label = "Calorias")
+                MonthStat(
+                    icon = Icons.Filled.FitnessCenter,
+                    value = totals.count.toString(),
+                    label = "Treinos",
+                    modifier = Modifier.weight(1f),
+                )
+                MonthStat(
+                    icon = Icons.Filled.Schedule,
+                    value = formatDuration(totals.durationSeconds),
+                    label = "Tempo",
+                    modifier = Modifier.weight(1f),
+                )
+                MonthStat(
+                    icon = Icons.Filled.Straighten,
+                    value = formatDistance(totals.distanceMeters),
+                    label = "Distancia",
+                    modifier = Modifier.weight(1f),
+                )
+                MonthStat(
+                    icon = Icons.Filled.LocalFireDepartment,
+                    value = totals.calories.toString(),
+                    label = "Calorias",
+                    modifier = Modifier.weight(1f),
+                )
             }
         }
     }
@@ -246,16 +311,38 @@ private fun MonthTotalsCard(totals: WorkoutMonthTotals, modifier: Modifier = Mod
 
 @Composable
 private fun MonthStat(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     value: String,
     label: String,
+    modifier: Modifier = Modifier,
 ) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-        Text(text = value, style = MaterialTheme.typography.titleMedium)
-        Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(28.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+        }
+        Text(text = value, fontFamily = BebasNeue, fontSize = 20.sp, lineHeight = 20.sp)
+        Text(
+            text = label,
+            fontSize = 11.sp,
+            lineHeight = 11.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
+
+// --- Historico (web: card branco por treino, foto/badge + 3 colunas de stat) ---
 
 @Composable
 private fun WorkoutCard(
@@ -267,6 +354,8 @@ private fun WorkoutCard(
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -275,46 +364,86 @@ private fun WorkoutCard(
                         model = workout.mediaUrl,
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.size(52.dp).clip(MaterialTheme.shapes.medium),
+                        modifier = Modifier.size(52.dp).clip(RoundedCornerShape(14.dp)),
                     )
                 } else {
-                    Icon(
-                        Icons.AutoMirrored.Filled.DirectionsRun,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(52.dp),
-                    )
+                    WorkoutIconBadge()
                 }
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(text = workout.title ?: workout.activityType, style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        text = workout.title ?: workout.activityType,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                     Text(
                         text = "${workout.activityType} - ${workoutDateTime(workout.performedAt)} - ${timeAgo(workout.performedAt)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
                 IconButton(onClick = onEdit) {
-                    Icon(Icons.Filled.Edit, contentDescription = "Editar treino")
+                    Icon(
+                        Icons.Filled.Edit,
+                        contentDescription = "Editar treino",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
                 IconButton(onClick = onRemove) {
-                    Icon(Icons.Filled.Delete, contentDescription = "Remover treino")
+                    Icon(
+                        Icons.Filled.Delete,
+                        contentDescription = "Remover treino",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
-            HorizontalDivider()
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                WorkoutStat(label = "Distancia", value = formatDistance(workout.distanceMeters))
-                WorkoutStat(label = "Tempo", value = formatDuration(workout.durationSeconds ?: 0))
-                WorkoutStat(label = "Calorias", value = workout.calories?.roundToInt()?.toString() ?: "-")
+                WorkoutStat(
+                    label = "Distancia",
+                    value = formatDistance(workout.distanceMeters),
+                    modifier = Modifier.weight(1f),
+                )
+                WorkoutStat(
+                    label = "Tempo",
+                    value = formatDuration(workout.durationSeconds ?: 0),
+                    modifier = Modifier.weight(1f),
+                )
+                WorkoutStat(
+                    label = "Calorias",
+                    value = workout.calories?.roundToInt()?.toString() ?: "-",
+                    modifier = Modifier.weight(1f),
+                )
             }
         }
     }
 }
 
 @Composable
-private fun WorkoutStat(label: String, value: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+private fun WorkoutIconBadge(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(52.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            Icons.AutoMirrored.Filled.DirectionsRun,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(24.dp),
+        )
+    }
+}
+
+@Composable
+private fun WorkoutStat(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(text = value, style = MaterialTheme.typography.titleMedium)
+        Text(text = value, fontFamily = BebasNeue, fontSize = 20.sp)
     }
 }
 

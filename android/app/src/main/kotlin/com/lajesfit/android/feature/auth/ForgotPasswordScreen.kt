@@ -1,5 +1,6 @@
 package com.lajesfit.android.feature.auth
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,9 +22,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lajesfit.android.ui.theme.BebasNeue
 import com.lajesfit.android.ui.theme.LajesFitTheme
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -68,7 +71,11 @@ class ForgotPasswordViewModel @Inject constructor(
     }
 }
 
-/** Espelha requestPasswordReset (auth.ts:88-106): pede username, nao e-mail. */
+/**
+ * Espelha requestPasswordReset (auth.ts:88-106): pede username, nao e-mail.
+ * Visual: mesmo card branco com borda+sombra leve e titulo Bebas maiusculo das
+ * demais telas de auth (AuthPage.tsx).
+ */
 @Composable
 fun ForgotPasswordScreen(
     onNavigateToLogin: () -> Unit,
@@ -96,14 +103,16 @@ private fun ForgotPasswordScreenContent(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(text = "LajesFit", style = MaterialTheme.typography.displayMedium)
+        Text(text = "LAJES FIT", style = MaterialTheme.typography.displayMedium)
 
         Card(
             modifier = Modifier.fillMaxWidth().padding(top = 18.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(text = "Esqueci minha senha", style = MaterialTheme.typography.titleMedium)
+                Text(text = "ESQUECI MINHA SENHA", fontFamily = BebasNeue, fontSize = 22.sp)
 
                 if (uiState.emailSent) {
                     Text(

@@ -1,5 +1,6 @@
 package com.lajesfit.android.feature.auth
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,10 +24,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lajesfit.android.ui.theme.BebasNeue
 import com.lajesfit.android.ui.theme.LajesFitTheme
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -75,6 +78,8 @@ class ResetPasswordViewModel @Inject constructor(
  * Destino do deep link de recovery (supabaseClient.handleDeeplinks em MainActivity). A sessao de
  * recovery ja esta ativa quando esta tela abre; confirmNewPassword so atualiza a senha
  * (auth.ts:110-116) - ver android/specs/M1-supabase-auth.md.
+ * Visual: mesmo card branco com borda+sombra leve e titulo Bebas maiusculo das
+ * demais telas de auth.
  */
 @Composable
 fun ResetPasswordScreen(
@@ -106,14 +111,16 @@ private fun ResetPasswordScreenContent(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(text = "LajesFit", style = MaterialTheme.typography.displayMedium)
+        Text(text = "LAJES FIT", style = MaterialTheme.typography.displayMedium)
 
         Card(
             modifier = Modifier.fillMaxWidth().padding(top = 18.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(text = "Defina sua nova senha", style = MaterialTheme.typography.titleMedium)
+                Text(text = "DEFINA SUA NOVA SENHA", fontFamily = BebasNeue, fontSize = 22.sp)
 
                 OutlinedTextField(
                     value = uiState.newPassword,

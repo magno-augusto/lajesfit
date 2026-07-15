@@ -1,5 +1,6 @@
 package com.lajesfit.android.feature.auth
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,9 +25,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lajesfit.android.ui.theme.BebasNeue
 import com.lajesfit.android.ui.theme.LajesFitTheme
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -82,6 +85,8 @@ class RequireEmailViewModel @Inject constructor(
  * Espelha RequireEmail.tsx: conta legada (e-mail @lajesfit.local) sem troca pendente. Nao e' um
  * gate destrutivo - "Continuar por agora" libera a navegacao mesmo sem completar (ver
  * android/specs/M1-supabase-auth.md).
+ * Visual: mesmo card branco com borda+sombra leve e titulo Bebas maiusculo das
+ * demais telas de auth.
  */
 @Composable
 fun RequireEmailScreen(
@@ -113,14 +118,16 @@ private fun RequireEmailScreenContent(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(text = "LajesFit", style = MaterialTheme.typography.displayMedium)
+        Text(text = "LAJES FIT", style = MaterialTheme.typography.displayMedium)
 
         Card(
             modifier = Modifier.fillMaxWidth().padding(top = 18.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(text = "Cadastre seu e-mail", style = MaterialTheme.typography.titleMedium)
+                Text(text = "CADASTRE SEU E-MAIL", fontFamily = BebasNeue, fontSize = 22.sp)
                 Text(
                     text = "Sua conta ainda nao tem um e-mail real. Cadastre um para conseguir recuperar " +
                         "sua senha caso a esqueca.",

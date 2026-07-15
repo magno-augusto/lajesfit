@@ -7,6 +7,11 @@ import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.storage.storage
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.http.isSuccess
 import java.time.Instant
 import java.util.Locale
 import kotlinx.serialization.SerialName
@@ -102,10 +107,17 @@ private data class HealthConnectRecordIdRow(
     @SerialName("health_connect_record_id") val healthConnectRecordId: String? = null,
 )
 
+@Serializable
+private data class StravaDisconnectResponse(
+    val disconnected: Boolean = false,
+    val hadConnection: Boolean = false,
+)
+
 /** Porta workouts-api.ts para Kotlin - ver android/specs/M5-treinos.md. */
 @Singleton
 class WorkoutRepository @Inject constructor(
     private val supabaseClient: SupabaseClient,
+    private val httpClient: HttpClient,
 ) {
 
     suspend fun getWorkouts(): List<LocalWorkout> {
@@ -236,6 +248,19 @@ class WorkoutRepository @Inject constructor(
         return HealthConnectSyncResult(imported = newRows.size, updated = updatedRows.size)
     }
 
+    /** Desconecta o Strava (site) ao conectar o Health Connect - libera a vaga de conexao
+     * limitada da API do Strava. Melhor esforco: falha de rede nao deve travar o fluxo do
+     * Health Connect. Porta a logica de disconnectStrava (strava-api.ts) via
+     * /api/strava/disconnect, que reusa o mesmo deauthorize + delete do botao do site. */
+    suspend fun disconnectStrava(): Boolean {
+        val accessToken = supabaseClient.auth.currentAccessTokenOrNull() ?: return false
+        val response = httpClient.post("$LAJESFIT_WEB_BASE_URL/api/strava/disconnect") {
+            header("Authorization", "Bearer $accessToken")
+        }
+        if (!response.status.isSuccess()) return false
+        return response.body<StravaDisconnectResponse>().hadConnection
+    }
+
     private suspend fun fetchWorkoutRows(userId: String, columns: Columns): List<WorkoutRow> {
         return supabaseClient.postgrest.from("workouts")
             .select(columns = columns) {
@@ -283,6 +308,7 @@ class WorkoutRepository @Inject constructor(
     }
 
     companion object {
+        private const val LAJESFIT_WEB_BASE_URL = "https://lajesfit.vercel.app"
         private val WORKOUT_PHOTO_SIGNED_URL_DURATION = (60 * 60 * 24 * 365 * 5).seconds
         private val WORKOUT_COLUMNS = Columns.list(
             "id",

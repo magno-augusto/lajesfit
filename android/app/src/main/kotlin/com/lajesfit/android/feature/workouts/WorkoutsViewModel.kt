@@ -72,14 +72,27 @@ class WorkoutsViewModel @Inject constructor(
     }
 
     fun onHealthPermissionsResult(grantedPermissions: Set<String>) {
+        val isReady = grantedPermissions.containsAll(healthConnectSync.permissions)
         _uiState.update {
-            it.copy(
-                healthConnectStatus = if (grantedPermissions.containsAll(healthConnectSync.permissions)) {
-                    HealthConnectStatus.READY
-                } else {
-                    HealthConnectStatus.NEEDS_PERMISSION
-                },
-            )
+            it.copy(healthConnectStatus = if (isReady) HealthConnectStatus.READY else HealthConnectStatus.NEEDS_PERMISSION)
+        }
+        if (isReady) disconnectStravaIfConnected()
+    }
+
+    /** Health Connect substitui o Strava no Android - desconectar libera a vaga de conexao
+     * limitada da API do Strava para outro usuario. Melhor esforco: nunca afeta o sucesso do
+     * Health Connect, que ja foi conectado nesse ponto. */
+    private fun disconnectStravaIfConnected() {
+        viewModelScope.launch {
+            val hadConnection = runCatching { workoutRepository.disconnectStrava() }.getOrDefault(false)
+            if (hadConnection) {
+                _uiState.update {
+                    it.copy(
+                        healthConnectSyncMessage = "Health Connect conectado! Sua conta Strava foi " +
+                            "desconectada para liberar sua vaga de conexao.",
+                    )
+                }
+            }
         }
     }
 

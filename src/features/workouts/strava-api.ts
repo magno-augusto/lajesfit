@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   deleteWorkoutsBeforeStravaConnection,
+  disconnectStravaForUser,
   ensureStravaWebhookSubscription,
   exchangeStravaToken,
   fetchStravaActivities,
@@ -103,33 +104,8 @@ export const getStravaConnection = createServerFn({ method: "GET" })
 export const disconnectStrava = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data: storedToken, error } = await context.supabase
-      .from("strava_tokens")
-      .select("*")
-      .eq("user_id", context.userId)
-      .maybeSingle();
-
-    if (error) throw new Error(error.message);
-    if (!storedToken) return { disconnected: true };
-
-    try {
-      const accessToken = await getValidStravaAccessToken(context.supabase, storedToken);
-      await fetch("https://www.strava.com/oauth/deauthorize", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ access_token: accessToken }),
-      });
-    } catch {
-      // token pode estar expirado/revogado no Strava — ainda assim removemos o vinculo local
-    }
-
-    const { error: deleteError } = await context.supabase
-      .from("strava_tokens")
-      .delete()
-      .eq("user_id", context.userId);
-
-    if (deleteError) throw new Error(deleteError.message);
-    return { disconnected: true };
+    const { disconnected } = await disconnectStravaForUser(context.supabase, context.userId);
+    return { disconnected };
   });
 
 export const syncStravaActivities = createServerFn({ method: "POST" })

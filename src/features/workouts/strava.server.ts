@@ -163,6 +163,39 @@ export async function getValidStravaAccessToken(
   return accessToken;
 }
 
+/** Revoga o vinculo Strava (deauthorize oficial + apaga o token local). Reusada pelo
+ * createServerFn do site (botao "Desconectar Strava") e pelo endpoint /api/strava/disconnect
+ * (chamado pelo app Android ao conectar o Health Connect). */
+export async function disconnectStravaForUser(supabase: Supabase, userId: string) {
+  const { data: storedToken, error } = await supabase
+    .from("strava_tokens")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!storedToken) return { disconnected: true, hadConnection: false };
+
+  try {
+    const accessToken = await getValidStravaAccessToken(supabase, storedToken);
+    await fetch("https://www.strava.com/oauth/deauthorize", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ access_token: accessToken }),
+    });
+  } catch {
+    // token pode estar expirado/revogado no Strava — ainda assim removemos o vinculo local
+  }
+
+  const { error: deleteError } = await supabase
+    .from("strava_tokens")
+    .delete()
+    .eq("user_id", userId);
+
+  if (deleteError) throw new Error(deleteError.message);
+  return { disconnected: true, hadConnection: true };
+}
+
 // So importa atividades a partir do inicio do mes em que a conta Strava foi
 // conectada (inclusive) — nunca meses anteriores.
 export function stravaConnectionCutoffSeconds(connectedAt: string) {

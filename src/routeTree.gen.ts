@@ -25,6 +25,7 @@ import { Route as AuthenticatedSearchRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedFeedRouteImport } from './routes/_authenticated/feed'
 import { Route as AuthenticatedDietaRouteImport } from './routes/_authenticated/dieta'
 import { Route as ApiStravaWebhookRouteImport } from './routes/api/strava/webhook'
+import { Route as ApiStravaDisconnectRouteImport } from './routes/api/strava/disconnect'
 import { Route as ApiPushSendRouteImport } from './routes/api/push/send'
 import { Route as AuthenticatedProfileUsernameRouteImport } from './routes/_authenticated/profile.$username'
 
@@ -107,6 +108,11 @@ const ApiStravaWebhookRoute = ApiStravaWebhookRouteImport.update({
   path: '/api/strava/webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiStravaDisconnectRoute = ApiStravaDisconnectRouteImport.update({
+  id: '/api/strava/disconnect',
+  path: '/api/strava/disconnect',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPushSendRoute = ApiPushSendRouteImport.update({
   id: '/api/push/send',
   path: '/api/push/send',
@@ -136,6 +142,7 @@ export interface FileRoutesByFullPath {
   '/strava/callback': typeof StravaCallbackRoute
   '/profile/$username': typeof AuthenticatedProfileUsernameRoute
   '/api/push/send': typeof ApiPushSendRoute
+  '/api/strava/disconnect': typeof ApiStravaDisconnectRoute
   '/api/strava/webhook': typeof ApiStravaWebhookRoute
 }
 export interface FileRoutesByTo {
@@ -155,6 +162,7 @@ export interface FileRoutesByTo {
   '/strava/callback': typeof StravaCallbackRoute
   '/profile/$username': typeof AuthenticatedProfileUsernameRoute
   '/api/push/send': typeof ApiPushSendRoute
+  '/api/strava/disconnect': typeof ApiStravaDisconnectRoute
   '/api/strava/webhook': typeof ApiStravaWebhookRoute
 }
 export interface FileRoutesById {
@@ -176,6 +184,7 @@ export interface FileRoutesById {
   '/strava/callback': typeof StravaCallbackRoute
   '/_authenticated/profile/$username': typeof AuthenticatedProfileUsernameRoute
   '/api/push/send': typeof ApiPushSendRoute
+  '/api/strava/disconnect': typeof ApiStravaDisconnectRoute
   '/api/strava/webhook': typeof ApiStravaWebhookRoute
 }
 export interface FileRouteTypes {
@@ -197,6 +206,7 @@ export interface FileRouteTypes {
     | '/strava/callback'
     | '/profile/$username'
     | '/api/push/send'
+    | '/api/strava/disconnect'
     | '/api/strava/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -216,6 +226,7 @@ export interface FileRouteTypes {
     | '/strava/callback'
     | '/profile/$username'
     | '/api/push/send'
+    | '/api/strava/disconnect'
     | '/api/strava/webhook'
   id:
     | '__root__'
@@ -236,6 +247,7 @@ export interface FileRouteTypes {
     | '/strava/callback'
     | '/_authenticated/profile/$username'
     | '/api/push/send'
+    | '/api/strava/disconnect'
     | '/api/strava/webhook'
   fileRoutesById: FileRoutesById
 }
@@ -250,6 +262,7 @@ export interface RootRouteChildren {
   SetupRoute: typeof SetupRoute
   StravaCallbackRoute: typeof StravaCallbackRoute
   ApiPushSendRoute: typeof ApiPushSendRoute
+  ApiStravaDisconnectRoute: typeof ApiStravaDisconnectRoute
   ApiStravaWebhookRoute: typeof ApiStravaWebhookRoute
 }
 
@@ -367,6 +380,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiStravaWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/strava/disconnect': {
+      id: '/api/strava/disconnect'
+      path: '/api/strava/disconnect'
+      fullPath: '/api/strava/disconnect'
+      preLoaderRoute: typeof ApiStravaDisconnectRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/push/send': {
       id: '/api/push/send'
       path: '/api/push/send'
@@ -426,6 +446,7 @@ const rootRouteChildren: RootRouteChildren = {
   SetupRoute: SetupRoute,
   StravaCallbackRoute: StravaCallbackRoute,
   ApiPushSendRoute: ApiPushSendRoute,
+  ApiStravaDisconnectRoute: ApiStravaDisconnectRoute,
   ApiStravaWebhookRoute: ApiStravaWebhookRoute,
 }
 export const routeTree = rootRouteImport

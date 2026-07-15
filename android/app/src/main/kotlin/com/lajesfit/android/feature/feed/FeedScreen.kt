@@ -23,7 +23,9 @@ import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -56,6 +58,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil3.compose.AsyncImage
+import com.lajesfit.android.feature.workouts.HealthConnectStatus
+import com.lajesfit.android.feature.workouts.HealthConnectSync
 import com.lajesfit.android.ui.theme.BebasNeue
 import com.lajesfit.android.ui.theme.LajesFitSuccess
 import com.lajesfit.android.ui.theme.LajesFitTheme
@@ -73,13 +77,20 @@ data class FeedUiState(
     val isLoadingMore: Boolean = false,
     val hasMore: Boolean = true,
     val errorMessage: String? = null,
-)
+    val healthConnectStatus: HealthConnectStatus = HealthConnectStatus.UNAVAILABLE,
+) {
+    /** So vale a pena incentivar quando o aparelho suporta e ainda nao esta conectado. */
+    val showHealthConnectPrompt: Boolean
+        get() = healthConnectStatus == HealthConnectStatus.NEEDS_PERMISSION ||
+            healthConnectStatus == HealthConnectStatus.NEEDS_INSTALL_OR_UPDATE
+}
 
 /** Espelha FeedPage.tsx - ver android/specs/M3-feed.md. */
 @HiltViewModel
 class FeedViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val feedRepository: FeedRepository,
+    private val healthConnectSync: HealthConnectSync,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FeedUiState())
@@ -87,6 +98,7 @@ class FeedViewModel @Inject constructor(
 
     init {
         loadFirstPage()
+        refreshHealthConnectStatus()
         // CreatePostScreen/CommentsScreen sinalizam aqui quando algo muda (post criado/apagado,
         // contagem de comentario) - o ViewModel do Feed continua vivo ao navegar pra essas telas e
         // voltar, entao precisa desse gatilho explicito pra recarregar (nao ha CHANGE_EVENT global
@@ -96,8 +108,19 @@ class FeedViewModel @Inject constructor(
                 if (shouldRefresh) {
                     savedStateHandle[REFRESH_KEY] = false
                     loadFirstPage()
+                    refreshHealthConnectStatus()
                 }
             }
+        }
+    }
+
+    /** Mesma checagem ao vivo de WorkoutsViewModel.refreshHealthConnectStatus - reflete se o
+     * usuario conectou o Health Connect enquanto estava em Treinos e voltou pro Feed. */
+    private fun refreshHealthConnectStatus() {
+        viewModelScope.launch {
+            val status = runCatching { healthConnectSync.status() }
+                .getOrDefault(HealthConnectStatus.UNAVAILABLE)
+            _uiState.update { it.copy(healthConnectStatus = status) }
         }
     }
 
@@ -195,6 +218,7 @@ class FeedViewModel @Inject constructor(
 fun FeedScreen(
     onOpenComments: (String) -> Unit,
     onOpenProfile: (String) -> Unit,
+    onOpenWorkouts: () -> Unit,
     viewModel: FeedViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -209,6 +233,7 @@ fun FeedScreen(
         onLoadMore = viewModel::loadMore,
         onOpenComments = onOpenComments,
         onOpenProfile = onOpenProfile,
+        onOpenWorkouts = onOpenWorkouts,
     )
 
     val pending = postPendingDelete
@@ -239,65 +264,111 @@ private fun FeedScreenContent(
     onLoadMore: () -> Unit,
     onOpenComments: (String) -> Unit,
     onOpenProfile: (String) -> Unit,
+    onOpenWorkouts: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    when {
-        uiState.isLoading -> {
-            Column(
-                modifier = modifier.fillMaxSize().padding(24.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                CircularProgressIndicator(modifier = Modifier.padding(bottom = 8.dp))
-                Text("Carregando feed...", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+    Column(modifier = modifier.fillMaxSize()) {
+        if (uiState.showHealthConnectPrompt) {
+            HealthConnectPromptBanner(
+                onConnect = onOpenWorkouts,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+            )
         }
-        uiState.posts.isEmpty() -> {
-            Column(
-                modifier = modifier.fillMaxSize().padding(24.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(
-                    text = "Nenhum post publicado ainda",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                if (uiState.errorMessage != null) {
-                    Text(uiState.errorMessage, color = MaterialTheme.colorScheme.error)
+        when {
+            uiState.isLoading -> {
+                Column(
+                    modifier = Modifier.weight(1f).fillMaxWidth().padding(24.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.padding(bottom = 8.dp))
+                    Text("Carregando feed...", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-        }
-        else -> {
-            LazyColumn(
-                modifier = modifier.fillMaxSize(),
-                contentPadding = PaddingValues(top = 12.dp, bottom = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                items(uiState.posts, key = { it.id }) { post ->
-                    PostCard(
-                        post = post,
-                        canDelete = currentUserId == post.userId,
-                        onLike = { onLike(post) },
-                        onDelete = { onRequestDelete(post) },
-                        onOpenComments = { onOpenComments(post.id) },
-                        onOpenProfile = { onOpenProfile(post.profile.username) },
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            uiState.posts.isEmpty() -> {
+                Column(
+                    modifier = Modifier.weight(1f).fillMaxWidth().padding(24.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = "Nenhum post publicado ainda",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    if (uiState.errorMessage != null) {
+                        Text(uiState.errorMessage, color = MaterialTheme.colorScheme.error)
+                    }
                 }
-                if (uiState.hasMore) {
-                    item {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(16.dp),
-                            horizontalArrangement = Arrangement.Center,
-                        ) {
-                            if (uiState.isLoadingMore) {
-                                CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                            } else {
-                                OutlinedButton(onClick = onLoadMore) { Text("Carregar mais") }
+            }
+            else -> {
+                LazyColumn(
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    contentPadding = PaddingValues(top = 12.dp, bottom = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    items(uiState.posts, key = { it.id }) { post ->
+                        PostCard(
+                            post = post,
+                            canDelete = currentUserId == post.userId,
+                            onLike = { onLike(post) },
+                            onDelete = { onRequestDelete(post) },
+                            onOpenComments = { onOpenComments(post.id) },
+                            onOpenProfile = { onOpenProfile(post.profile.username) },
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        )
+                    }
+                    if (uiState.hasMore) {
+                        item {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                horizontalArrangement = Arrangement.Center,
+                            ) {
+                                if (uiState.isLoadingMore) {
+                                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                                } else {
+                                    OutlinedButton(onClick = onLoadMore) { Text("Carregar mais") }
+                                }
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HealthConnectPromptBanner(onConnect: () -> Unit, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Row(modifier = Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Filled.MonitorHeart,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("Conecte o Health Connect", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    "Importe seus treinos automaticamente, sem precisar registrar na mao.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Button(onClick = onConnect, modifier = Modifier.padding(top = 4.dp)) {
+                    Text("Conectar")
                 }
             }
         }
@@ -618,6 +689,7 @@ private fun FeedScreenPreview() {
             onLoadMore = {},
             onOpenComments = {},
             onOpenProfile = {},
+            onOpenWorkouts = {},
         )
     }
 }

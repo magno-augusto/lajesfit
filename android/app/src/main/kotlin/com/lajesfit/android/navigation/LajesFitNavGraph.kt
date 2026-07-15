@@ -47,6 +47,7 @@ fun LajesFitNavGraph(
             FeedScreen(
                 onOpenComments = { postId -> navController.navigate(PopOverRoutes.commentsRoute(postId)) },
                 onOpenProfile = { username -> navController.navigate(ProfileRoutes.profileRoute(username)) },
+                onOpenWorkouts = { navController.navigate(BottomNavDestination.Workouts.route) },
             )
         }
         composable(BottomNavDestination.Diet.route) {

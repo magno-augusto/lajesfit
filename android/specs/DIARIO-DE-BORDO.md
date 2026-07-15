@@ -161,6 +161,24 @@ key = a keystore da TWA. `build.gradle.kts` commitado (`c86a10c`). Resolvido.
 _Mais recente no topo. Uma entrada por sessão/handoff; detalhe fechado vai para o Histórico do
 `COORDENACAO.md`._
 
+### 2026-07-15 - Claude (distribuicao do teste interno: Google Group + Play Console)
+- Executado ao vivo com o usuario (extensao Chrome): criado o Google Group **LajesFit Beta**
+  (`lajesfit-beta@googlegroups.com`), entrada livre ("qualquer pessoa pode participar", sem
+  aprovacao manual), mensagem de boas-vindas configurada com o link de opt-in do teste interno
+  (`https://play.google.com/apps/internaltest/4700350811120812528`).
+- Play Console → Teste interno → Testadores: criada a lista de e-mails "LajesFit Beta" contendo o
+  e-mail do grupo, adicionada como lista extra junto da lista "testadores" ja existente (2
+  usuarios) — o Play Console nao tem um campo dedicado "Google Group" pro teste interno; o
+  mecanismo e simplesmente colocar o e-mail do grupo dentro de uma lista de e-mails normal (Google
+  resolve a associacao do grupo automaticamente do lado deles).
+- Confirmado: `src/routes/beta.tsx`'s `GOOGLE_GROUP_JOIN_URL` ja apontava pro slug certo
+  (`groups.google.com/g/lajesfit-beta`) — so removido o comentario TODO (commit `48017b0`).
+- Fluxo completo agora: pessoa abre `/beta` → entra no grupo (Google resolve captcha via login) →
+  recebe e-mail de boas-vindas com o link de opt-in → vira testador oficial → instala pela Play
+  Store.
+- **Pendente**: nada tecnico — so falta divulgar `/beta` (ex.: WhatsApp do Lajes Running) e, se
+  quiser, testar o fluxo de ponta a ponta com uma conta de terceiro.
+
 ### 2026-07-15 - Claude (incentivo ao Health Connect no Feed + auto-desconectar Strava)
 - Pedido do usuario: incentivar testadores a conectar o Health Connect, e ao conectar, desconectar
   automaticamente o Strava (motivo real: a API do Strava limita quantas contas o app pode ter

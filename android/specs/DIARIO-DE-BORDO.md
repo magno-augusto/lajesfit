@@ -42,18 +42,34 @@ apontam para cá). Ele não substitui os outros artefatos, complementa:
   "casa", com Android Studio/JBR). Commits locais desta sessao, em ordem: `145cda1` Treinos,
   `cc70ad4` Feed, `8dd0149` Perfil, `8e03f75` Busca de pessoas, `18c3275` Login+Cadastro, `d3cfc5e`
   Recuperacao de conta, `6d466ae` Configuracoes.
-- **Tarefa #7 (fidelidade visual ao web): as 8 sub-partes estao TODAS implementadas e
-  commitadas** — (1) Dieta `3012c00` (sessao anterior), (2) Treinos `145cda1`, (3) Feed `cc70ad4`,
-  (4) Perfil `8dd0149`, (5) Busca de pessoas `8e03f75`, (6) Login+Cadastro `18c3275`, (7)
-  Recuperacao de conta (esqueci senha/cadastrar e-mail/nova senha) `d3cfc5e`, (8) Configuracoes
-  `6d466ae`. Cada commit passou por `:app:assembleDebug` BUILD SUCCESSFUL nesta maquina (JDK 21
+- **Tarefa #7 (fidelidade visual ao web): CONCLUIDA — as 8 sub-partes implementadas, commitadas
+  e verificadas em device real** — (1) Dieta `3012c00` (sessao anterior), (2) Treinos `145cda1`,
+  (3) Feed `cc70ad4`, (4) Perfil `8dd0149`, (5) Busca de pessoas `8e03f75`, (6) Login+Cadastro
+  `18c3275`, (7) Recuperacao de conta (esqueci senha/cadastrar e-mail/nova senha) `d3cfc5e`, (8)
+  Configuracoes `6d466ae`. Cada commit passou por `:app:assembleDebug` BUILD SUCCESSFUL (JDK 21
   via JBR do Android Studio: `export JAVA_HOME="/c/Program Files/Android/Android Studio/jbr"`,
-  `GRADLE_USER_HOME` no cache repo-local). **Nao validado em device/screenshot ainda** — proximo
-  passo antes de fechar a tarefa: instalar e conferir visualmente as 8 telas no aparelho.
+  `GRADLE_USER_HOME` no cache repo-local). **Verificacao visual em device real feita em
+  2026-07-15** no Galaxy J7 Prime (via `adb` USB depois WiFi, screenshots de Login, Feed, Dieta,
+  Treinos, Perfil, Busca e Configuracoes) — todas batem com o design pretendido (cards brancos,
+  Bebas Neue nos titulos/numeros de destaque, badges circulares `primary/10`, anel no avatar).
   Padrao aplicado em todas: cards brancos (`surfaceContainerLow` + `BorderStroke(1.dp, outline)` +
   `elevation 1.dp`), numeros/titulos de destaque em `fontFamily = BebasNeue`, badges/icones
   circulares `primary.copy(alpha=0.1f)`, avatar em anel `primary/30` (Perfil/Config). Detalhes por
   sub-parte no quadro (`COORDENACAO.md`, tarefa 7).
+- **Google Sign-In no debug CONSERTADO (2026-07-15)**: faltava cadastrar um OAuth Client ID tipo
+  "Android" no Google Cloud Console para `com.lajesfit.app.debug` com o SHA-1 da debug keystore
+  desta maquina (`7E:41:32:59:F0:D7:F2:C5:61:EA:BE:7B:AF:45:6A:B6:05:84:F7:A9`, obtido via
+  `keytool -list -v` em `~/.android/debug.keystore`). Usuario cadastrou no Console; login com
+  Google testado e funcionando no Galaxy J7 Prime. **Nota para outras maquinas**: cada maquina
+  gera sua propria debug keystore (SHA-1 diferente) — se compilar debug em outro computador
+  (ex.: maquina "Terminal"), precisa cadastrar o SHA-1 daquela tambem (Android permite varios
+  clientes OAuth Android apontando pro mesmo pacote). O client Android nao precisa ser referenciado
+  no codigo - so o `GOOGLE_WEB_CLIENT_ID` (local.properties) e usado em `GoogleAuthClient.kt`.
+- **ADB WiFi no J7 Prime**: dispositivo Android 8.1 nao tem a tela moderna de "Depuracao sem fio"
+  (isso e' Android 11+) - usado o metodo classico via cabo: `adb tcpip 5555` (com o cabo
+  conectado) seguido de `adb connect <ip>:5555` (IP obtido via `adb shell ip route`, ex.:
+  `192.168.0.134`). Depois disso o cabo pode ser desconectado; a porta 5555 e' fixa nesse metodo
+  (diferente do pareamento seguro do Android 11+, que muda de porta a cada sessao).
 - **Maquina "Terminal" tambem COMPILA E INSTALA** (sessao anterior, 2026-07-15): JDK 21 portatil,
   SDK Android API 36 + build-tools + platform-tools, Gradle 9.3 via wrapper — usada para validar a
   Dieta e testar no tablet.
@@ -144,6 +160,19 @@ key = a keystore da TWA. `build.gradle.kts` commitado (`c86a10c`). Resolvido.
 
 _Mais recente no topo. Uma entrada por sessão/handoff; detalhe fechado vai para o Histórico do
 `COORDENACAO.md`._
+
+### 2026-07-15 - Claude (verificação em device real + fix do Google Sign-In)
+- Usuário conectou o Galaxy J7 Prime por cabo USB (driver do ADB precisou ser corrigido no
+  Gerenciador de Dispositivos do Windows - status "Unknown" na interface `SAMSUNG Android ADB
+  Interface`). Instalou o debug (`installDebug`) e navegou pelas 8 telas da tarefa #7 via
+  `adb shell input tap` + `screencap`, confirmando por screenshot que todas batem com o design.
+- Login com Google no debug estava quebrado (erro "Nao foi possivel entrar com Google"). Causa:
+  faltava o OAuth Client ID Android no Google Cloud Console para `com.lajesfit.app.debug` (SHA-1
+  da debug keystore). Extraído o SHA-1 via `keytool`, usuário cadastrou no Console - login com
+  Google testado e funcionando.
+- Migrado a sessão de USB para ADB por WiFi (`adb tcpip 5555` + `adb connect 192.168.0.134:5555`)
+  a pedido do usuário, já com o cabo ainda podendo ser desconectado.
+- Marcou a tarefa #7 como **concluída** no quadro (antes "em validação").
 
 ### 2026-07-15 - Claude (tarefa #7 completa: 7 sub-partes restantes de fidelidade visual)
 - Continuação da tarefa #7 (Dieta já estava pronta de sessão anterior, `3012c00`). Implementou e

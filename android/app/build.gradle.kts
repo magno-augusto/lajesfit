@@ -79,6 +79,17 @@ android {
                 signingConfig = signingConfigs.getByName("release")
             }
         }
+        debug {
+            // Sufixo para o build local (assinado com a debug key) conviver no
+            // device com o release com.lajesfit.app publicado no teste interno da
+            // Play, sem conflito de assinatura. Instala como com.lajesfit.app.debug,
+            // com icone proprio. O redirect de OAuth usa scheme fixo lajesfit://auth
+            // (SupabaseModule/manifest), independente do applicationId, entao o login
+            // segue funcionando. Ainda nao ha FCM/google-services que exija match de
+            // package.
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
     }
 
     compileOptions {

@@ -32,6 +32,9 @@ data class DietUiState(
     }
     val consumed: Int = dayMeals.sumOf { meal -> meal.items.sumOf { it.kcal } }.roundToInt()
     val burned: Int = dayWorkouts.sumOf { workout -> workout.calories ?: 0.0 }.roundToInt()
+    val proteinTotal: Double = dayMeals.sumOf { meal -> meal.items.sumOf { it.proteinG } }
+    val carbsTotal: Double = dayMeals.sumOf { meal -> meal.items.sumOf { it.carbsG } }
+    val fatTotal: Double = dayMeals.sumOf { meal -> meal.items.sumOf { it.fatG } }
     val remaining: Int = ((calorieGoal ?: 0) - consumed + burned).toDouble().roundToInt()
     val percent: Float = calorieGoal?.takeIf { it > 0 }?.let { goal ->
         min(100.0, consumed.toDouble() / goal * 100.0).toFloat()

@@ -32,13 +32,29 @@ apontam para cá). Ele não substitui os outros artefatos, complementa:
 
 ## Estado atual do repositório
 
-> _Atualizado por: **Claude** em 2026-07-11._
+> _Atualizado por: **Claude** em 2026-07-15._
 
-- **Branch / HEAD**: `main` @ `b4a1a38` - "Registra primeiro publish na Play...".
-  **Em sincronia com `origin/main`** - empurrado em 2026-07-11 (`e053603` alias HC + specs,
-  `b4a1a38` registro do publish).
-- **Working tree limpo** - unica coisa sem commit e' o rascunho `specs/M8-notificacoes-fcm.md`
-  (aguardando aprovacao do usuario - **nao commitar**).
+- **CODEX DESCONTINUADO (2026-07-15)**: a assinatura do Codex terminou. Todo o trabalho
+  (planejar, implementar, validar, commitar) passa a ser do **Claude Code**. Pedido do usuario na
+  mesma data: **cada sub-parte implementada ganha um commit**.
+- **Branch / HEAD**: `main` @ `3012c00` - "Android: Dieta fiel ao web (anel de calorias...)".
+  Commits locais ainda **nao empurrados** nesta maquina (verificar `git status -sb` antes de push).
+- **Maquina atual**: checkout em `C:/Users/Terminal/Documents/lajesfit` (usuario "Terminal", nao a
+  maquina "magno") — **sem Android SDK/adb/local.properties**: nao compila nem instala aqui;
+  validacao por leitura + `@Preview`, build/device ficam para maquina com Android Studio.
+- **Working tree**: `.gitignore` e `src/routeTree.gen.ts` modificados sem commit (pre-existentes
+  nesta maquina, nao pertencem a tarefa atual — nao commitar sem confirmar com o usuario).
+- **Tarefa em andamento (#7, fidelidade visual ao web)**: usuario reporta app muito diferente do
+  web nas 4 areas (Dieta, Treinos, Feed, Perfil/Login/Config). Gap e de **composicao de tela**,
+  nao de tema (tema ja fiel). Plano: reescrever uma tela por sub-parte, um commit cada.
+  - **Sub-parte 1 (Dieta) CONCLUIDA** em `3012c00` — anel de calorias em Canvas, tiles de macros,
+    stepper compacto, 4 secoes fixas de refeicao em cards brancos. **Nao verificada em build**.
+  - Proximas: Treinos, Feed, Perfil/Login/Config (ordem a definir com o usuario).
+  - Pendencias conhecidas da Dieta (fora do escopo visual, exigem repository/nav): editar registro
+    existente, excluir item (swipe), foto da refeicao pela propria tela, popover de calendario com
+    graficos semanais.
+- Rascunho `specs/M8-notificacoes-fcm.md` ja foi commitado em `36bcb70` (gate de spec: aguardando
+  aprovacao do usuario antes de implementar).
 - **AAB de release gerado** (nao versionado - build output): `app/build/outputs/bundle/release/app-release.aab`
   (29 MB, `versionCode 2`), assinado com a upload key da TWA (SHA-256 conferido == keystore). **Ja
   publicado no teste interno** da Play em 2026-07-11.
@@ -114,6 +130,18 @@ key = a keystore da TWA. `build.gradle.kts` commitado (`c86a10c`). Resolvido.
 
 _Mais recente no topo. Uma entrada por sessão/handoff; detalhe fechado vai para o Histórico do
 `COORDENACAO.md`._
+
+### 2026-07-15 - Claude (fidelidade visual: Dieta; fim do Codex)
+- Usuario informou que a **assinatura do Codex terminou** — daqui em diante so Claude Code; e que
+  **cada sub-parte implementada deve virar um commit**. Quadro e diario atualizados.
+- Retomada da tarefa #7 (fidelidade visual ao web) por relato do usuario de que o app segue muito
+  diferente do web nas 4 areas. Diagnostico: tema ja fiel; o gap e composicao de tela.
+- **Sub-parte 1 (Dieta)** implementada e commitada (`3012c00`): DietScreen reescrita espelhando
+  `DiaryPage.tsx`/`DailySummaryCard.tsx`/`CalorieRing.tsx` (anel em Canvas, tiles de macros,
+  stepper compacto "Hoje, dd/MM", 4 secoes fixas em cards brancos com icone circular + badge de
+  camera, lista expansivel com kcal em Bebas). Totais de macros somados no `DietUiState`.
+- Maquina desta sessao ("Terminal") **sem SDK/adb** — sem build; validacao por leitura/@Preview.
+  Pendente: compilar e conferir no Android Studio/device.
 
 ### 2026-07-11 - Claude (PRIMEIRO PUBLISH: teste interno via Play Console)
 - Com o usuario (extensao Claude no Chrome): subiu o AAB v2 no teste interno de `com.lajesfit.app`,

@@ -13,6 +13,7 @@ import { Route as SetupRouteImport } from './routes/setup'
 import { Route as RequireEmailRouteImport } from './routes/require-email'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as DesafioRouteImport } from './routes/desafio'
+import { Route as BetaRouteImport } from './routes/beta'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
@@ -45,6 +46,11 @@ const PrivacidadeRoute = PrivacidadeRouteImport.update({
 const DesafioRoute = DesafioRouteImport.update({
   id: '/desafio',
   path: '/desafio',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BetaRoute = BetaRouteImport.update({
+  id: '/beta',
+  path: '/beta',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -116,6 +122,7 @@ const AuthenticatedProfileUsernameRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
+  '/beta': typeof BetaRoute
   '/desafio': typeof DesafioRoute
   '/privacidade': typeof PrivacidadeRoute
   '/require-email': typeof RequireEmailRoute
@@ -134,6 +141,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
+  '/beta': typeof BetaRoute
   '/desafio': typeof DesafioRoute
   '/privacidade': typeof PrivacidadeRoute
   '/require-email': typeof RequireEmailRoute
@@ -154,6 +162,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
+  '/beta': typeof BetaRoute
   '/desafio': typeof DesafioRoute
   '/privacidade': typeof PrivacidadeRoute
   '/require-email': typeof RequireEmailRoute
@@ -174,6 +183,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/beta'
     | '/desafio'
     | '/privacidade'
     | '/require-email'
@@ -192,6 +202,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/beta'
     | '/desafio'
     | '/privacidade'
     | '/require-email'
@@ -211,6 +222,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/beta'
     | '/desafio'
     | '/privacidade'
     | '/require-email'
@@ -231,6 +243,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
+  BetaRoute: typeof BetaRoute
   DesafioRoute: typeof DesafioRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
   RequireEmailRoute: typeof RequireEmailRoute
@@ -268,6 +281,13 @@ declare module '@tanstack/react-router' {
       path: '/desafio'
       fullPath: '/desafio'
       preLoaderRoute: typeof DesafioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/beta': {
+      id: '/beta'
+      path: '/beta'
+      fullPath: '/beta'
+      preLoaderRoute: typeof BetaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -399,6 +419,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
+  BetaRoute: BetaRoute,
   DesafioRoute: DesafioRoute,
   PrivacidadeRoute: PrivacidadeRoute,
   RequireEmailRoute: RequireEmailRoute,

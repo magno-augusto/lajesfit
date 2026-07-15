@@ -161,6 +161,21 @@ key = a keystore da TWA. `build.gradle.kts` commitado (`c86a10c`). Resolvido.
 _Mais recente no topo. Uma entrada por sessão/handoff; detalhe fechado vai para o Histórico do
 `COORDENACAO.md`._
 
+### 2026-07-15 - Claude (publish versionCode 3 - primeira atualizacao pos-v2)
+- Pedido do usuario: publicar as mudancas do dia (fidelidade visual das 8 telas, fix do Google
+  Sign-In, incentivo ao Health Connect + auto-desconexao do Strava) na Play Store, que ainda estava
+  no `versionCode 2` de 11/07.
+- `versionCode 2 → 3`, `versionName 0.1.0 → 0.1.1` (`app/build.gradle.kts`, commit `a0f9830`).
+- `:app:bundleRelease` gerado com sucesso (JBR do Android Studio + `GRADLE_USER_HOME` repo-local),
+  30 MB. Assinatura conferida: SHA-256 do keystore de upload bate com o de sempre
+  (`0A:86:47:B1:...:97:D0:6C`, alias `lajesfit`).
+- Upload do `.aab` no Play Console feito manualmente pelo usuario (arquivo passou de 10 MB, limite
+  da ferramenta de upload da sessao) — Claude preencheu notas da versão e conduziu a revisão.
+- 2 avisos benignos na revisão (falta de arquivo de desofuscacao R8/proguard e de simbolos de
+  depuracao nativos) — mesmos avisos ja documentados em `PLAY-STORE-PREP.md` como nao-bloqueantes.
+- **Publicado**: versão 3 (0.1.1), "Disponível para testadores internos", 15/07 18:57. Google
+  estima ate 1h pra aparecer como atualização disponível pros testadores (pode demorar mais).
+
 ### 2026-07-15 - Claude (distribuicao do teste interno: Google Group + Play Console)
 - Executado ao vivo com o usuario (extensao Chrome): criado o Google Group **LajesFit Beta**
   (`lajesfit-beta@googlegroups.com`), entrada livre ("qualquer pessoa pode participar", sem

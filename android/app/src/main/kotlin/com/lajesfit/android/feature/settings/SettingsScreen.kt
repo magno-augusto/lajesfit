@@ -3,7 +3,9 @@ package com.lajesfit.android.feature.settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,6 +46,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -52,9 +55,17 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
+import com.lajesfit.android.ui.theme.BebasNeue
 import com.lajesfit.android.ui.theme.LajesFitTheme
+
+// Espelha src/features/settings/SettingsPage.tsx: cabecalho "CONFIGURACOES" em
+// Bebas, cards brancos com borda+sombra leve, avatar em anel primary/30 e
+// icones de secao (Privacidade/Notificacoes/Seguranca/E-mail) em badge
+// circular primary/10 com titulo Bebas maiusculo. Strava e push web ficam
+// fora de escopo Android (Health Connect substitui Strava; FCM chega no M8).
 
 @Composable
 fun SettingsScreen(
@@ -147,8 +158,8 @@ private fun SettingsScreenContent(
             ) {
                 item {
                     Text(
-                        text = "Configuracoes",
-                        style = MaterialTheme.typography.headlineMedium,
+                        text = "CONFIGURACOES",
+                        style = MaterialTheme.typography.displaySmall,
                         modifier = Modifier.padding(top = 16.dp),
                     )
                 }
@@ -224,6 +235,8 @@ private fun StatusMessageCard(message: String, isError: Boolean) {
                 MaterialTheme.colorScheme.secondaryContainer
             },
         ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Text(
             text = message,
@@ -249,10 +262,19 @@ private fun ProfileSettingsCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                SettingsAvatar(uiState.avatarUrl, uiState.displayName, modifier = Modifier.size(72.dp))
+                SettingsAvatar(
+                    uiState.avatarUrl,
+                    uiState.displayName,
+                    modifier = Modifier
+                        .size(72.dp)
+                        .border(3.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), CircleShape)
+                        .padding(3.dp),
+                )
                 OutlinedButton(onClick = onPickAvatar, enabled = !uiState.isUploadingAvatar) {
                     Icon(Icons.Filled.PhotoCamera, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
                     Text(if (uiState.isUploadingAvatar) "Enviando..." else "Trocar foto")
@@ -303,15 +325,11 @@ private fun PrivacyCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         SettingsSwitchRow(
-            icon = {
-                Icon(
-                    imageVector = if (isPrivate) Icons.Filled.Lock else Icons.Filled.Public,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            },
+            icon = { SettingsIconBadge(if (isPrivate) Icons.Filled.Lock else Icons.Filled.Public) },
             title = "Privacidade",
             description = if (isPrivate) {
                 "Publicacoes visiveis para seguidores aprovados."
@@ -321,6 +339,7 @@ private fun PrivacyCard(
             checked = !isPrivate,
             onCheckedChange = { checked -> onPrivacyChange(!checked) },
             enabled = !isSaving,
+            emphasized = true,
             modifier = Modifier.padding(16.dp),
         )
     }
@@ -362,18 +381,14 @@ private fun NotificationsCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             SettingsSwitchRow(
                 icon = {
-                    Icon(
-                        imageVector = if (uiState.notificationsEnabled) {
-                            Icons.Filled.Notifications
-                        } else {
-                            Icons.Filled.NotificationsOff
-                        },
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                    SettingsIconBadge(
+                        if (uiState.notificationsEnabled) Icons.Filled.Notifications else Icons.Filled.NotificationsOff,
                     )
                 },
                 title = "Notificacoes",
@@ -385,8 +400,9 @@ private fun NotificationsCard(
                 checked = uiState.notificationsEnabled,
                 onCheckedChange = onNotificationsEnabledChange,
                 enabled = !uiState.isSavingNotificationsEnabled,
+                emphasized = true,
             )
-            HorizontalDivider()
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
             items.forEach { item ->
                 SettingsSwitchRow(
                     title = item.title,
@@ -416,12 +432,14 @@ private fun SecurityCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Icon(Icons.Filled.Password, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                SettingsIconBadge(Icons.Filled.Password)
                 Column {
-                    Text("Seguranca", style = MaterialTheme.typography.titleMedium)
+                    Text(text = "SEGURANCA", fontFamily = BebasNeue, fontSize = 20.sp)
                     Text(
                         "Troque sua senha ou cadastre um e-mail real da conta.",
                         style = MaterialTheme.typography.bodySmall,
@@ -479,12 +497,12 @@ private fun SecurityCard(
                 )
             }
 
-            HorizontalDivider()
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Icon(Icons.Filled.Email, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                SettingsIconBadge(Icons.Filled.Email)
                 Column {
-                    Text("E-mail da conta", style = MaterialTheme.typography.titleMedium)
+                    Text(text = "E-MAIL DA CONTA", fontFamily = BebasNeue, fontSize = 20.sp)
                     Text(
                         text = uiState.currentEmail ?: "Nenhum e-mail real cadastrado ainda.",
                         style = MaterialTheme.typography.bodySmall,
@@ -526,6 +544,8 @@ private fun LogoutCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Button(
             onClick = onLogout,
@@ -551,6 +571,7 @@ private fun SettingsSwitchRow(
     enabled: Boolean,
     modifier: Modifier = Modifier,
     icon: (@Composable () -> Unit)? = null,
+    emphasized: Boolean = false,
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -564,7 +585,11 @@ private fun SettingsSwitchRow(
         ) {
             icon?.invoke()
             Column {
-                Text(title, style = MaterialTheme.typography.titleMedium)
+                if (emphasized) {
+                    Text(text = title.uppercase(), fontFamily = BebasNeue, fontSize = 20.sp)
+                } else {
+                    Text(title, style = MaterialTheme.typography.titleMedium)
+                }
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodySmall,
@@ -581,6 +606,19 @@ private fun SettingsSwitchRow(
 }
 
 @Composable
+private fun SettingsIconBadge(icon: ImageVector, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(36.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+    }
+}
+
+@Composable
 private fun SettingsAvatar(avatarUrl: String?, fallbackName: String, modifier: Modifier = Modifier) {
     if (avatarUrl != null) {
         AsyncImage(
@@ -591,13 +629,13 @@ private fun SettingsAvatar(avatarUrl: String?, fallbackName: String, modifier: M
         )
     } else {
         Box(
-            modifier = modifier.clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
+            modifier = modifier.clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 fallbackName.take(1).uppercase().ifBlank { "?" },
                 style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                color = MaterialTheme.colorScheme.primary,
             )
         }
     }

@@ -2,8 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Mail, Smartphone, Users } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
 
-// TODO: trocar pelo link real de "Entrar no grupo" depois de criar o Google
-// Group e configurar o Play Console (ver plano de distribuicao do teste interno).
 const GOOGLE_GROUP_JOIN_URL = "https://groups.google.com/g/lajesfit-beta";
 
 export const Route = createFileRoute("/beta")({

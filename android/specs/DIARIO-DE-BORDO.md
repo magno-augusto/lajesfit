@@ -36,35 +36,37 @@ apontam para cá). Ele não substitui os outros artefatos, complementa:
 
 - **CODEX DESCONTINUADO (2026-07-15)**: a assinatura do Codex terminou. Todo o trabalho
   (planejar, implementar, validar, commitar) passa a ser do **Claude Code**. Pedido do usuario na
-  mesma data: **cada sub-parte implementada ganha um commit**.
-- **Branch / HEAD**: `main` @ `a definir no push de 2026-07-15` (ver `git log`): `3012c00` Dieta
-  fiel ao web, `9172cf0` diario, `bea4cae` gitignore `.env*`, + este commit de diario.
-  **Empurrado para `origin/main` em 2026-07-15** (pedido do usuario, para continuar em casa).
-- **Maquina "Terminal" agora COMPILA E INSTALA**: em 2026-07-15 foram instalados (sem admin)
-  JDK 21 portatil (`~\.jdks\jdk-21.0.11+10`), SDK Android API 36 + build-tools + platform-tools
-  (`%LOCALAPPDATA%\Android\Sdk`, via cmdline-tools) e Gradle 9.3 via wrapper. `:app:assembleDebug`
-  BUILD SUCCESSFUL (7m15s frio, ~1m incremental).
-- **Device de teste novo: Galaxy Tab S6 Lite (SM-P625), Android 16** — roda Health Connect!
-  Pareado por **adb WiFi** (pareamento persistente); a porta de conexao muda a cada sessao —
-  descobrir com `adb mdns services` e `adb connect <ip:porta>`. App debug (`com.lajesfit.app.debug`)
-  instalado e rodando no tablet.
-- **Login no Android consertado (causa raiz)**: o `local.properties` desta maquina nao tinha
-  `SUPABASE_URL`/`SUPABASE_ANON_KEY` (segredos ficam fora do git) -> APK compilava com config
-  vazia e nenhum login funcionava. Corrigido copiando do `.env` da raiz (usada a
-  `VITE_SUPABASE_PUBLISHABLE_KEY`, como o web). **Google Sign-In no debug segue pendente**
-  (exige registrar package `com.lajesfit.app.debug` + SHA-1 da debug key desta maquina no Google
-  Cloud); e-mail/senha funciona.
-- **Working tree**: `src/routeTree.gen.ts` modificado sem commit (so ruido de fim de linha, diff
-  textual vazio — pode descartar).
-- **Tarefa em andamento (#7, fidelidade visual ao web)**: usuario reporta app muito diferente do
-  web nas 4 areas (Dieta, Treinos, Feed, Perfil/Login/Config). Gap e de **composicao de tela**,
-  nao de tema (tema ja fiel). Plano: reescrever uma tela por sub-parte, um commit cada.
-  - **Sub-parte 1 (Dieta) CONCLUIDA** em `3012c00` — anel de calorias em Canvas, tiles de macros,
-    stepper compacto, 4 secoes fixas de refeicao em cards brancos. **Nao verificada em build**.
-  - Proximas: Treinos, Feed, Perfil/Login/Config (ordem a definir com o usuario).
-  - Pendencias conhecidas da Dieta (fora do escopo visual, exigem repository/nav): editar registro
-    existente, excluir item (swipe), foto da refeicao pela propria tela, popover de calendario com
-    graficos semanais.
+  mesma data: **cada sub-parte implementada ganha um commit** (confirmado de novo apos a duvida do
+  usuario sobre a necessidade — decisao mantida: 1 commit por sub-parte).
+- **Branch / HEAD**: `main`, ainda **nao empurrado** para `origin/main` nesta sessao (maquina
+  "casa", com Android Studio/JBR). Commits locais desta sessao, em ordem: `145cda1` Treinos,
+  `cc70ad4` Feed, `8dd0149` Perfil, `8e03f75` Busca de pessoas, `18c3275` Login+Cadastro, `d3cfc5e`
+  Recuperacao de conta, `6d466ae` Configuracoes.
+- **Tarefa #7 (fidelidade visual ao web): as 8 sub-partes estao TODAS implementadas e
+  commitadas** — (1) Dieta `3012c00` (sessao anterior), (2) Treinos `145cda1`, (3) Feed `cc70ad4`,
+  (4) Perfil `8dd0149`, (5) Busca de pessoas `8e03f75`, (6) Login+Cadastro `18c3275`, (7)
+  Recuperacao de conta (esqueci senha/cadastrar e-mail/nova senha) `d3cfc5e`, (8) Configuracoes
+  `6d466ae`. Cada commit passou por `:app:assembleDebug` BUILD SUCCESSFUL nesta maquina (JDK 21
+  via JBR do Android Studio: `export JAVA_HOME="/c/Program Files/Android/Android Studio/jbr"`,
+  `GRADLE_USER_HOME` no cache repo-local). **Nao validado em device/screenshot ainda** — proximo
+  passo antes de fechar a tarefa: instalar e conferir visualmente as 8 telas no aparelho.
+  Padrao aplicado em todas: cards brancos (`surfaceContainerLow` + `BorderStroke(1.dp, outline)` +
+  `elevation 1.dp`), numeros/titulos de destaque em `fontFamily = BebasNeue`, badges/icones
+  circulares `primary.copy(alpha=0.1f)`, avatar em anel `primary/30` (Perfil/Config). Detalhes por
+  sub-parte no quadro (`COORDENACAO.md`, tarefa 7).
+- **Maquina "Terminal" tambem COMPILA E INSTALA** (sessao anterior, 2026-07-15): JDK 21 portatil,
+  SDK Android API 36 + build-tools + platform-tools, Gradle 9.3 via wrapper — usada para validar a
+  Dieta e testar no tablet.
+- **Device de teste: Galaxy Tab S6 Lite (SM-P625), Android 16** — roda Health Connect! Pareado por
+  **adb WiFi** (pareamento persistente); a porta de conexao muda a cada sessao — descobrir com
+  `adb mdns services` e `adb connect <ip:porta>`. App debug (`com.lajesfit.app.debug`) instalado.
+- **Login no Android consertado (causa raiz, maquina "Terminal")**: `local.properties` sem
+  `SUPABASE_URL`/`SUPABASE_ANON_KEY` -> APK com config vazia. Corrigido copiando do `.env` da raiz.
+  **Google Sign-In no debug segue pendente** (exige SHA-1 da debug key no Google Cloud); e-mail/
+  senha funciona.
+- Pendencias conhecidas da Dieta (fora do escopo visual, exigem repository/nav): editar registro
+  existente, excluir item (swipe), foto da refeicao pela propria tela, popover de calendario com
+  graficos semanais.
 - Rascunho `specs/M8-notificacoes-fcm.md` ja foi commitado em `36bcb70` (gate de spec: aguardando
   aprovacao do usuario antes de implementar).
 - **AAB de release gerado** (nao versionado - build output): `app/build/outputs/bundle/release/app-release.aab`
@@ -142,6 +144,20 @@ key = a keystore da TWA. `build.gradle.kts` commitado (`c86a10c`). Resolvido.
 
 _Mais recente no topo. Uma entrada por sessão/handoff; detalhe fechado vai para o Histórico do
 `COORDENACAO.md`._
+
+### 2026-07-15 - Claude (tarefa #7 completa: 7 sub-partes restantes de fidelidade visual)
+- Continuação da tarefa #7 (Dieta já estava pronta de sessão anterior, `3012c00`). Implementou e
+  commitou, uma sub-parte por vez com `:app:assembleDebug` OK entre cada commit: Treinos
+  (`145cda1`), Feed (`cc70ad4`), Perfil (`8dd0149`), Busca de pessoas (`8e03f75`), Login+Cadastro
+  (`18c3275`), Recuperação de conta - esqueci senha/cadastrar e-mail/nova senha (`d3cfc5e`),
+  Configurações (`6d466ae`).
+- Usuário perguntou se realmente precisava de 1 commit por sub-parte; respondido o motivo (rollback
+  granular por tela) e confirmado via pergunta que sim, manter o padrão atual.
+- Não usou o Codex em nenhum momento (descontinuado). Nenhum arquivo de dados/ViewModel/Repository
+  foi tocado - mudanças puramente em `*Screen.kt` de cada área.
+- Atualizou o quadro (`COORDENACAO.md`, tarefa 7) e este diário com o fechamento das 8 sub-partes.
+- **Pendente**: verificação visual em device real (só validado por `assembleDebug` + leitura), e
+  push para `origin/main` (perguntar ao usuário antes).
 
 ### 2026-07-15 - Claude (ambiente de build na maquina "Terminal" + tablet + fix do login)
 - Montou toolchain completa sem Android Studio nem admin: JDK 21 portatil, SDK cmdline-tools ->

@@ -3,9 +3,7 @@
 > Perfil pessoal e preferencias completas do Magno ficam no **CLAUDE.md global**
 > (`~/.claude/CLAUDE.md`) da maquina dele. Este arquivo cobre o **negocio, a
 > estrategia e as decisoes** do lajesfit e viaja junto no git (para continuar em
-> qualquer computador). Fluxo de dev do app Android + coordenacao Claude/Codex:
-> ver `android/CLAUDE.md`, `android/AGENTS.md` e `android/specs/`.
-
+> qualquer computador).
 ## O que e o lajesfit
 
 Rede social fitness de Lajedao-BA. Une o que o **Yazio** faz pela dieta + o que o
@@ -88,8 +86,8 @@ Ser a **nova fonte de renda** do Magno.
   mao -- assumir que a IA implementa e ele revisa/aprova.
 - **Glosar jargao tecnico** ao surgir; quando um tema for essencial ao objetivo de
   renda, **ensinar a forma correta** (nao so apontar a lacuna).
-- **Delegar implementacao pesada ao Codex** (assinatura expirando) para economizar
-  uso do Claude; Claude foca em planejar, revisar, seguranca e coordenacao.
+- **Claude Code faz todo o ciclo** (planejar, implementar, revisar, commitar) --
+  a assinatura do Codex terminou em 2026-07-15.
 - Ser explicito sobre custo em dinheiro e em tokens.
 
 ## >>> Onde paramos / proximo passo
@@ -98,5 +96,4 @@ Desenhar o recurso **"profissional/treinador"** -- o personal enxergar e
 acompanhar os alunos dele. E a peca que transforma o lajesfit de "app de fitness"
 em "ferramenta que um profissional paga para usar". Em seguida, planejar a
 **abordagem do primeiro personal** de Lajedao (validacao da renda e o primeiro
-treino de vendas do Magno na pratica). Delegar a implementacao de codigo ao Codex;
-Claude planeja/revisa.
+treino de vendas do Magno na pratica).

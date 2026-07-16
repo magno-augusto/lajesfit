@@ -48,6 +48,10 @@ editar, porque concentram integração e geram conflito com facilidade:
 
 ## Próximo trabalho previsto (não iniciado — não começar sem o usuário liberar)
 
+- **M9 - Compartilhamento** (`specs/M9-compartilhamento.md`): compartilhar pódio de desafio, treino,
+  refeição e post do feed como imagem + legenda (com link de convite pro app), só Android. Spec
+  escrita e aprovada em 2026-07-16; nenhuma sub-parte implementada. Ordem: infraestrutura
+  compartilhada → Desafios → Treinos → Dieta → Feed.
 - **Verificação de M5 em device**: sync real do Health Connect nunca rodou num aparelho físico.
   Atenção: o device de dev atual (J7 Prime, Android 8.1) **não roda Health Connect** (exige
   Android 9+) — a sync real precisa de outro device ou emulador API 28+.

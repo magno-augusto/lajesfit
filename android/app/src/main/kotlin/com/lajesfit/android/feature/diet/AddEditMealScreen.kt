@@ -44,7 +44,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
@@ -133,6 +135,8 @@ private fun AddEditMealContent(
             )
         },
     ) { padding ->
+        val focusManager = LocalFocusManager.current
+        var searchFieldFocused by remember { mutableStateOf(false) }
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
             contentPadding = PaddingValues(bottom = 24.dp),
@@ -145,7 +149,7 @@ private fun AddEditMealContent(
                         onValueChange = onQueryChange,
                         label = { Text("Buscar alimento") },
                         singleLine = true,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).onFocusChanged { searchFieldFocused = it.isFocused },
                     )
                     IconButton(onClick = onOpenBarcodeScanner) {
                         Icon(
@@ -156,15 +160,24 @@ private fun AddEditMealContent(
                     }
                 }
             }
-            if (uiState.isSearching) {
-                item {
-                    Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.Center) {
-                        CircularProgressIndicator()
+            if (searchFieldFocused) {
+                if (uiState.isSearching) {
+                    item {
+                        Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.Center) {
+                            CircularProgressIndicator()
+                        }
                     }
                 }
-            }
-            items(uiState.results, key = { it.id }) { food ->
-                FoodResultRow(food = food, selected = food.id == uiState.selectedFood?.id, onClick = { onSelectFood(food) })
+                items(uiState.results, key = { it.id }) { food ->
+                    FoodResultRow(
+                        food = food,
+                        selected = food.id == uiState.selectedFood?.id,
+                        onClick = {
+                            focusManager.clearFocus()
+                            onSelectFood(food)
+                        },
+                    )
+                }
             }
             uiState.selectedFood?.let { food ->
                 item {

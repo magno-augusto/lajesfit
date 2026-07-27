@@ -56,6 +56,12 @@ class DietViewModel @Inject constructor(
         load()
     }
 
+    /** Recarrega refeicoes/treinos - chamar ao voltar para a tela (ver DietScreen), pois o
+     * ViewModel sobrevive a navegacao e o `init` so roda uma vez. */
+    fun refresh() {
+        load()
+    }
+
     fun previousDay() {
         setSelectedDate(_uiState.value.selectedDate.minusDays(1))
     }

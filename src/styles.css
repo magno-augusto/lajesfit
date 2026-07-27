@@ -132,6 +132,39 @@
   --ring: oklch(0.72 0.2 45);
 }
 
+@keyframes voice-breathe {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes voice-orb-ping {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+@keyframes voice-wave {
+  0%,
+  100% {
+    transform: scaleY(0.4);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
 @layer base {
   * {
     border-color: var(--color-border);

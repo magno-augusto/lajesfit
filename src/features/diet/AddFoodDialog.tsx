@@ -56,7 +56,7 @@ import { BarcodeScannerDialog } from "./BarcodeScannerDialog";
 import type { MealGroup } from "./meal-grouping";
 import { compressImageDataUrl, dataUrlToBlob, readFileAsDataUrl } from "./image-utils";
 import { clearDraft, readDraft, writeDraft } from "@/lib/session-draft";
-import { useVoiceMeal } from "./useVoiceMeal";
+import { useVoiceMeal, type VoiceMealStatus } from "./useVoiceMeal";
 
 const MEAL_DRAFT_KEY = "lajesfit-meal-draft";
 const MEAL_DRAFT_VERSION = 2;
@@ -930,87 +930,47 @@ export function AddFoodDialog({
             </div>
             <div ref={foodSearchSectionRef} className="scroll-mt-4 space-y-2">
               <Label>Alimento</Label>
-              <div className="flex gap-2">
-                <Input
-                  className="min-w-0 flex-1"
-                  value={foodQuery}
-                  onFocus={openFoodSearch}
-                  onClick={openFoodSearch}
-                  onBlur={() => {
-                    // espera o clique num item da lista concluir antes de
-                    // fechar (blur dispara antes do click no mobile)
-                    window.setTimeout(() => {
-                      const section = foodSearchSectionRef.current;
-                      if (section && section.contains(document.activeElement)) return;
-                      setFoodListOpen(false);
-                    }, 250);
-                  }}
-                  onChange={(event) => {
-                    setFoodQuery(event.target.value);
-                    setFoodListOpen(true);
-                  }}
-                  placeholder="Buscar alimento"
-                />
-                {voiceMeal.status === "recording" ? (
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="icon"
-                    className="shrink-0 animate-pulse"
-                    onClick={voiceMeal.stopRecording}
-                    aria-label="Parar gravacao"
-                  >
-                    <Square className="size-4" />
-                  </Button>
-                ) : voiceMeal.status === "transcribing" || voiceMeal.status === "parsing" ? (
-                  <Button type="button" variant="outline" size="icon" className="shrink-0" disabled>
-                    <Loader2 className="size-4 animate-spin" />
-                  </Button>
-                ) : (
+              {voiceMeal.status === "idle" || voiceMeal.status === "error" ? (
+                <div className="flex gap-2">
+                  <Input
+                    className="min-w-0 flex-1"
+                    value={foodQuery}
+                    onFocus={openFoodSearch}
+                    onClick={openFoodSearch}
+                    onBlur={() => {
+                      // espera o clique num item da lista concluir antes de
+                      // fechar (blur dispara antes do click no mobile)
+                      window.setTimeout(() => {
+                        const section = foodSearchSectionRef.current;
+                        if (section && section.contains(document.activeElement)) return;
+                        setFoodListOpen(false);
+                      }, 250);
+                    }}
+                    onChange={(event) => {
+                      setFoodQuery(event.target.value);
+                      setFoodListOpen(true);
+                    }}
+                    placeholder="Buscar alimento"
+                  />
+                  <VoiceRecordButton onStart={voiceMeal.startRecording} />
                   <Button
                     type="button"
                     variant="outline"
                     size="icon"
                     className="shrink-0"
-                    onClick={voiceMeal.startRecording}
-                    aria-label="Falar refeicao"
+                    onClick={openBarcodeScanner}
+                    aria-label="Escanear código de barras"
                   >
-                    <Mic className="size-4" />
+                    <ScanBarcode className="size-4" />
                   </Button>
-                )}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="shrink-0"
-                  onClick={openBarcodeScanner}
-                  aria-label="Escanear código de barras"
-                >
-                  <ScanBarcode className="size-4" />
-                </Button>
-              </div>
-              {voiceMeal.status === "recording" && (
-                <p className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span className="inline-block size-2 rounded-full bg-red-500 animate-pulse" />
-                  Gravando... {voiceMeal.elapsed}s
-                </p>
-              )}
-              {voiceMeal.status === "transcribing" && (
-                <p className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Loader2 className="size-3 animate-spin" />
-                  Transcrevendo audio...
-                </p>
-              )}
-              {voiceMeal.status === "parsing" && (
-                <p className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Loader2 className="size-3 animate-spin" />
-                  Interpretando refeicao...
-                </p>
-              )}
-              {voiceMeal.status === "done" && voiceMeal.transcribedText && (
-                <p className="text-xs text-muted-foreground italic">
-                  "{voiceMeal.transcribedText}"
-                </p>
+                </div>
+              ) : (
+                <VoiceCapsule
+                  status={voiceMeal.status}
+                  elapsed={voiceMeal.elapsed}
+                  transcribedText={voiceMeal.transcribedText}
+                  onStop={voiceMeal.stopRecording}
+                />
               )}
               {foodListOpen && (
                 <div className="overflow-hidden rounded-lg border bg-background">
@@ -1381,6 +1341,109 @@ function Preview({ label, value }: { label: string; value: string | number }) {
     <div>
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="font-display text-xl">{value}</p>
+    </div>
+  );
+}
+
+function VoiceRecordButton({ onStart }: { onStart: () => void }) {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="icon"
+      className="relative shrink-0 overflow-hidden border-primary/30 text-primary hover:border-primary/50 hover:bg-primary/10 hover:text-primary"
+      onClick={onStart}
+      aria-label="Falar refeicao"
+    >
+      <span
+        aria-hidden
+        className="absolute inset-0 rounded-md bg-primary/15 motion-safe:animate-[voice-breathe_2.6s_ease-in-out_infinite]"
+      />
+      <Mic className="relative size-4" />
+    </Button>
+  );
+}
+
+const VOICE_STATUS_LABEL: Partial<Record<VoiceMealStatus, string>> = {
+  recording: "Ouvindo voce...",
+  transcribing: "Entendendo o que voce falou...",
+  parsing: "Montando sua refeicao...",
+};
+
+function VoiceCapsule({
+  status,
+  elapsed,
+  transcribedText,
+  onStop,
+}: {
+  status: VoiceMealStatus;
+  elapsed: number;
+  transcribedText: string;
+  onStop: () => void;
+}) {
+  const minutes = Math.floor(elapsed / 60);
+  const seconds = elapsed % 60;
+  const isRecording = status === "recording";
+  const isThinking = status === "transcribing" || status === "parsing";
+
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-primary/25 bg-primary/5 px-3 py-2.5">
+      <div className="relative flex size-9 shrink-0 items-center justify-center">
+        {isRecording && (
+          <>
+            <span
+              aria-hidden
+              className="absolute inset-0 rounded-full bg-primary/40 motion-safe:animate-[voice-orb-ping_1.8s_ease-out_infinite]"
+            />
+            <span
+              aria-hidden
+              className="absolute inset-0 rounded-full bg-primary/40 [animation-delay:0.6s] motion-safe:animate-[voice-orb-ping_1.8s_ease-out_infinite]"
+            />
+          </>
+        )}
+        <span className="relative flex size-8 items-center justify-center rounded-full bg-gradient-primary shadow-glow">
+          {isRecording ? (
+            <span aria-hidden className="flex items-end gap-[2.5px]">
+              {[0, 1, 2, 3].map((bar) => (
+                <span
+                  key={bar}
+                  className="h-3 w-[2.5px] rounded-full bg-primary-foreground/90 motion-safe:animate-[voice-wave_0.9s_ease-in-out_infinite]"
+                  style={{ animationDelay: `${bar * 120}ms` }}
+                />
+              ))}
+            </span>
+          ) : status === "done" ? (
+            <Check className="size-4 text-primary-foreground" />
+          ) : (
+            <Loader2 className="size-4 animate-spin text-primary-foreground" />
+          )}
+        </span>
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-foreground">
+          {isRecording || isThinking ? VOICE_STATUS_LABEL[status] : "Refeicao identificada"}
+        </p>
+        {isRecording && (
+          <p className="font-display text-lg leading-none tabular-nums text-primary">
+            {minutes}:{String(seconds).padStart(2, "0")}
+          </p>
+        )}
+        {status === "done" && transcribedText && (
+          <p className="truncate text-xs italic text-muted-foreground">"{transcribedText}"</p>
+        )}
+      </div>
+      {isRecording && (
+        <Button
+          type="button"
+          variant="destructive"
+          size="icon"
+          className="shrink-0 rounded-full"
+          onClick={onStop}
+          aria-label="Parar gravacao"
+        >
+          <Square className="size-3.5" />
+        </Button>
+      )}
     </div>
   );
 }

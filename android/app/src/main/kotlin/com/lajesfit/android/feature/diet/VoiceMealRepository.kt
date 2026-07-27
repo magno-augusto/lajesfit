@@ -55,7 +55,7 @@ class VoiceMealRepository @Inject constructor(
         if (!response.status.isSuccess()) {
             val body = response.body<String>()
             Log.e("VoiceMeal", "Transcribe error ${response.status}: $body")
-            throw Error("Falha ao transcrever audio")
+            throw Exception("Falha ao transcrever audio")
         }
 
         return response.body<TranscribeResponse>().text
@@ -70,7 +70,7 @@ class VoiceMealRepository @Inject constructor(
         if (!response.status.isSuccess()) {
             val body = response.body<String>()
             Log.e("VoiceMeal", "Parse error ${response.status}: $body")
-            throw Error("Falha ao interpretar refeicao")
+            throw Exception("Falha ao interpretar refeicao")
         }
 
         return response.body<ParseMealResponse>().items.map { item ->

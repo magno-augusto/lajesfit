@@ -1,7 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+// "-latest" sempre aponta para o flash estavel mais recente, evitando quebrar
+// quando a Google descontinua uma versao fixa para chaves de API novas
+// (gemini-2.5-flash parou de funcionar para chaves criadas apos certa data).
 const GEMINI_API_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+  "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent";
 
 const SYSTEM_PROMPT = `Voce e um nutricionista brasileiro especializado em composicao de refeicoes. Analise a descricao de refeicao fornecida e retorne um array JSON com os alimentos identificados.
 

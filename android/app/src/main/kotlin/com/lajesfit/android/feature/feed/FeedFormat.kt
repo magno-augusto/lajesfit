@@ -2,12 +2,15 @@ package com.lajesfit.android.feature.feed
 
 import java.time.Duration
 import java.time.Instant
+import java.time.OffsetDateTime
 import java.time.ZoneId
 
 /** Porta format.ts:timeAgo para Kotlin - ver android/specs/M3-feed.md. */
 fun timeAgo(createdAt: String): String {
+    // OffsetDateTime.parse aceita o offset explicito "+00:00" que o PostgREST/Supabase
+    // retorna (Instant.parse exige "Z" e lanca excecao nesse formato).
     val then = try {
-        Instant.parse(createdAt)
+        OffsetDateTime.parse(createdAt).toInstant()
     } catch (e: Exception) {
         return ""
     }

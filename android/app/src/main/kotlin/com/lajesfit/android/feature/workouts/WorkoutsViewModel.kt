@@ -4,8 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import java.time.Instant
 import java.time.LocalDate
+import java.time.OffsetDateTime
 import java.time.ZoneId
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -163,9 +163,11 @@ private fun List<LocalWorkout>.monthTotals(): WorkoutMonthTotals {
     )
 }
 
+// Instant.parse exige sufixo "Z" e rejeita offset explicito "+00:00" (formato que o
+// PostgREST/Supabase retorna) - usar OffsetDateTime.parse, que aceita ambos.
 private fun LocalWorkout.performedDate(): LocalDate? {
     return runCatching {
-        Instant.parse(performedAt).atZone(ZoneId.systemDefault()).toLocalDate()
+        OffsetDateTime.parse(performedAt).atZoneSameInstant(ZoneId.systemDefault()).toLocalDate()
     }.getOrNull()
 }
 

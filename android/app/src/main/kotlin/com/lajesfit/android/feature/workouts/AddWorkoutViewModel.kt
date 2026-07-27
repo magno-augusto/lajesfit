@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
 import java.time.LocalDateTime
+import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -143,9 +144,11 @@ class AddWorkoutViewModel @Inject constructor(
 
 private val DISPLAY_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
 
+// OffsetDateTime.parse aceita tanto o "Z" de Instant.now().toString() quanto o offset
+// explicito "+00:00" que o PostgREST/Supabase retorna (Instant.parse rejeita esse ultimo).
 private fun formatDateTimeInput(value: String): String {
     return runCatching {
-        DISPLAY_FORMAT.format(Instant.parse(value).atZone(ZoneId.systemDefault()))
+        DISPLAY_FORMAT.format(OffsetDateTime.parse(value).atZoneSameInstant(ZoneId.systemDefault()))
     }.getOrDefault("")
 }
 

@@ -59,7 +59,7 @@ import coil3.compose.AsyncImage
 import com.lajesfit.android.feature.feed.timeAgo
 import com.lajesfit.android.ui.theme.BebasNeue
 import com.lajesfit.android.ui.theme.LajesFitTheme
-import java.time.Instant
+import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -463,9 +463,11 @@ private fun formatDuration(seconds: Int): String {
     }
 }
 
+// OffsetDateTime.parse aceita o offset explicito "+00:00" que o PostgREST/Supabase
+// retorna (Instant.parse exige "Z" e lanca excecao nesse formato).
 private fun workoutDateTime(performedAt: String): String {
     return runCatching {
-        val zoned = Instant.parse(performedAt).atZone(ZoneId.systemDefault())
+        val zoned = OffsetDateTime.parse(performedAt).atZoneSameInstant(ZoneId.systemDefault())
         DateTimeFormatter.ofPattern("dd/MM 'as' HH:mm").format(zoned)
     }.getOrDefault("")
 }

@@ -7,8 +7,12 @@
 ## O que e o lajesfit
 
 Rede social fitness de Lajedao-BA. Une o que o **Yazio** faz pela dieta + o que o
-**Strava** faz pelo registro de treino + uma **rede social de apoio mutuo**, para
-as pessoas se motivarem a ser mais saudaveis, esteticas e fortes.
+**Strava** faz pelo registro de treino + uma **rede social de apoio mutuo**: o
+usuario registra a propria dieta e os proprios treinos, e conta com a comunidade
+para apoiar e ser apoiado rumo a um objetivo concreto -- **ser mais saudavel**, o
+que aqui significa **baixar percentual de gordura e desenvolver musculatura**.
+Esse objetivo (composicao corporal, nao so "numero na balanca") deve orientar que
+metricas e recursos fazem sentido no produto.
 
 Origem: nasceu para ajudar a comunidade da cidade do Magno (dai o nome, que ecoa o
 grupo de corrida **Lajes Running**). O app e, na essencia, a **versao digital do
@@ -21,8 +25,11 @@ Ser a **nova fonte de renda** do Magno.
 
 ## Estrategia
 
-- **Mercado:** comecar local (Lajedao) como beachhead e escalar depois. Local nao
-  e teto, e ponto de partida.
+- **Mercado:** a partir de 2026-07-27, o foco de aquisicao deixa de ser so
+  Lajedao -- divulgacao passa a mirar o Brasil inteiro, com foco em monetizacao
+  em escala. Lajedao vira o primeiro **grupo** dentro do app (cidades/comunidades
+  passam a ser "grupos", nao mais sinonimo do produto inteiro -- ver
+  `specs/grupos.md`).
 - **Monetizacao -- B2B2C:** quem paga sao os **profissionais de fitness**
   (personais, nutricionistas, academias) que usam o app com os alunos. Faturam
   mesmo em cidade pequena e o modelo replica para outras cidades.
@@ -31,33 +38,19 @@ Ser a **nova fonte de renda** do Magno.
   intermedeia o dinheiro do aluno). Marketplace com comissao = depois. Cobrar o
   profissional pela web (nao por compra dentro do app) evita a taxa de 15-30% das
   lojas.
-- **Nome:** trocavel no futuro (rebrand = custo de marketing, nao tecnico). O nome
-  visivel muda numa atualizacao; o ID do pacote `com.lajesfit.app` e permanente,
-  mas invisivel ao usuario.
+- **Nome:** trocavel no futuro (rebrand = custo de marketing, nao tecnico) --
+  quando acontecer, "Lajesfit" deixa de ser o nome do app e passa a ser so o nome
+  do grupo de Lajedao (ver `specs/grupos.md`). O nome visivel muda numa
+  atualizacao; o ID do pacote `com.lajesfit.app` e permanente, mas invisivel ao
+  usuario.
 
 ## Produto e veiculo
 
 - **Mobile-first** -- os usuarios (especialmente na cidade) estao no celular.
-- **App nativo Android = produto principal.** Motivos funcionais: (1) install
-  nativo tipo "clicar-instalar-usar" (WebAPK) e (2) **Health Connect** para
-  importar atividades, que substitui o Strava.
-- **PWA por link = ferramenta de demonstracao** instantanea, sem instalacao, para
-  vender a um personal.
-
-## Restricoes e decisoes tecnicas
-
-- **Strava (risco):** a API limita as contas que podem vincular (bateu em ~10) e
-  endureceu os termos para apps sociais que exibem dados de outros atletas.
-  Depender do Strava e arriscado -> por isso a pivotada para Health Connect
-  (API nativa do Android; nao existe para web/PWA -- este e o motivo FUNCIONAL do
-  app nativo).
-- **WebAPK:** PWA instalado no Android moderno vira app real (icone, tela cheia).
-  Exige Chrome atual + Google Play Services. O aparelho de teste do Magno (Samsung
-  J7 Prime antigo) cai para um "atalho" inferior e nao roda Health Connect -- nao
-  usar como referencia de experiencia.
-- **Stack:** web = React + TypeScript, Vite, TanStack Start, Supabase, Tailwind,
-  deploy na Vercel (`lajesfit.vercel.app`). Android = Kotlin + Jetpack Compose,
-  supabase-kt. Ja em teste interno na Play Store (`com.lajesfit.app`).
+- **App nativo Android = produto principal**, PWA por link = ferramenta de
+  demonstracao instantanea (vender a um personal sem exigir instalacao). Por que
+  nativo em vez de so PWA, stack completa e decisoes tecnicas: ver
+  `specs/stack-e-arquitetura.md`.
 
 ## Praticas de engenharia a incorporar
 
@@ -90,10 +83,30 @@ Ser a **nova fonte de renda** do Magno.
   a assinatura do Codex terminou em 2026-07-15.
 - Ser explicito sobre custo em dinheiro e em tokens.
 
+## Especificacoes de funcionalidades
+
+Detalhes de implementacao (arquitetura, decisoes tecnicas, planos e status de
+cada funcionalidade) ficam em `specs/`, um arquivo por assunto -- este arquivo
+(CLAUDE.md) so guarda objetivo, foco e direcao do negocio.
+
+- `specs/stack-e-arquitetura.md` -- stack, decisao Strava -> Health Connect,
+  WebAPK, deploy.
+- `specs/registrar-refeicao-por-voz.md` -- feito (falar o que comeu -> IA registra
+  a refeicao).
+- `specs/editar-excluir-refeicao.md` -- em andamento.
+- `specs/grupos.md` -- planejado (comunidades/cidades como grupos dentro do app).
+- `specs/cache-local.md` -- planejado (Feed/Dieta/Treinos nao recarregam do zero
+  a cada abertura do app).
+- `specs/design-liquid-glass.md` -- planejado (visual "vidro liquido" no
+  app, web + Android).
+
 ## >>> Onde paramos / proximo passo
 
-Desenhar o recurso **"profissional/treinador"** -- o personal enxergar e
-acompanhar os alunos dele. E a peca que transforma o lajesfit de "app de fitness"
-em "ferramenta que um profissional paga para usar". Em seguida, planejar a
+Terminando `specs/editar-excluir-refeicao.md` (outra sessao/agente). Depois disso,
+retomar o proximo passo estrategico ainda nao iniciado: desenhar o recurso
+**"profissional/treinador"** -- o personal enxergar e acompanhar os alunos dele. E
+a peca que transforma o lajesfit de "app de fitness" em "ferramenta que um
+profissional paga para usar" (ver Estrategia acima). Em seguida, planejar a
 **abordagem do primeiro personal** de Lajedao (validacao da renda e o primeiro
-treino de vendas do Magno na pratica).
+treino de vendas do Magno na pratica). Quando esse recurso for desenhado, criar
+`specs/profissional-treinador.md`.

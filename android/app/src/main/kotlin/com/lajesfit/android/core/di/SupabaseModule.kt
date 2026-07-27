@@ -14,6 +14,7 @@ import io.github.jan.supabase.storage.Storage
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.DefaultRequest
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.header
 import io.ktor.serialization.kotlinx.json.json
@@ -54,6 +55,13 @@ object SupabaseModule {
         }
         install(DefaultRequest) {
             header("User-Agent", "LajesFit/1.0 (https://lajesfit.vercel.app)")
+        }
+        // Default do OkHttp (~10s) e curto demais para o parse-meal: o modelo Gemini
+        // usa "thinking" antes de responder e pode levar mais de 10s.
+        install(HttpTimeout) {
+            requestTimeoutMillis = 60_000
+            connectTimeoutMillis = 15_000
+            socketTimeoutMillis = 60_000
         }
     }
 }

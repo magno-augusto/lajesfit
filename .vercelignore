@@ -1,0 +1,5 @@
+# Projeto Android nao faz parte do deploy web (Vite/TanStack Start).
+# android/.gradle-user-home e android/app/build sozinhos somam ~40 mil
+# arquivos de cache do Gradle e travavam o empacotamento do deploy.
+android/
+android-twa/

@@ -1,5 +1,7 @@
 package com.lajesfit.android.feature.diet
 
+import android.Manifest
+import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -54,6 +56,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lajesfit.android.ui.theme.LajesFitTheme
 import kotlin.math.roundToInt
@@ -69,6 +72,9 @@ fun AddEditMealScreen(
     val context = LocalContext.current
     val photoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         viewModel.onPhotoSelected(uri?.let { compressMealPhoto(context.contentResolver, it) })
+    }
+    val audioPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) viewModel.startRecording(context)
     }
     LaunchedEffect(uiState.done) {
         if (uiState.done) onDone()
@@ -94,7 +100,17 @@ fun AddEditMealScreen(
         onManualFatChange = viewModel::onManualFatChange,
         onAddManualFood = viewModel::addManualFood,
         onRemoveItem = viewModel::removeSessionItem,
-        onStartVoice = { viewModel.startRecording(context) },
+        onStartVoice = {
+            val hasPermission = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.RECORD_AUDIO,
+            ) == PackageManager.PERMISSION_GRANTED
+            if (hasPermission) {
+                viewModel.startRecording(context)
+            } else {
+                audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+            }
+        },
         onStopVoice = viewModel::stopRecordingAndProcess,
         onResetVoice = viewModel::resetVoiceStatus,
         onSave = viewModel::save,

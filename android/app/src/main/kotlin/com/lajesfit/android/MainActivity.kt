@@ -163,7 +163,9 @@ private fun LajesFitAppRoot(
 
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
-    val showChrome = currentRoute != null && currentRoute !in AuthRoutes.all
+    val showChrome = currentRoute != null &&
+        currentRoute !in AuthRoutes.all &&
+        currentRoute != PopOverRoutes.AddMeal
     val showTopBar = currentRoute?.let(::isAuthenticatedTopBarRoute) == true
 
     Scaffold(

@@ -1,0 +1,6 @@
+<resources>
+    <!-- Sobrepoe o app_name do main so no build debug, para distinguir na tela
+         do celular do release "Lajes Fit" ja instalado via Play (com.lajesfit.app.debug
+         convive lado a lado, ver app/build.gradle.kts). -->
+    <string name="app_name">Lajes Fit Dev</string>
+</resources>

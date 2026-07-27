@@ -16,8 +16,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -92,6 +94,9 @@ fun AddEditMealScreen(
         onManualFatChange = viewModel::onManualFatChange,
         onAddManualFood = viewModel::addManualFood,
         onRemoveItem = viewModel::removeSessionItem,
+        onStartVoice = { viewModel.startRecording(context) },
+        onStopVoice = viewModel::stopRecordingAndProcess,
+        onResetVoice = viewModel::resetVoiceStatus,
         onSave = viewModel::save,
     )
 }
@@ -116,6 +121,9 @@ private fun AddEditMealContent(
     onManualFatChange: (String) -> Unit,
     onAddManualFood: () -> Unit,
     onRemoveItem: (Int) -> Unit,
+    onStartVoice: () -> Unit,
+    onStopVoice: () -> Unit,
+    onResetVoice: () -> Unit,
     onSave: () -> Unit,
 ) {
     Scaffold(
@@ -151,6 +159,30 @@ private fun AddEditMealContent(
                         singleLine = true,
                         modifier = Modifier.weight(1f).onFocusChanged { searchFieldFocused = it.isFocused },
                     )
+                    IconButton(
+                        onClick = {
+                            when (uiState.voiceStatus) {
+                                VoiceStatus.RECORDING -> onStopVoice()
+                                VoiceStatus.IDLE, VoiceStatus.DONE, VoiceStatus.ERROR -> onStartVoice()
+                                else -> {}
+                            }
+                        },
+                    ) {
+                        Icon(
+                            imageVector = when (uiState.voiceStatus) {
+                                VoiceStatus.RECORDING -> Icons.Filled.Stop
+                                else -> Icons.Filled.Mic
+                            },
+                            contentDescription = when (uiState.voiceStatus) {
+                                VoiceStatus.RECORDING -> "Parar gravacao"
+                                else -> "Falar refeicao"
+                            },
+                            tint = when (uiState.voiceStatus) {
+                                VoiceStatus.RECORDING -> MaterialTheme.colorScheme.error
+                                else -> MaterialTheme.colorScheme.primary
+                            },
+                        )
+                    }
                     IconButton(onClick = onOpenBarcodeScanner) {
                         Icon(
                             Icons.Filled.QrCodeScanner,
@@ -158,6 +190,37 @@ private fun AddEditMealContent(
                             tint = MaterialTheme.colorScheme.primary,
                         )
                     }
+                }
+                when (uiState.voiceStatus) {
+                    VoiceStatus.RECORDING -> {
+                        Text(
+                            "Gravando... ${uiState.voiceElapsed}s",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                    VoiceStatus.TRANSCRIBING -> {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            CircularProgressIndicator(modifier = Modifier.padding(2.dp), strokeWidth = 2.dp)
+                            Text("Transcrevendo audio...", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                    VoiceStatus.PARSING -> {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            CircularProgressIndicator(modifier = Modifier.padding(2.dp), strokeWidth = 2.dp)
+                            Text("Interpretando refeicao...", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                    VoiceStatus.DONE -> {
+                        if (uiState.voiceTranscribedText.isNotBlank()) {
+                            Text(
+                                "\"${uiState.voiceTranscribedText}\"",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    else -> {}
                 }
             }
             if (searchFieldFocused) {
@@ -431,6 +494,9 @@ private fun AddEditMealScreenPreview() {
             onManualFatChange = {},
             onAddManualFood = {},
             onRemoveItem = {},
+            onStartVoice = {},
+            onStopVoice = {},
+            onResetVoice = {},
             onSave = {},
         )
     }

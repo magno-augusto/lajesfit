@@ -38,6 +38,9 @@ data class AddEditMealUiState(
     val isSaving: Boolean = false,
     val done: Boolean = false,
     val errorMessage: String? = null,
+    val voiceStatus: VoiceStatus = VoiceStatus.IDLE,
+    val voiceTranscribedText: String = "",
+    val voiceElapsed: Int = 0,
 ) {
     val showManualForm: Boolean = query.trim().length >= 2 && !isSearching && results.isEmpty()
     val totalKcal: Int = items.sumOf { it.kcal }.roundToInt()
@@ -46,11 +49,14 @@ data class AddEditMealUiState(
     val totalFat: Double = items.sumOf { it.fatG }
 }
 
+enum class VoiceStatus { IDLE, RECORDING, TRANSCRIBING, PARSING, DONE, ERROR }
+
 @HiltViewModel
 class AddEditMealViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val foodCatalogRepository: FoodCatalogRepository,
     private val dietRepository: DietRepository,
+    private val voiceMealRepository: VoiceMealRepository,
 ) : ViewModel() {
 
     private val initialMeal = savedStateHandle.get<String>("meal")
@@ -225,6 +231,123 @@ class AddEditMealViewModel @Inject constructor(
             fatG = fatPer100g * factor,
         )
         _uiState.update { it.copy(items = it.items + item, errorMessage = null) }
+    }
+
+    private var mediaRecorder: android.media.MediaRecorder? = null
+    private var audioFilePath: String? = null
+    private var timerJob: Job? = null
+
+    fun startRecording(context: android.content.Context) {
+        if (_uiState.value.voiceStatus == VoiceStatus.RECORDING) {
+            stopRecordingAndProcess()
+            return
+        }
+
+        val outputDir = context.cacheDir
+        val outputFile = java.io.File.createTempFile("voice_meal_", ".m4a", outputDir)
+        audioFilePath = outputFile.absolutePath
+
+        val recorder = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            android.media.MediaRecorder(context)
+        } else {
+            @Suppress("DEPRECATION")
+            android.media.MediaRecorder()
+        }
+
+        recorder.apply {
+            setAudioSource(android.media.MediaRecorder.AudioSource.MIC)
+            // MPEG_4/AAC funciona desde a API 26; WEBM/OPUS so' existe a partir da API 30
+            // e falha em aparelhos mais antigos (ex.: J7 Prime, Android 8.1).
+            setOutputFormat(android.media.MediaRecorder.OutputFormat.MPEG_4)
+            setAudioEncoder(android.media.MediaRecorder.AudioEncoder.AAC)
+            setAudioSamplingRate(16000)
+            setAudioChannels(1)
+            setOutputFile(audioFilePath)
+            prepare()
+            start()
+        }
+
+        mediaRecorder = recorder
+        _uiState.update { it.copy(voiceStatus = VoiceStatus.RECORDING, voiceElapsed = 0, voiceTranscribedText = "") }
+
+        timerJob = viewModelScope.launch {
+            var elapsed = 0
+            while (true) {
+                delay(1000)
+                elapsed++
+                _uiState.update { it.copy(voiceElapsed = elapsed) }
+            }
+        }
+    }
+
+    fun stopRecordingAndProcess() {
+        timerJob?.cancel()
+        timerJob = null
+
+        try {
+            mediaRecorder?.stop()
+        } catch (_: Exception) {
+            _uiState.update { it.copy(voiceStatus = VoiceStatus.IDLE, errorMessage = "Audio muito curto") }
+            mediaRecorder?.release()
+            mediaRecorder = null
+            return
+        }
+        mediaRecorder?.release()
+        mediaRecorder = null
+
+        val path = audioFilePath ?: return
+        val audioBytes = java.io.File(path).readBytes()
+
+        if (audioBytes.size < 1000) {
+            _uiState.update { it.copy(voiceStatus = VoiceStatus.IDLE, errorMessage = "Audio muito curto. Tente falar por mais tempo.") }
+            return
+        }
+
+        processVoiceAudio(audioBytes)
+    }
+
+    fun cancelVoice() {
+        timerJob?.cancel()
+        timerJob = null
+        try { mediaRecorder?.stop() } catch (_: Exception) {}
+        mediaRecorder?.release()
+        mediaRecorder = null
+        _uiState.update { it.copy(voiceStatus = VoiceStatus.IDLE, voiceTranscribedText = "", voiceElapsed = 0) }
+    }
+
+    fun resetVoiceStatus() {
+        _uiState.update { it.copy(voiceStatus = VoiceStatus.IDLE, voiceTranscribedText = "") }
+    }
+
+    private fun processVoiceAudio(audioBytes: ByteArray) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(voiceStatus = VoiceStatus.TRANSCRIBING) }
+            try {
+                val text = voiceMealRepository.transcribe(audioBytes, "recording.m4a")
+                if (text.isBlank()) {
+                    _uiState.update { it.copy(voiceStatus = VoiceStatus.IDLE, errorMessage = "Nao foi possivel entender o audio. Tente falar mais alto e claro.") }
+                    return@launch
+                }
+                _uiState.update { it.copy(voiceTranscribedText = text, voiceStatus = VoiceStatus.PARSING) }
+
+                val parsedItems = voiceMealRepository.parseMeal(text)
+                if (parsedItems.isEmpty()) {
+                    _uiState.update { it.copy(voiceStatus = VoiceStatus.IDLE, errorMessage = "Nao consegui identificar alimentos. Tente descrever o que comeu.") }
+                    return@launch
+                }
+
+                _uiState.update { state ->
+                    state.copy(
+                        items = state.items + parsedItems,
+                        voiceStatus = VoiceStatus.DONE,
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(voiceStatus = VoiceStatus.ERROR, errorMessage = e.message ?: "Erro na transcricao")
+                }
+            }
+        }
     }
 }
 

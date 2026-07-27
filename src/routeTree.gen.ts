@@ -19,6 +19,8 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StravaCallbackRouteImport } from './routes/strava.callback'
 import { Route as AuthResetPasswordRouteImport } from './routes/auth.reset-password'
+import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
+import { Route as ApiParseMealRouteImport } from './routes/api/parse-meal'
 import { Route as AuthenticatedTreinosRouteImport } from './routes/_authenticated/treinos'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedSearchRouteImport } from './routes/_authenticated/search'
@@ -77,6 +79,16 @@ const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
   getParentRoute: () => AuthRoute,
+} as any)
+const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
+  id: '/api/transcribe',
+  path: '/api/transcribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiParseMealRoute = ApiParseMealRouteImport.update({
+  id: '/api/parse-meal',
+  path: '/api/parse-meal',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedTreinosRoute = AuthenticatedTreinosRouteImport.update({
   id: '/treinos',
@@ -138,6 +150,8 @@ export interface FileRoutesByFullPath {
   '/search': typeof AuthenticatedSearchRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/treinos': typeof AuthenticatedTreinosRoute
+  '/api/parse-meal': typeof ApiParseMealRoute
+  '/api/transcribe': typeof ApiTranscribeRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/strava/callback': typeof StravaCallbackRoute
   '/profile/$username': typeof AuthenticatedProfileUsernameRoute
@@ -158,6 +172,8 @@ export interface FileRoutesByTo {
   '/search': typeof AuthenticatedSearchRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/treinos': typeof AuthenticatedTreinosRoute
+  '/api/parse-meal': typeof ApiParseMealRoute
+  '/api/transcribe': typeof ApiTranscribeRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/strava/callback': typeof StravaCallbackRoute
   '/profile/$username': typeof AuthenticatedProfileUsernameRoute
@@ -180,6 +196,8 @@ export interface FileRoutesById {
   '/_authenticated/search': typeof AuthenticatedSearchRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/treinos': typeof AuthenticatedTreinosRoute
+  '/api/parse-meal': typeof ApiParseMealRoute
+  '/api/transcribe': typeof ApiTranscribeRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/strava/callback': typeof StravaCallbackRoute
   '/_authenticated/profile/$username': typeof AuthenticatedProfileUsernameRoute
@@ -202,6 +220,8 @@ export interface FileRouteTypes {
     | '/search'
     | '/settings'
     | '/treinos'
+    | '/api/parse-meal'
+    | '/api/transcribe'
     | '/auth/reset-password'
     | '/strava/callback'
     | '/profile/$username'
@@ -222,6 +242,8 @@ export interface FileRouteTypes {
     | '/search'
     | '/settings'
     | '/treinos'
+    | '/api/parse-meal'
+    | '/api/transcribe'
     | '/auth/reset-password'
     | '/strava/callback'
     | '/profile/$username'
@@ -243,6 +265,8 @@ export interface FileRouteTypes {
     | '/_authenticated/search'
     | '/_authenticated/settings'
     | '/_authenticated/treinos'
+    | '/api/parse-meal'
+    | '/api/transcribe'
     | '/auth/reset-password'
     | '/strava/callback'
     | '/_authenticated/profile/$username'
@@ -260,6 +284,8 @@ export interface RootRouteChildren {
   PrivacidadeRoute: typeof PrivacidadeRoute
   RequireEmailRoute: typeof RequireEmailRoute
   SetupRoute: typeof SetupRoute
+  ApiParseMealRoute: typeof ApiParseMealRoute
+  ApiTranscribeRoute: typeof ApiTranscribeRoute
   StravaCallbackRoute: typeof StravaCallbackRoute
   ApiPushSendRoute: typeof ApiPushSendRoute
   ApiStravaDisconnectRoute: typeof ApiStravaDisconnectRoute
@@ -337,6 +363,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth/reset-password'
       preLoaderRoute: typeof AuthResetPasswordRouteImport
       parentRoute: typeof AuthRoute
+    }
+    '/api/transcribe': {
+      id: '/api/transcribe'
+      path: '/api/transcribe'
+      fullPath: '/api/transcribe'
+      preLoaderRoute: typeof ApiTranscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/parse-meal': {
+      id: '/api/parse-meal'
+      path: '/api/parse-meal'
+      fullPath: '/api/parse-meal'
+      preLoaderRoute: typeof ApiParseMealRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/treinos': {
       id: '/_authenticated/treinos'
@@ -444,6 +484,8 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacidadeRoute: PrivacidadeRoute,
   RequireEmailRoute: RequireEmailRoute,
   SetupRoute: SetupRoute,
+  ApiParseMealRoute: ApiParseMealRoute,
+  ApiTranscribeRoute: ApiTranscribeRoute,
   StravaCallbackRoute: StravaCallbackRoute,
   ApiPushSendRoute: ApiPushSendRoute,
   ApiStravaDisconnectRoute: ApiStravaDisconnectRoute,

@@ -1,5 +1,17 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, ImageIcon, ListPlus, Pencil, Plus, ScanBarcode, Trash2, X } from "lucide-react";
+import {
+  Check,
+  ImageIcon,
+  ListPlus,
+  Mic,
+  Pencil,
+  Plus,
+  ScanBarcode,
+  Square,
+  Trash2,
+  X,
+} from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -44,6 +56,7 @@ import { BarcodeScannerDialog } from "./BarcodeScannerDialog";
 import type { MealGroup } from "./meal-grouping";
 import { compressImageDataUrl, dataUrlToBlob, readFileAsDataUrl } from "./image-utils";
 import { clearDraft, readDraft, writeDraft } from "@/lib/session-draft";
+import { useVoiceMeal } from "./useVoiceMeal";
 
 const MEAL_DRAFT_KEY = "lajesfit-meal-draft";
 const MEAL_DRAFT_VERSION = 2;
@@ -224,6 +237,9 @@ export function AddFoodDialog({
   const protectDraftRef = useRef(false);
   const skipInitialMealRef = useRef(false);
   const photoDraftWarnedRef = useRef(false);
+
+  const voiceMeal = useVoiceMeal();
+
   const open = controlledOpen ?? internalOpen;
 
   function setOpen(nextOpen: boolean) {
@@ -245,6 +261,16 @@ export function AddFoodDialog({
     // lista de alimentos so aparece depois que o usuario toca na busca
     if (open) setFoodListOpen(false);
   }, [open]);
+
+  useEffect(() => {
+    if (voiceMeal.status !== "done" || voiceMeal.items.length === 0) return;
+    setMealItems((current) => [...current, ...voiceMeal.items]);
+    toast.success(
+      `${voiceMeal.items.length} alimento${voiceMeal.items.length > 1 ? "s" : ""} identificado${voiceMeal.items.length > 1 ? "s" : ""} pela voz`,
+    );
+    voiceMeal.reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceMeal.status, voiceMeal.items, voiceMeal.reset]);
 
   useEffect(() => {
     if (!open || !editingGroup) return;
@@ -553,6 +579,7 @@ export function AddFoodDialog({
 
     if (scannerOpen) return;
     if (!isEditing && (hasDraft || protectDraftRef.current)) return;
+    voiceMeal.cancel();
     setOpen(false);
   }
 
@@ -924,6 +951,33 @@ export function AddFoodDialog({
                   }}
                   placeholder="Buscar alimento"
                 />
+                {voiceMeal.status === "recording" ? (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="shrink-0 animate-pulse"
+                    onClick={voiceMeal.stopRecording}
+                    aria-label="Parar gravacao"
+                  >
+                    <Square className="size-4" />
+                  </Button>
+                ) : voiceMeal.status === "transcribing" || voiceMeal.status === "parsing" ? (
+                  <Button type="button" variant="outline" size="icon" className="shrink-0" disabled>
+                    <Loader2 className="size-4 animate-spin" />
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0"
+                    onClick={voiceMeal.startRecording}
+                    aria-label="Falar refeicao"
+                  >
+                    <Mic className="size-4" />
+                  </Button>
+                )}
                 <Button
                   type="button"
                   variant="outline"
@@ -935,6 +989,29 @@ export function AddFoodDialog({
                   <ScanBarcode className="size-4" />
                 </Button>
               </div>
+              {voiceMeal.status === "recording" && (
+                <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span className="inline-block size-2 rounded-full bg-red-500 animate-pulse" />
+                  Gravando... {voiceMeal.elapsed}s
+                </p>
+              )}
+              {voiceMeal.status === "transcribing" && (
+                <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Loader2 className="size-3 animate-spin" />
+                  Transcrevendo audio...
+                </p>
+              )}
+              {voiceMeal.status === "parsing" && (
+                <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Loader2 className="size-3 animate-spin" />
+                  Interpretando refeicao...
+                </p>
+              )}
+              {voiceMeal.status === "done" && voiceMeal.transcribedText && (
+                <p className="text-xs text-muted-foreground italic">
+                  "{voiceMeal.transcribedText}"
+                </p>
+              )}
               {foodListOpen && (
                 <div className="overflow-hidden rounded-lg border bg-background">
                   {!foodQuery.trim() && (

@@ -12,16 +12,19 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -39,6 +42,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -114,6 +118,7 @@ fun AddEditMealScreen(
         onStopVoice = viewModel::stopRecordingAndProcess,
         onResetVoice = viewModel::resetVoiceStatus,
         onSave = viewModel::save,
+        onDeleteMeal = viewModel::deleteMeal,
     )
 }
 
@@ -141,7 +146,31 @@ private fun AddEditMealContent(
     onStopVoice: () -> Unit,
     onResetVoice: () -> Unit,
     onSave: () -> Unit,
+    onDeleteMeal: () -> Unit,
 ) {
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("Excluir ${uiState.meal.label.lowercase()}?") },
+            text = { Text("Todos os itens dessa refeicao serao apagados. Essa acao nao pode ser desfeita.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteConfirm = false
+                        onDeleteMeal()
+                    },
+                ) {
+                    Text("Excluir", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text("Cancelar")
+                }
+            },
+        )
+    }
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
@@ -156,9 +185,32 @@ private fun AddEditMealContent(
                         Icon(Icons.Filled.Close, contentDescription = "Fechar")
                     }
                 },
+                actions = {
+                    if (uiState.isEditMode) {
+                        IconButton(
+                            onClick = { showDeleteConfirm = true },
+                            enabled = !uiState.isSaving && !uiState.isDeleting,
+                        ) {
+                            Icon(
+                                Icons.Filled.DeleteForever,
+                                contentDescription = "Excluir refeicao",
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    }
+                },
             )
         },
     ) { padding ->
+        if (uiState.isLoadingExisting) {
+            Box(
+                modifier = Modifier.fillMaxSize().padding(padding),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator()
+            }
+            return@Scaffold
+        }
         val focusManager = LocalFocusManager.current
         var searchFieldFocused by remember { mutableStateOf(false) }
         LazyColumn(
@@ -292,6 +344,13 @@ private fun AddEditMealContent(
                     Icon(Icons.Filled.PhotoCamera, contentDescription = null)
                     Text(if (uiState.hasPhoto) "Foto selecionada" else "Adicionar foto")
                 }
+                if (!uiState.hasPhoto && uiState.existingPhotoUrl != null) {
+                    Text(
+                        "Foto atual sera mantida - escolha uma nova para substituir",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
             uiState.errorMessage?.let { message ->
                 item { Text(message, color = MaterialTheme.colorScheme.error) }
@@ -299,10 +358,16 @@ private fun AddEditMealContent(
             item {
                 Button(
                     onClick = onSave,
-                    enabled = !uiState.isSaving,
+                    enabled = !uiState.isSaving && !uiState.isDeleting,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text(if (uiState.isSaving) "Salvando..." else "Salvar refeicao")
+                    Text(
+                        when {
+                            uiState.isDeleting -> "Excluindo..."
+                            uiState.isSaving -> "Salvando..."
+                            else -> "Salvar refeicao"
+                        },
+                    )
                 }
             }
         }
@@ -514,6 +579,7 @@ private fun AddEditMealScreenPreview() {
             onStopVoice = {},
             onResetVoice = {},
             onSave = {},
+            onDeleteMeal = {},
         )
     }
 }

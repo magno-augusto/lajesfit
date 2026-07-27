@@ -52,7 +52,9 @@ fun LajesFitNavGraph(
         }
         composable(BottomNavDestination.Diet.route) {
             DietScreen(
-                onAddMeal = { meal, date -> navController.navigate(PopOverRoutes.addMealRoute(meal.value, date.toString())) },
+                onAddMeal = { meal, date, dietMealId ->
+                    navController.navigate(PopOverRoutes.addMealRoute(meal.value, date.toString(), dietMealId))
+                },
             )
         }
         composable(BottomNavDestination.Workouts.route) {
@@ -109,6 +111,11 @@ fun LajesFitNavGraph(
                     defaultValue = null
                 },
                 navArgument("date") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("dietMealId") {
                     type = NavType.StringType
                     nullable = true
                     defaultValue = null

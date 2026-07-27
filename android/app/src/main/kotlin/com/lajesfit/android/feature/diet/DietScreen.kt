@@ -82,7 +82,7 @@ private val PtBr = Locale("pt", "BR")
 
 @Composable
 fun DietScreen(
-    onAddMeal: (MealType, LocalDate) -> Unit,
+    onAddMeal: (MealType, LocalDate, String?) -> Unit,
     viewModel: DietViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -111,7 +111,7 @@ private fun DietScreenContent(
     uiState: DietUiState,
     onPreviousDay: () -> Unit,
     onNextDay: () -> Unit,
-    onAddMeal: (MealType, LocalDate) -> Unit,
+    onAddMeal: (MealType, LocalDate, String?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var expandedMeals by remember { mutableStateOf(setOf<MealType>()) }
@@ -164,7 +164,7 @@ private fun DietScreenContent(
                         expanded = expandedMeals.contains(mealType),
                         onHeaderClick = {
                             if (sectionMeals.isEmpty()) {
-                                onAddMeal(mealType, uiState.selectedDate)
+                                onAddMeal(mealType, uiState.selectedDate, null)
                             } else {
                                 expandedMeals = if (expandedMeals.contains(mealType)) {
                                     expandedMeals - mealType
@@ -173,7 +173,18 @@ private fun DietScreenContent(
                                 }
                             }
                         },
-                        onActionClick = { onAddMeal(mealType, uiState.selectedDate) },
+                        onActionClick = {
+                            // Vazia -> abre em modo "adicionar". Com itens -> edita o registro
+                            // mais recente (groups[0], ja' ordenado desc.); se houver mais de um
+                            // registro (duplicata), cada "Registro N" abaixo ganha seu proprio
+                            // botao de editar (ver onEditGroup) pra deixar escolher qual.
+                            if (sectionMeals.isEmpty()) {
+                                onAddMeal(mealType, uiState.selectedDate, null)
+                            } else {
+                                onAddMeal(mealType, uiState.selectedDate, sectionMeals.first().dietMealId)
+                            }
+                        },
+                        onEditGroup = { meal -> onAddMeal(mealType, uiState.selectedDate, meal.dietMealId) },
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
@@ -439,6 +450,7 @@ private fun MealSection(
     expanded: Boolean,
     onHeaderClick: () -> Unit,
     onActionClick: () -> Unit,
+    onEditGroup: (LocalMeal) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val items = meals.flatMap { it.items }
@@ -499,16 +511,43 @@ private fun MealSection(
             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
             meals.forEachIndexed { groupIndex, meal ->
                 if (meals.size > 1) {
-                    Text(
-                        text = "Registro ${groupIndex + 1}",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    // Mais de um registro nessa secao = duplicata (bug corrigido, mas pode
+                    // sobrar registro antigo) - deixa escolher qual editar/excluir.
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-                            .padding(horizontal = 16.dp, vertical = 6.dp),
-                    )
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(
+                            text = "Registro ${groupIndex + 1}",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .clickable { onEditGroup(meal) }
+                                .padding(horizontal = 6.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Icon(
+                                Icons.Filled.Edit,
+                                contentDescription = null,
+                                modifier = Modifier.size(12.dp),
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                            Text(
+                                text = "Editar",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
                 }
                 meal.items.forEachIndexed { index, item ->
                     if (groupIndex > 0 || index > 0) {
@@ -617,7 +656,7 @@ private fun DietScreenPreview() {
             ),
             onPreviousDay = {},
             onNextDay = {},
-            onAddMeal = { _, _ -> },
+            onAddMeal = { _, _, _ -> },
         )
     }
 }

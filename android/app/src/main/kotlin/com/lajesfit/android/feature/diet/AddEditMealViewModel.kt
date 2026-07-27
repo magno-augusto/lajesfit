@@ -41,6 +41,12 @@ data class AddEditMealUiState(
     val voiceStatus: VoiceStatus = VoiceStatus.IDLE,
     val voiceTranscribedText: String = "",
     val voiceElapsed: Int = 0,
+    // Modo edicao: tela aberta a partir do lapis de uma refeicao ja existente (dietMealId != null
+    // na navegacao), em vez do "+" que sempre cria uma nova.
+    val isEditMode: Boolean = false,
+    val isLoadingExisting: Boolean = false,
+    val existingPhotoUrl: String? = null,
+    val isDeleting: Boolean = false,
 ) {
     val showManualForm: Boolean = query.trim().length >= 2 && !isSearching && results.isEmpty()
     val totalKcal: Int = items.sumOf { it.kcal }.roundToInt()
@@ -65,12 +71,48 @@ class AddEditMealViewModel @Inject constructor(
     private val initialDate = savedStateHandle.get<String>("date")
         ?.let { value -> runCatching { LocalDate.parse(value) }.getOrNull() }
         ?: LocalDate.now()
+    private val dietMealId = savedStateHandle.get<String>("dietMealId")?.takeIf { it.isNotBlank() }
 
-    private val _uiState = MutableStateFlow(AddEditMealUiState(meal = initialMeal, selectedDate = initialDate))
+    private val _uiState = MutableStateFlow(
+        AddEditMealUiState(meal = initialMeal, selectedDate = initialDate, isEditMode = dietMealId != null),
+    )
     val uiState: StateFlow<AddEditMealUiState> = _uiState.asStateFlow()
 
     private var searchJob: Job? = null
     private var photoBytes: ByteArray? = null
+
+    init {
+        val existingMealId = dietMealId
+        if (existingMealId != null) {
+            _uiState.update { it.copy(isLoadingExisting = true) }
+            viewModelScope.launch {
+                val existing = runCatching { dietRepository.getMeal(existingMealId) }.getOrNull()
+                if (existing != null) {
+                    _uiState.update { state ->
+                        state.copy(
+                            meal = existing.meal,
+                            items = existing.items.map { item ->
+                                MealFoodInput(
+                                    name = item.foodName,
+                                    grams = item.grams,
+                                    kcal = item.kcal,
+                                    proteinG = item.proteinG,
+                                    carbsG = item.carbsG,
+                                    fatG = item.fatG,
+                                )
+                            },
+                            existingPhotoUrl = existing.photoUrl,
+                            isLoadingExisting = false,
+                        )
+                    }
+                } else {
+                    _uiState.update {
+                        it.copy(isLoadingExisting = false, errorMessage = "Nao foi possivel carregar a refeicao")
+                    }
+                }
+            }
+        }
+    }
 
     fun onQueryChange(value: String) {
         _uiState.update {
@@ -179,20 +221,49 @@ class AddEditMealViewModel @Inject constructor(
 
     fun save() {
         val state = _uiState.value
-        if (state.isSaving) return
+        if (state.isSaving || state.isDeleting) return
+        val existingMealId = dietMealId
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true, errorMessage = null) }
             try {
-                dietRepository.addMealWithItems(
-                    meal = state.meal,
-                    items = state.items,
-                    photoBytes = photoBytes,
-                    consumedAt = state.selectedDate.atTime(LocalTime.now()).atZone(ZoneId.systemDefault()).toInstant(),
-                )
+                if (existingMealId != null) {
+                    dietRepository.updateMealWithItems(
+                        dietMealId = existingMealId,
+                        meal = state.meal,
+                        items = state.items,
+                        photoBytes = photoBytes,
+                    )
+                } else {
+                    dietRepository.addMealWithItems(
+                        meal = state.meal,
+                        items = state.items,
+                        photoBytes = photoBytes,
+                        consumedAt = state.selectedDate.atTime(LocalTime.now()).atZone(ZoneId.systemDefault()).toInstant(),
+                    )
+                }
                 _uiState.update { it.copy(isSaving = false, done = true) }
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(isSaving = false, errorMessage = e.message ?: "Nao foi possivel salvar a refeicao")
+                }
+            }
+        }
+    }
+
+    /** Exclui a refeicao inteira (todos os itens + o post relacionado, se identificado com
+     * seguranca) - so' disponivel em modo edicao, ver [AddEditMealUiState.isEditMode]. */
+    fun deleteMeal() {
+        val existingMealId = dietMealId ?: return
+        val state = _uiState.value
+        if (state.isSaving || state.isDeleting) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isDeleting = true, errorMessage = null) }
+            try {
+                dietRepository.deleteMeal(existingMealId)
+                _uiState.update { it.copy(isDeleting = false, done = true) }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(isDeleting = false, errorMessage = e.message ?: "Nao foi possivel excluir a refeicao")
                 }
             }
         }

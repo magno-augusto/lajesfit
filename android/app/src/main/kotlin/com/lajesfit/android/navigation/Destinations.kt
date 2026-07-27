@@ -25,15 +25,16 @@ enum class BottomNavDestination(val route: String, val label: String, val icon: 
  */
 object PopOverRoutes {
     const val CreatePost = "post/create"
-    const val AddMeal = "meal/add?meal={meal}&date={date}"
+    const val AddMeal = "meal/add?meal={meal}&date={date}&dietMealId={dietMealId}"
     const val BarcodeScanner = "diet/scanner"
     const val AddWorkout = "workout/add?workoutId={workoutId}"
     const val Comments = "post/{postId}/comments"
 
-    fun addMealRoute(meal: String? = null, date: String? = null): String {
+    fun addMealRoute(meal: String? = null, date: String? = null, dietMealId: String? = null): String {
         val params = listOfNotNull(
             meal?.let { "meal=$it" },
             date?.let { "date=$it" },
+            dietMealId?.let { "dietMealId=${Uri.encode(it)}" },
         )
         return if (params.isEmpty()) "meal/add" else "meal/add?${params.joinToString("&")}"
     }

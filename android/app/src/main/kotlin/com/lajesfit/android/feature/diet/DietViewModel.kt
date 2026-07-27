@@ -6,8 +6,8 @@ import com.lajesfit.android.feature.goals.GoalsRepository
 import com.lajesfit.android.feature.workouts.LocalWorkout
 import com.lajesfit.android.feature.workouts.WorkoutRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import java.time.Instant
 import java.time.LocalDate
+import java.time.OffsetDateTime
 import java.time.ZoneId
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -100,14 +100,16 @@ class DietViewModel @Inject constructor(
     }
 }
 
+// Instant.parse exige sufixo "Z" e rejeita offset explicito "+00:00" (formato que o
+// PostgREST/Supabase retorna) - usar OffsetDateTime.parse, que aceita ambos.
 private fun LocalMeal.consumedDate(): LocalDate? {
     return runCatching {
-        Instant.parse(consumedAt).atZone(ZoneId.systemDefault()).toLocalDate()
+        OffsetDateTime.parse(consumedAt).atZoneSameInstant(ZoneId.systemDefault()).toLocalDate()
     }.getOrNull()
 }
 
 private fun LocalWorkout.performedDate(): LocalDate? {
     return runCatching {
-        Instant.parse(performedAt).atZone(ZoneId.systemDefault()).toLocalDate()
+        OffsetDateTime.parse(performedAt).atZoneSameInstant(ZoneId.systemDefault()).toLocalDate()
     }.getOrNull()
 }

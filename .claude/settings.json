@@ -14,5 +14,9 @@
       "Bash(vercel ls *)",
       "Bash(git commit -m 'Melhora copy da landing page *)"
     ]
-  }
+  },
+  "enabledPlugins": {
+    "superpowers@claude-plugins-official": true
+  },
+  "enabledMcpjsonServers": ["context7"]
 }

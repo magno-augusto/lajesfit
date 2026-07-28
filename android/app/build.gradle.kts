@@ -38,8 +38,8 @@ android {
         applicationId = "com.lajesfit.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "0.1.1"
+        versionCode = 4
+        versionName = "0.1.2"
 
         // GOOGLE_WEB_CLIENT_ID e compartilhado entre staging e producao (mesmo OAuth client do
         // Google Cloud, com os dois callbacks do Supabase autorizados). As chaves do Supabase, ao

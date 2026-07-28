@@ -71,6 +71,19 @@
             </intent-filter>
         </activity-alias>
 
+        <!-- FileProvider para a foto da refeicao tirada pela camera (ActivityResultContracts
+             .TakePicture): o app de camera do sistema precisa de uma content:// Uri para gravar
+             a foto em resolucao cheia. Ver res/xml/file_paths.xml. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
     </application>
 
 </manifest>

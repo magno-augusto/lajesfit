@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Destino da foto da refeicao tirada pela camera (ActivityResultContracts.TakePicture):
+         arquivo temporario no cacheDir do app, comprimido e enviado logo em seguida
+         (ver MealPhoto.kt / AddEditMealScreen.kt). -->
+    <cache-path name="meal_photos" path="meal_photos/" />
+</paths>

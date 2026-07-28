@@ -2,6 +2,7 @@ package com.lajesfit.android.feature.diet
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -74,8 +75,12 @@ fun AddEditMealScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
-    val photoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        viewModel.onPhotoSelected(uri?.let { compressMealPhoto(context.contentResolver, it) })
+    var pendingPhotoUri by remember { mutableStateOf<Uri?>(null) }
+    val takePictureLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        val uri = pendingPhotoUri
+        if (success && uri != null) {
+            viewModel.onPhotoSelected(compressMealPhoto(context.contentResolver, uri))
+        }
     }
     val audioPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) viewModel.startRecording(context)
@@ -90,7 +95,11 @@ fun AddEditMealScreen(
         uiState = uiState,
         onDone = onDone,
         onOpenBarcodeScanner = onOpenBarcodeScanner,
-        onPickPhoto = { photoLauncher.launch("image/*") },
+        onTakePhoto = {
+            val uri = createMealPhotoUri(context)
+            pendingPhotoUri = uri
+            takePictureLauncher.launch(uri)
+        },
         onQueryChange = viewModel::onQueryChange,
         onSelectFood = viewModel::selectFood,
         onSelectMeasure = viewModel::selectMeasure,
@@ -128,7 +137,7 @@ private fun AddEditMealContent(
     uiState: AddEditMealUiState,
     onDone: () -> Unit,
     onOpenBarcodeScanner: () -> Unit,
-    onPickPhoto: () -> Unit,
+    onTakePhoto: () -> Unit,
     onQueryChange: (String) -> Unit,
     onSelectFood: (TacoFood) -> Unit,
     onSelectMeasure: (FoodMeasure?) -> Unit,
@@ -340,9 +349,9 @@ private fun AddEditMealContent(
                 SessionItemsCard(uiState = uiState, onRemoveItem = onRemoveItem)
             }
             item {
-                OutlinedButton(onClick = onPickPhoto, modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(onClick = onTakePhoto, modifier = Modifier.fillMaxWidth()) {
                     Icon(Icons.Filled.PhotoCamera, contentDescription = null)
-                    Text(if (uiState.hasPhoto) "Foto selecionada" else "Adicionar foto")
+                    Text(if (uiState.hasPhoto) "Foto selecionada" else "Tirar foto")
                 }
                 if (!uiState.hasPhoto && uiState.existingPhotoUrl != null) {
                     Text(
@@ -561,7 +570,7 @@ private fun AddEditMealScreenPreview() {
             ),
             onDone = {},
             onOpenBarcodeScanner = {},
-            onPickPhoto = {},
+            onTakePhoto = {},
             onQueryChange = {},
             onSelectFood = {},
             onSelectMeasure = {},

@@ -83,11 +83,16 @@ Solução: uma keystore de debug **única**, a mesma em todas as máquinas e no 
   do segredo é o arquivo em si. Fica guardado como GitHub Actions Secret + uma
   cópia local em cada máquina de dev (aqui: `~/.android-lajesfit/`).
 - O OAuth Client **"Lajesfit Android Debug"** (pacote `com.lajesfit.app.debug`)
-  passa a cadastrar esse SHA-1 no lugar do SHA-1 da debug.keystore antiga da
-  máquina do Magno.
+  já foi atualizado para esse SHA-1, no lugar do SHA-1 da debug.keystore antiga
+  da máquina do Magno.
 
 Verificação: `apksigner verify --print-certs app-debug.apk` deve mostrar
 `CN=LajesFit Debug` e o SHA-1 acima — não o da `~/.android/debug.keystore`.
+
+**Ao configurar uma máquina nova (ou o CI):** copiar o arquivo da keystore para
+a máquina e apontar `LAJESFIT_DEBUG_KEYSTORE_PATH` para ele em
+`local.properties`. Não é preciso mexer no Google Cloud — o SHA-1 já está
+cadastrado e não muda mais.
 
 ## Lição para o futuro
 

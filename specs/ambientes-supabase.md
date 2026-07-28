@@ -1,12 +1,20 @@
 # Ambientes: separar teste de produção (Supabase)
 
-**Status:** **Android concluído e verificado ponta a ponta** — login via staging no
-celular físico criou uma conta nova, isolada de produção (produção intacta). Web
-(Vercel Preview / `.env.local`) fica pendente, opcional. É o item 1 (o mais urgente)
-de `praticas-engenharia.md`. Abordagem escolhida: **segundo projeto Supabase na nuvem**
-(staging) — não Docker local, não branching pago. Motivo: preserva o fluxo real de
-teste do Magno (celular físico, OAuth Google, Health Connect), que o Supabase local
-dificultaria.
+**Status:** **Android e dev local web concluídos** — login via staging no celular
+físico/tablet cria conta nova, isolada de produção (produção intacta); `.env.local`
+da web também aponta pro staging desde 2026-07-28. Falta só o **Vercel Preview**
+(env vars, pendente). É o item 1 (o mais urgente) de `praticas-engenharia.md`.
+Abordagem escolhida: **segundo projeto Supabase na nuvem** (staging) — não Docker
+local, não branching pago. Motivo: preserva o fluxo real de teste do Magno (celular
+físico/tablet, OAuth Google, Health Connect), que o Supabase local dificultaria.
+
+**Fluxo de trabalho pretendido (confirmado com o Magno em 2026-07-28):**
+implementação nova → testada em staging (debug Android + dev local/Preview web) →
+Magno revisa e aprova → merge pra `main` → produção (release assinado na Play +
+Vercel Production). Testar funcionalidades **como usuário real** (conta Google
+pessoal, refeições/treinos de verdade) é diferente disso e pode ir direto pra
+produção sem problema — não é "sujeira de teste", é uso genuíno que outros
+usuários da plataforma podem ver.
 
 ## Problema
 
@@ -83,10 +91,17 @@ são o build release assinado e o deploy de Production da Vercel.
   `sb_publishable_…`); provider Google habilitado no staging + callback autorizado
   no OAuth client web do Google Cloud; app debug instalado no celular e **login
   testado** — cria conta nova, isolada de produção. O app debug convive com o
-  release (`com.lajesfit.app.debug`).
-- ⏳ **Web (opcional):** apontar `.env.local` (dev local) e criar as env vars de
-  **Preview** no Vercel para o staging. Só necessário para testar o site local ou
-  os deploys de Preview — o Android é o produto principal.
+  release (`com.lajesfit.app.debug`). **`local.properties` é local/gitignored —
+  cada máquina nova (ex.: a de 2026-07-28) precisa repetir esse preenchimento do
+  zero**, não é algo que o git carrega.
+- ✅ **Web (dev local):** `.env.local` com as chaves `SUPABASE_*`/`VITE_SUPABASE_*`
+  do staging (2026-07-28) — sobrescreve o `.env` de produção puxado via
+  `vercel env pull` (`.env.local` vence no Vite). `npm run dev` local já cai no
+  staging.
+- ⏳ **Web (Vercel Preview):** falta criar as env vars de escopo **Preview** no
+  dashboard da Vercel apontando pro staging (hoje Preview provavelmente herda as
+  de Production, já que nunca foi configurado à parte). Precisa de acesso ao
+  dashboard da Vercel (não instalamos a CLI ainda) — pendente.
 - ⏳ **Dados de teste (opcional):** `scripts/create-test-user.js` para um usuário
   fixo de e-mail/senha (precisa da service_role do staging, rodado pelo Magno), ou
   os `scripts/import-*.js` para o catálogo completo de alimentos. O catálogo atual

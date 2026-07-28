@@ -26,6 +26,16 @@ val localProperties = Properties().apply {
 val keystorePath = localProperties.getProperty("LAJESFIT_KEYSTORE_PATH")
 val keystorePassword = localProperties.getProperty("LAJESFIT_KEYSTORE_PASSWORD")
 
+// Keystore de DEBUG compartilhada entre todas as maquinas de dev + CI (mesmo
+// arquivo, mesmo SHA-1 sempre) - resolve o problema de cada maquina gerar sua
+// propria debug.keystore (AGP default) com SHA-1 diferente, quebrando o Google
+// Sign-In a cada ambiente novo (ver specs/google-login-android-producao.md).
+// NUNCA commitada no repo (senha de debug e publica - "android" - entao o
+// arquivo em si e sensivel o suficiente pra nao publicar; fica so como GitHub
+// Actions Secret + copia local de cada dev). Sem essa propriedade, cai no
+// debug.keystore default do AGP (por maquina, como antes).
+val debugKeystorePath = localProperties.getProperty("LAJESFIT_DEBUG_KEYSTORE_PATH")
+
 android {
     namespace = "com.lajesfit.android"
     compileSdk = 36
@@ -63,6 +73,14 @@ android {
                 keyPassword = keystorePassword
             }
         }
+        if (debugKeystorePath != null) {
+            create("debugShared") {
+                storeFile = file(debugKeystorePath)
+                storePassword = "android"
+                keyAlias = "androiddebugkey"
+                keyPassword = "android"
+            }
+        }
     }
 
     buildTypes {
@@ -84,6 +102,9 @@ android {
             )
         }
         debug {
+            if (debugKeystorePath != null) {
+                signingConfig = signingConfigs.getByName("debugShared")
+            }
             // Sufixo para o build local (assinado com a debug key) conviver no
             // device com o release com.lajesfit.app publicado no teste interno da
             // Play, sem conflito de assinatura. Instala como com.lajesfit.app.debug,

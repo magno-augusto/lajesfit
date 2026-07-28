@@ -58,6 +58,37 @@ Estado final dos dois OAuth Clients Android (mesmo projeto Google Cloud,
 - **Lajesfit Android Debug** → pacote `com.lajesfit.app.debug`, SHA-1 da
   keystore de debug. Cobre builds locais via Android Studio/`assembleDebug`.
 
+## Keystore de debug compartilhada (2026-07-28)
+
+O fix acima cobriu produção, mas sobrou um problema estrutural no **debug**: por
+padrão o AGP gera uma `~/.android/debug.keystore` **por máquina**, com SHA-1
+diferente em cada uma. Como o OAuth Client de debug cadastra um SHA-1 fixo, o
+login com Google quebrava toda vez que o app fosse buildado numa máquina nova
+(outro PC do Magno, CI, etc.) — e o fix seria cadastrar mais um SHA-1 a cada
+ambiente.
+
+Solução: uma keystore de debug **única**, a mesma em todas as máquinas e no CI.
+
+- `android/app/build.gradle.kts` lê `LAJESFIT_DEBUG_KEYSTORE_PATH` de
+  `local.properties` e, se existir, assina o buildType `debug` com ela
+  (`signingConfigs.debugShared`; alias `androiddebugkey`, senha `android` — as
+  mesmas do padrão Android). Sem a propriedade, cai no comportamento antigo
+  (debug.keystore default do AGP), então quem não configurar nada continua
+  buildando normalmente.
+- **SHA-1 da keystore compartilhada:**
+  `9A:98:3A:E8:24:B7:81:1A:0D:6D:52:50:C3:D2:93:4E:A2:72:15:14`
+  (SHA-256 `2A:ED:BD:D0:...`, DN `CN=LajesFit Debug, OU=Dev, O=LajesFit,
+  L=Lajedao, ST=BA, C=BR`).
+- **O arquivo nunca entra no repo.** A senha de debug é pública, então o valor
+  do segredo é o arquivo em si. Fica guardado como GitHub Actions Secret + uma
+  cópia local em cada máquina de dev (aqui: `~/.android-lajesfit/`).
+- O OAuth Client **"Lajesfit Android Debug"** (pacote `com.lajesfit.app.debug`)
+  passa a cadastrar esse SHA-1 no lugar do SHA-1 da debug.keystore antiga da
+  máquina do Magno.
+
+Verificação: `apksigner verify --print-certs app-debug.apk` deve mostrar
+`CN=LajesFit Debug` e o SHA-1 acima — não o da `~/.android/debug.keystore`.
+
 ## Lição para o futuro
 
 Qualquer integração que valide o app pelo certificado de assinatura (Google

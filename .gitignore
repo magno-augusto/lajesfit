@@ -28,6 +28,10 @@ supabase/.temp/
 .wrangler/
 .dev.vars
 
+# Cache Gradle repo-local usado em builds sandboxed (a versao dentro de android/
+# ja esta em android/.gitignore; builds rodados da raiz caem aqui).
+.gradle-user-home/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

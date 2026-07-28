@@ -1,0 +1,116 @@
+# Builda o APK de debug a cada push e publica num Release de tag fixa
+# (debug-latest), para o link de download nunca mudar:
+#
+#   https://github.com/magno-augusto/lajesfit/releases/download/debug-latest/lajesfit-debug.apk
+#
+# Abrir esse link no navegador do celular baixa sempre a versao mais recente.
+# O APK sai assinado com a keystore de debug COMPARTILHADA (mesma SHA-1 do
+# build local), entao o login com Google funciona nele e ele instala por cima
+# do build local sem conflito de assinatura - ver
+# specs/google-login-android-producao.md.
+name: APK de debug
+
+on:
+  push:
+    branches: [main]
+    # So builda quando o app muda de fato; commit de spec/doc nao gera APK novo.
+    paths:
+      - "android/**"
+      - ".github/workflows/android-debug-apk.yml"
+  # Permite gerar um APK sob demanda pelo botao "Run workflow" na aba Actions.
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      # Necessario para criar/atualizar o Release. Sem isso o GITHUB_TOKEN e' so leitura.
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          # Casa com compileOptions/jvmTarget do app (VERSION_17).
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Restaura a keystore de debug compartilhada
+        env:
+          KEYSTORE_BASE64: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::Secret DEBUG_KEYSTORE_BASE64 ausente. Sem ela o APK sai com uma chave" \
+                 "gerada na hora pelo runner, com SHA-1 desconhecido, e o login com Google nao funciona."
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/lajesfit-debug.keystore"
+
+      # local.properties e' gitignored (segredos nunca entram no repo), entao o CI
+      # reconstroi a partir dos secrets. sdk.dir nao entra: o runner ja define ANDROID_HOME.
+      - name: Gera o local.properties
+        env:
+          SUPABASE_URL_STAGING: ${{ secrets.SUPABASE_URL_STAGING }}
+          SUPABASE_ANON_KEY_STAGING: ${{ secrets.SUPABASE_ANON_KEY_STAGING }}
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+        run: |
+          # Falha cedo se faltar staging: sem essas chaves o build cai para PRODUCAO
+          # (com aviso), e um APK de teste jamais deve escrever no banco real
+          # - ver specs/ambientes-supabase.md.
+          if [ -z "$SUPABASE_URL_STAGING" ] || [ -z "$SUPABASE_ANON_KEY_STAGING" ]; then
+            echo "::error::Secrets SUPABASE_URL_STAGING/SUPABASE_ANON_KEY_STAGING ausentes -" \
+                 "o APK apontaria para o banco de PRODUCAO."
+            exit 1
+          fi
+          cat > android/local.properties <<EOF
+          SUPABASE_URL_STAGING=$SUPABASE_URL_STAGING
+          SUPABASE_ANON_KEY_STAGING=$SUPABASE_ANON_KEY_STAGING
+          GOOGLE_WEB_CLIENT_ID=$GOOGLE_WEB_CLIENT_ID
+          LAJESFIT_DEBUG_KEYSTORE_PATH=$RUNNER_TEMP/lajesfit-debug.keystore
+          EOF
+
+      - name: Builda o APK de debug
+        working-directory: android
+        run: ./gradlew :app:assembleDebug --no-daemon
+
+      # Confere que o APK saiu com a chave compartilhada. Se a secret contiver outra
+      # keystore, o build passa mas o login com Google quebra - melhor falhar aqui.
+      - name: Confere a assinatura do APK
+        env:
+          SHA1_ESPERADO: 9A:98:3A:E8:24:B7:81:1A:0D:6D:52:50:C3:D2:93:4E:A2:72:15:14
+        working-directory: android
+        run: |
+          APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          CERTS=$("$APKSIGNER" verify --print-certs app/build/outputs/apk/debug/app-debug.apk)
+          echo "$CERTS"
+          # apksigner imprime o SHA-1 em minusculas e sem os dois-pontos.
+          ESPERADO=$(echo "$SHA1_ESPERADO" | tr -d ':' | tr 'A-F' 'a-f')
+          if ! echo "$CERTS" | grep -qi "SHA-1 digest: $ESPERADO"; then
+            echo "::error::APK assinado com uma chave inesperada. Esperado SHA-1 $SHA1_ESPERADO."
+            exit 1
+          fi
+
+      - name: Publica no Release debug-latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk lajesfit-debug.apk
+          NOTAS="Build automatico do commit ${GITHUB_SHA:0:7} (branch ${GITHUB_REF_NAME}).
+
+          Aponta para o Supabase de **staging** - nada aqui escreve no banco de producao.
+
+          Instalar: abrir este link no navegador do celular e baixar o APK.
+          O Android vai pedir permissao para instalar de fonte desconhecida."
+          # Tag fixa: atualiza o mesmo Release para o link de download nunca mudar.
+          if gh release view debug-latest >/dev/null 2>&1; then
+            gh release upload debug-latest lajesfit-debug.apk --clobber
+            gh release edit debug-latest --notes "$NOTAS"
+          else
+            gh release create debug-latest lajesfit-debug.apk \
+              --title "APK de debug (ultimo build)" \
+              --notes "$NOTAS" \
+              --prerelease
+          fi

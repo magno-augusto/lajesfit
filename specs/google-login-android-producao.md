@@ -94,6 +94,44 @@ a máquina e apontar `LAJESFIT_DEBUG_KEYSTORE_PATH` para ele em
 `local.properties`. Não é preciso mexer no Google Cloud — o SHA-1 já está
 cadastrado e não muda mais.
 
+Validado de ponta a ponta em 2026-07-28: login com Google funcionando no build
+debug assinado com a keystore compartilhada (tablet SM-P625).
+
+## Como diagnosticar "Não foi possível entrar com o Google"
+
+O erro nativo é genérico; o que interessa está no logcat:
+
+```
+adb logcat -c            # antes de tentar o login
+adb logcat -d | grep -E "28444|Get credential|callingPackage"
+```
+
+`errorMsg=[28444] Developer console is not set up correctly` significa
+**desalinhamento entre package + SHA-1 + client ID** do lado do Google — nunca
+é bug de código Kotlin. Os três inputs se conferem assim:
+
+| Input | Como ver o valor real |
+|---|---|
+| Package | logcat: `executeGetCredential with callingPackage:` |
+| SHA-1 da assinatura | `apksigner verify --print-certs app-debug.apk` |
+| Web Client ID | `BuildConfig.GOOGLE_WEB_CLIENT_ID` (`GoogleAuthClient.kt:29`) |
+
+Como o `GOOGLE_WEB_CLIENT_ID` é compartilhado entre staging e produção
+(`build.gradle.kts:54`), se produção estiver logando o client ID está certo e
+sobra o cadastro do OAuth Client Android.
+
+⚠️ **Três SHA-1 circulam neste projeto e dois começam parecido** (`9A:98` vs
+`90:BA`) — foi exatamente essa confusão que causou o 28444 em 28/07:
+
+| SHA-1 | O que é | Onde vai |
+|---|---|---|
+| `9A:98:3A:E8:...:15:14` | keystore compartilhada de debug | "Lajesfit Android Debug" (`com.lajesfit.app.debug`) |
+| `90:BA:53:1D:...:E9:C4` | `~/.android/debug.keystore` de uma máquina só | obsoleto — não usar |
+| `BD:AD:64:D6:...:B3:47` | chave de assinatura do Play | "LajesFit Android" (`com.lajesfit.app`) |
+
+Mudança de SHA-1 no Google Cloud pode levar alguns minutos para propagar — mas
+se continuar falhando depois disso, é valor errado, não propagação.
+
 ## Lição para o futuro
 
 Qualquer integração que valide o app pelo certificado de assinatura (Google

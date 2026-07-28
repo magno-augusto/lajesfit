@@ -132,24 +132,32 @@ private fun LajesFitAppRoot(
     val authGateViewModel: AuthGateViewModel = hiltViewModel()
     val gateState by authGateViewModel.gateState.collectAsState()
 
-    if (gateState is GateState.Loading) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-        return
-    }
-
-    // Decidido uma unica vez, na primeira composicao apos sair de Loading (ver
-    // android/specs/M2-onboarding.md) - transicoes durante a sessao (login, logout, recovery,
-    // onboarding concluido) navegam explicitamente, nao recalculam o startDestination do NavHost.
-    val startDestination = remember {
-        when (gateState) {
+    // O startDestination e' decidido UMA unica vez, na primeira resolucao do gate, e nunca mais
+    // recalculado - transicoes reais de sessao (login, logout, recovery, onboarding) navegam
+    // explicitamente. Congelar o primeiro valor resolvido e' o que impede um Loading TRANSIENTE de
+    // resetar a navegacao inteira: o supabase-kt re-emite sessionStatus (-> gateState=Loading) toda
+    // vez que o app volta do background (onStop->onStart, ex.: depois de abrir a galeria para
+    // escolher a foto da refeicao). Antes, o `return` de Loading descartava o NavHost e o
+    // rememberNavController renascia na start destination (Feed), perdendo a tela empilhada e seus
+    // dados - ver specs/navegacao-reset-background.md.
+    val startDestination = remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(gateState) {
+        if (startDestination.value != null) return@LaunchedEffect
+        startDestination.value = when (gateState) {
+            GateState.Loading -> null
             GateState.NeedsRealEmail -> AuthRoutes.RequireEmail
             GateState.NeedsOnboarding -> AuthRoutes.Setup
             GateState.Ready -> BottomNavDestination.Feed.route
             GateState.Unauthenticated -> AuthRoutes.Login
-            GateState.Loading -> error("GateState.Loading ja foi tratado acima")
         }
+    }
+
+    val resolvedStartDestination = startDestination.value
+    if (resolvedStartDestination == null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
     }
 
     val navController = rememberNavController()
@@ -175,7 +183,7 @@ private fun LajesFitAppRoot(
     ) { contentPadding ->
         LajesFitNavGraph(
             navController = navController,
-            startDestination = startDestination,
+            startDestination = resolvedStartDestination,
             modifier = Modifier.padding(contentPadding),
         )
     }

@@ -41,16 +41,9 @@ android {
         versionCode = 3
         versionName = "0.1.1"
 
-        buildConfigField(
-            "String",
-            "SUPABASE_URL",
-            "\"${localProperties.getProperty("SUPABASE_URL", "")}\"",
-        )
-        buildConfigField(
-            "String",
-            "SUPABASE_ANON_KEY",
-            "\"${localProperties.getProperty("SUPABASE_ANON_KEY", "")}\"",
-        )
+        // GOOGLE_WEB_CLIENT_ID e compartilhado entre staging e producao (mesmo OAuth client do
+        // Google Cloud, com os dois callbacks do Supabase autorizados). As chaves do Supabase, ao
+        // contrario, sao por build type (ver buildTypes) para o debug nao escrever em producao.
         buildConfigField(
             "String",
             "GOOGLE_WEB_CLIENT_ID",
@@ -78,6 +71,17 @@ android {
             if (keystorePath != null) {
                 signingConfig = signingConfigs.getByName("release")
             }
+            // Producao: mesmo projeto Supabase do app publicado na Play.
+            buildConfigField(
+                "String",
+                "SUPABASE_URL",
+                "\"${localProperties.getProperty("SUPABASE_URL", "")}\"",
+            )
+            buildConfigField(
+                "String",
+                "SUPABASE_ANON_KEY",
+                "\"${localProperties.getProperty("SUPABASE_ANON_KEY", "")}\"",
+            )
         }
         debug {
             // Sufixo para o build local (assinado com a debug key) conviver no
@@ -89,6 +93,29 @@ android {
             // package.
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
+            // Staging: projeto Supabase separado, para o app de teste nunca escrever no
+            // banco de producao (specs/ambientes-supabase.md). Sem as chaves _STAGING em
+            // local.properties, cai para producao com um aviso no build - assim um debug
+            // jamais aponta para producao em silencio.
+            val stagingUrl = localProperties.getProperty("SUPABASE_URL_STAGING", "")
+            val stagingKey = localProperties.getProperty("SUPABASE_ANON_KEY_STAGING", "")
+            if (stagingUrl.isEmpty() || stagingKey.isEmpty()) {
+                logger.warn(
+                    "[lajesfit] AVISO: SUPABASE_URL_STAGING/SUPABASE_ANON_KEY_STAGING ausentes " +
+                        "em local.properties - build debug vai apontar para PRODUCAO. " +
+                        "Ver specs/ambientes-supabase.md.",
+                )
+            }
+            buildConfigField(
+                "String",
+                "SUPABASE_URL",
+                "\"${stagingUrl.ifEmpty { localProperties.getProperty("SUPABASE_URL", "") }}\"",
+            )
+            buildConfigField(
+                "String",
+                "SUPABASE_ANON_KEY",
+                "\"${stagingKey.ifEmpty { localProperties.getProperty("SUPABASE_ANON_KEY", "") }}\"",
+            )
         }
     }
 

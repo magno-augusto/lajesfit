@@ -4,7 +4,9 @@
 
 ## Agora (prioridade)
 1. Separar o ambiente de teste do de produção no Supabase — hoje se testa em
-   produção, arriscando dados reais (mais urgente).
+   produção, arriscando dados reais (mais urgente). **Android feito e verificado**
+   (web opcional pendente) — ver `ambientes-supabase.md` (abordagem: 2º projeto na
+   nuvem/staging).
 2. Rastreamento de erros (ex.: Sentry).
 3. Mentalidade lean — validar um recurso com um usuário real antes de construí-lo
    inteiro.

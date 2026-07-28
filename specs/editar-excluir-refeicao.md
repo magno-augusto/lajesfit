@@ -1,6 +1,8 @@
 # Editar e excluir refeicao (Android)
 
-**Status:** em andamento.
+**Status:** feito e em producao (Android). Entregue no commit ff8e536; web ja
+tinha o padrao (updateMealItems em meals-api.ts). Testado ponta a ponta no
+celular fisico.
 
 ## Problema
 
@@ -29,6 +31,7 @@ apaga todos os itens do `diet_meal_id` em `diet_entries` e reinsere a lista fina
 - `diet_entries.diet_meal_id` -> `diet_meals.id` e `ON DELETE SET NULL`.
 - Nao ha FK entre `posts` e `diet_meals` (diferente de `workouts`, que tem
   `posts.workout_id`) -- tratar o post do feed e melhor esforco.
-- Ha uma duplicata real no banco de producao (usuario de teste
-  magnoaugustoss@gmail.com, Almoco de 27/07/2026) que deve ser limpa usando esta
-  mesma feature pela UI, nunca por chamada direta ao banco.
+- A duplicata real no banco de producao (usuario de teste
+  magnoaugustoss@gmail.com, Almoco de 27/07/2026) foi removida pela UI do app no
+  commit ff8e536 (excluindo o diet_meal_id 71d085ad-ccbb-4bca-8968-fe3eb6c4a4c0 e
+  mantendo o mais recente edb287b8), nunca por chamada direta ao banco.

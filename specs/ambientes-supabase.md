@@ -98,10 +98,11 @@ são o build release assinado e o deploy de Production da Vercel.
   do staging (2026-07-28) — sobrescreve o `.env` de produção puxado via
   `vercel env pull` (`.env.local` vence no Vite). `npm run dev` local já cai no
   staging.
-- ⏳ **Web (Vercel Preview):** falta criar as env vars de escopo **Preview** no
-  dashboard da Vercel apontando pro staging (hoje Preview provavelmente herda as
-  de Production, já que nunca foi configurado à parte). Precisa de acesso ao
-  dashboard da Vercel (não instalamos a CLI ainda) — pendente.
+- ✅ **Web (Vercel Preview):** env vars `SUPABASE_*`/`VITE_SUPABASE_*` criadas no
+  escopo **Preview** apontando pro staging (2026-07-28, via `vercel env add`).
+  Antes disso não existia **nenhuma** env var de escopo Preview — os deploys de
+  Preview provavelmente já estavam quebrando por falta de config do Supabase, não
+  herdando produção como se imaginava.
 - ⏳ **Dados de teste (opcional):** `scripts/create-test-user.js` para um usuário
   fixo de e-mail/senha (precisa da service_role do staging, rodado pelo Magno), ou
   os `scripts/import-*.js` para o catálogo completo de alimentos. O catálogo atual
